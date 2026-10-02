@@ -1,0 +1,214 @@
+@import "tailwindcss";
+
+/* ============================================================
+   부엉이서재 디자인 시스템 v2.2 (bueongi-seojae-design-tokens-v2.2.css)
+   - 색·라운드·글꼴은 이름 그대로 Tailwind 테마로 올려서 bg-navy, rounded-md, font-display 처럼 쓴다.
+   - 페이지 전체 다크모드는 쓰지 않는다(다크 표면은 컴포넌트 단위로만, dk-* 토큰).
+   - 앰버는 화면당 1번, 되돌리기 어려운 행동(책방 사이트로 나가기)에만.
+   ============================================================ */
+
+/* 제목용 글꼴: Cafe24 아네모네(영문명 Cafe24 Ohsquare), weight 400만 */
+@font-face {
+  font-family: "Cafe24Ohsquare";
+  src: url("https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/Cafe24Ohsquare.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme static {
+  /* 01. 표면 · 텍스트 */
+  --color-page: #ffffff;
+  --color-card: #ffffff;
+  --color-sub: #faf8f4;
+  --color-fill: #f2efe8;
+  --color-ink: #16181c; /* 제목/숫자 */
+  --color-ink-2: #4e545c; /* 본문 */
+  --color-ink-3: #6e7681; /* 메타/캡션, 12px까지만 */
+
+  /* 02. 브랜드 — 잉크 블루 */
+  --color-navy: #27354f;
+  --color-navy-hover: #354363;
+  --color-navy-active: #1b2540;
+  --color-navy-900: #121a2e;
+  --color-slate: #5a6b8c;
+
+  /* 03. 브랜드 — 꿀빛 앰버 (화면당 1회) */
+  --color-amber: #edb93a;
+  --color-amber-hover: #ce9a22;
+  --color-amber-edge: #b6871c;
+  --color-amber-active: #7a5810;
+  --color-amber-moon: #ffe082;
+  --color-amber-ink: #4f390a;
+
+  /* 04. 테두리 */
+  --color-border: #e2ddd4;
+  --color-border-card: #d7d1c6;
+  --color-border-control: #8e949e; /* 입력칸 */
+  --color-border-strong: #5a6b8c;
+
+  /* 05. 다크 표면 — 컴포넌트 단위 */
+  --color-dk-bg: #121a2e;
+  --color-dk-card: #1b2540;
+  --color-dk-sub: #27354f;
+  --color-dk-border: #354363;
+  --color-dk-ink: #eff1f4;
+  --color-dk-ink-2: #9ba7c4;
+
+  /* 06. 시맨틱 */
+  --color-success: #1f7a55;
+  --color-success-surface: #e8f3ee;
+  --color-success-border: #b7d9c9;
+  --color-success-dark: #7fd980;
+  --color-error: #b3271f;
+  --color-error-surface: #fbecea;
+  --color-error-border: #efc38e;
+  --color-error-dark: #f49a90;
+  --color-warning: #9a5b10;
+  --color-warning-surface: #fbf2e0;
+  --color-warning-border: #e8d3a2;
+  --color-warning-dark: #f0c46a;
+  --color-info: #2a5ca8;
+  --color-info-surface: #e9f0fa;
+  --color-info-border: #bfd2ed;
+  --color-info-dark: #92bcf0;
+
+  /* 08. 라운드 — 기능 영역(입력·버튼)은 lg를 넘기지 않음 */
+  --radius-xs: 4px; /* 입력, 태그 */
+  --radius-sm: 8px; /* 버튼 */
+  --radius-md: 12px; /* 카드 */
+  --radius-lg: 20px; /* 모달, 일러스트 컨테이너 */
+  --radius-full: 99px; /* 칩 */
+
+  /* 09. 글꼴 */
+  --font-display: "Cafe24Ohsquare", "Anemone", sans-serif;
+  --font-body: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: var(--font-body);
+
+  /* 09. 글자 크기 → text-h1, text-t2, text-l2 … (아래 :root 의 원본 토큰을 그대로 씀) */
+  --text-h1: var(--text-h1-size);
+  --text-h1--line-height: var(--text-h1-line);
+  --text-h1--letter-spacing: var(--text-h1-tracking);
+  --text-h2: var(--text-h2-size);
+  --text-h2--line-height: var(--text-h2-line);
+  --text-h2--letter-spacing: var(--text-h2-tracking);
+  --text-t1: var(--text-t1-size);
+  --text-t1--line-height: var(--text-t1-line);
+  --text-t1--font-weight: var(--text-t1-weight);
+  --text-t2: var(--text-t2-size);
+  --text-t2--line-height: var(--text-t2-line);
+  --text-t2--font-weight: var(--text-t2-weight);
+  --text-b1: var(--text-b1-size);
+  --text-b1--line-height: var(--text-b1-line);
+  --text-b2: var(--text-b2-size);
+  --text-b2--line-height: var(--text-b2-line);
+  --text-l1: var(--text-l1-size);
+  --text-l1--line-height: var(--text-l1-line);
+  --text-l1--font-weight: var(--text-l1-weight);
+  --text-l2: var(--text-l2-size);
+  --text-l2--line-height: var(--text-l2-line);
+  --text-l2--font-weight: var(--text-l2-weight);
+}
+
+:root {
+  /* 07. 일러스트 전용 (캐릭터 IP) — 텍스트·버튼·테두리에 사용 금지 */
+  --illustration-bark-ink: #4a3728;
+  --illustration-bark: #7a5c45;
+  --illustration-bark-light: #a98363;
+  --illustration-cream: #f5ede0;
+  --illustration-blush: #f6e0c8;
+
+  /* 09. 타이포 스케일 원본 (사용자 화면 기준. *-admin 값은 운영자 화면용) */
+  --text-h1-size: 36px;  --text-h1-line: 1.35;  --text-h1-tracking: -0.03em;
+  --text-h2-size: 28px;  --text-h2-line: 1.4;   --text-h2-tracking: -0.02em;
+  --text-t1-size: 20px;  --text-t1-size-admin: 22px;  --text-t1-line: 1.45; --text-t1-weight: 700;
+  --text-t2-size: 17px;  --text-t2-size-admin: 18px;  --text-t2-line: 1.45; --text-t2-weight: 700;
+  --text-b1-size: 16px;  --text-b1-size-admin: 18px;  --text-b1-line: 1.65; --text-b1-weight: 400;
+  --text-b2-size: 14px;  --text-b2-size-admin: 16px;  --text-b2-line: 1.6;  --text-b2-weight: 400;
+  --text-l1-size: 14px;  --text-l1-size-admin: 16px;
+  --text-l1-line: 1.25;  --text-l1-line-admin: 1.3;
+  --text-l1-weight: 500; --text-l1-weight-admin: 600;
+  --text-l2-size: 12px;  --text-l2-size-admin: 14px;
+  --text-l2-line: 1.3;   --text-l2-line-admin: 1.5;
+  --text-l2-weight: 500;
+
+  /* 10. 아이콘 */
+  --icon-grid: 24px;
+  --icon-stroke-width: 1.75px;
+  --icon-color-default: var(--color-ink-2);
+  --icon-color-active: var(--color-navy);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  font-synthesis: none;
+}
+
+/* 제목 글꼴은 weight 400 하나뿐 — 굵게 흉내 내지 않도록 */
+.font-display {
+  font-weight: 400;
+  font-synthesis: none;
+}
+
+/* 키보드로 이동할 때 지금 위치가 보이도록 (마우스·터치에는 나타나지 않음) */
+:focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 2px;
+}
+input:focus-visible {
+  outline-offset: 0;
+}
+
+/* 필터·달력을 누른 뒤 불러오는 동안 흐르는 막대 */
+.owl-loading {
+  animation: owl-loading 1s ease-in-out infinite;
+}
+@keyframes owl-loading {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .owl-loading {
+    animation: none;
+    width: 100%;
+    opacity: 0.6;
+  }
+}
+
+/* 아래에서 올라오는 필터 판(<dialog>) */
+.owl-sheet {
+  margin: auto auto 0;
+  width: 100%;
+  max-width: 36rem; /* 본문 폭(max-w-xl)과 같게 */
+  max-height: 85dvh;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.owl-sheet::backdrop {
+  background: rgb(18 26 46 / 0.45);
+}
+.owl-sheet[open] {
+  animation: owl-sheet-up 0.22s ease-out;
+}
+@keyframes owl-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+/* 판이 열려 있는 동안 뒤 화면이 따라 움직이지 않게 */
+html:has(.owl-sheet[open]) {
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .owl-sheet[open] {
+    animation: none;
+  }
+}
