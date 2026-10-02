@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "owl-web",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "NEXT_DIST_DIR=.next/preview npm run dev"
+      ],
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

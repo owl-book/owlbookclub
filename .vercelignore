@@ -1,0 +1,4 @@
+# Vercel 에 올릴 때 빼는 파일 (비밀 열쇠는 Vercel 환경변수로 따로 등록함)
+.env*
+!.env.example
+.claude
