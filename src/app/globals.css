@@ -203,6 +203,11 @@ input:focus-visible {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+/* 화면 아래 고정 띠(상세화면 신청 버튼)가 있으면 맨 끝의 푸터가 띠에 가려지지 않도록 띠 높이만큼 비워 둔다 */
+body:has(.owl-action-bar) {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+
 /* 판이 열려 있는 동안 뒤 화면이 따라 움직이지 않게 */
 html:has(.owl-sheet[open]) {
   overflow: hidden;

@@ -73,7 +73,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <p className="mt-2 text-b2 text-ink-2">
         {sp.reason === "wish"
           ? "로그인하면 방금 누른 찜이 바로 저장돼요."
-          : "로그인하면 모임·책방을 찜하고, 다녀온 모임을 나만 보는 기록으로 남길 수 있어요."}
+          : sp.reason === "plan"
+          ? "로그인하면 방금 신청한 모임이 내 모임에 바로 담겨요."
+          : "로그인하면 모임·책방을 찜하고, 신청한 모임 일정과 다녀온 모임 기록을 나만 보는 곳에 모아 둘 수 있어요."}
         <br />
         모임 둘러보기는 로그인 없이도 돼요.
       </p>

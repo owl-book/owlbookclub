@@ -7,6 +7,7 @@ import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { getProfile } from "@/lib/me";
 import { updateDisplayName, withdraw } from "@/lib/me-actions";
 import { PROVIDERS, isProviderId } from "@/lib/oauth";
+import { ArrowLeftIcon } from "@/components/ArrowLeftIcon";
 
 export const metadata: Metadata = { title: "내 정보", robots: { index: false } };
 
@@ -24,8 +25,9 @@ export default async function AccountPage({ searchParams }: PageProps<"/me/accou
 
   return (
     <div className="pt-2">
-      <Link href="/me" className="-ml-1 inline-flex min-h-11 items-center gap-1 px-1 text-l1 text-ink-2 hover:text-navy">
-        ← 마이페이지
+      <Link href="/me" className="-ml-1 inline-flex min-h-11 items-center gap-0.5 px-1 text-l1 text-ink-2 hover:text-navy">
+        <ArrowLeftIcon />
+        마이페이지
       </Link>
       <h1 className="mt-1 font-display text-h2 text-ink">내 정보</h1>
 

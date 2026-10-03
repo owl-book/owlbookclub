@@ -3,32 +3,41 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { MeetingList } from "@/components/MeetingList";
+import { PendingApplies } from "@/components/PendingApplies";
 import { WishButton } from "@/components/WishButton";
 import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import {
+  getClickedMeetingIds,
+  getMeetingsByIds,
+  getPendingApplies,
+  getPlans,
   getProfile,
   getRecords,
   getWishContext,
   getWishedMeetings,
   getWishedStores,
+  type Plan,
   type RecordWithMeeting,
   type WishedStore,
 } from "@/lib/me";
+import { setAttended } from "@/lib/me-actions";
 import { isPast, type Meeting } from "@/lib/meetings";
 import { PROVIDERS, isProviderId } from "@/lib/oauth";
-import { formatKst, formatKstDateOnly } from "@/lib/time";
+import { formatDateString, formatKst, formatKstDateOnly, formatKstTime, kstDayNumber } from "@/lib/time";
+import { getTrackContext } from "@/lib/tracking";
 
 export const metadata: Metadata = { title: "마이페이지", robots: { index: false } };
 
 const TABS = [
   { key: "meetings", label: "찜한 모임" },
   { key: "stores", label: "찜한 책방" },
-  { key: "records", label: "나의 기록" },
+  { key: "mine", label: "내 모임" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
-// '다녀오셨나요?' 안내는 지난 지 이 기간 안의 찜 모임만
+// '다녀오셨나요?' 안내: 신청 표시한 모임은 기간과 관계없이, 찜·신청 클릭만 한 모임은 지난 지 이 기간 안의 것만
 const ASK_DAYS = 60;
+const ASK_MAX = 5;
 
 export default async function MyPage({ searchParams }: PageProps<"/me">) {
   // 로그인 키 유무는 배포 환경에서 판단해야 하므로, 조립할 때 미리 만들어 두지 않고 방문할 때마다 그린다
@@ -38,7 +47,8 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
   if (!user) redirect("/login?next=/me");
 
   const sp = await searchParams;
-  const tab: TabKey = TABS.some((t) => t.key === sp.tab) ? (sp.tab as TabKey) : "meetings";
+  // 예전 주소(?tab=records)는 '내 모임'으로
+  const tab: TabKey = sp.tab === "records" ? "mine" : TABS.some((t) => t.key === sp.tab) ? (sp.tab as TabKey) : "meetings";
   const now = new Date();
 
   let profile: Awaited<ReturnType<typeof getProfile>>;
@@ -75,13 +85,73 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
     data = { meetings: [], stores: [], records: [] };
   }
   const wishes = await getWishContext();
+  const { visitorId } = await getTrackContext();
 
+  // 내 모임(신청 표시·다녀옴). 0009 설정문 실행 전이면 비어 있는 것으로 본다
+  let plans: Plan[] = [];
+  try {
+    plans = await getPlans(user.id);
+  } catch (e) {
+    console.error("[owl] plans load failed", e);
+  }
+  const planBy = new Map(plans.map((p) => [p.meetingId, p]));
   const recorded = new Set(data.records.map((r) => r.meetingId));
   const upcoming = data.meetings.filter((m) => !isPast(m, now));
   const pastWished = data.meetings.filter((m) => isPast(m, now)).reverse();
+
+  // 신청한 모임(다가오는 일정)
+  const appliedUpcoming = plans
+    .filter((p) => p.appliedAt && !isPast(p.meeting, now))
+    .map((p) => p.meeting)
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+
+  // 다녀온 모임: '다녀왔어요'를 눌렀거나 기록을 남긴 모임(기록이 있으면 함께 보여 준다)
+  const recordBy = new Map(data.records.map((r) => [r.meetingId, r]));
+  const wentIds = new Set([...plans.filter((p) => p.attended === "yes").map((p) => p.meetingId), ...recorded]);
+  const went = [...wentIds]
+    .map((id) => ({ meeting: recordBy.get(id)?.meeting ?? planBy.get(id)!.meeting, record: recordBy.get(id) ?? null }))
+    .sort((a, b) => b.meeting.startsAt.getTime() - a.meeting.startsAt.getTime());
+  // 못 간 모임: 목록에서는 빼고, 맨 아래 접힌 칸에서 되돌릴 수 있게 둔다
+  const missed = plans
+    .filter((p) => p.attended === "no" && !recorded.has(p.meetingId))
+    .map((p) => p.meeting)
+    .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
+
+  // 다녀오셨나요? 아직 확인하지 않은 지난 모임: 신청 표시 → 찜 → 신청 페이지만 열어 본 모임 순
   const askSince = now.getTime() - ASK_DAYS * 86400000;
-  const toAsk = pastWished.filter((m) => !recorded.has(m.id) && m.startsAt.getTime() >= askSince).slice(0, 3);
-  const counts: Record<TabKey, number> = { meetings: data.meetings.length, stores: data.stores.length, records: data.records.length };
+  const unanswered = (m: Meeting) => isPast(m, now) && !recorded.has(m.id) && !planBy.get(m.id)?.attended;
+  const askApplied = plans.filter((p) => p.appliedAt && unanswered(p.meeting)).map((p) => p.meeting);
+  const askWished = pastWished.filter((m) => unanswered(m) && m.startsAt.getTime() >= askSince);
+  let askClicked: Meeting[] = [];
+  try {
+    const clickedIds = await getClickedMeetingIds({ userId: user.id, visitorId }, new Date(askSince));
+    askClicked = (await getMeetingsByIds(clickedIds)).filter((m) => unanswered(m) && m.startsAt.getTime() >= askSince);
+  } catch (e) {
+    console.error("[owl] clicked meetings load failed", e);
+  }
+  const askSeen = new Set<number>();
+  const toAsk = [...askApplied.sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime()), ...askWished, ...askClicked]
+    .filter((m) => (askSeen.has(m.id) ? false : (askSeen.add(m.id), true)))
+    .slice(0, ASK_MAX);
+
+  // 신청하셨나요? 신청 페이지를 열어 본 뒤 표시를 놓친 다가오는 모임(내 모임 탭에서만)
+  let pendingItems: { id: number; title: string; storeName: string; when: string }[] = [];
+  if (tab === "mine") {
+    try {
+      const appliedIds = new Set(plans.filter((p) => p.appliedAt).map((p) => p.meetingId));
+      pendingItems = (await getPendingApplies({ userId: user.id, visitorId }, appliedIds, now)).map((m) => ({
+        id: m.id,
+        title: m.title,
+        storeName: m.store.name,
+        when: formatKst(m.startsAt),
+      }));
+    } catch (e) {
+      console.error("[owl] pending applies load failed", e);
+    }
+  }
+
+  const attendedMeeting = typeof sp.attended === "string" ? went.find((w) => String(w.meeting.id) === sp.attended)?.meeting : undefined;
+  const counts: Record<TabKey, number> = { meetings: data.meetings.length, stores: data.stores.length, mine: appliedUpcoming.length + went.length };
 
   const providerLabel = isProviderId(profile.provider) ? PROVIDERS[profile.provider].label : profile.provider;
   const name = profile.displayName || profile.nickname || "회원";
@@ -110,21 +180,36 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
 
       {/* 다녀오셨나요? */}
       {toAsk.length > 0 && (
-        <section aria-label="기록 안내" className="mt-4 rounded-md border border-info-border bg-info-surface p-4">
+        <section aria-label="다녀왔는지 확인" className="mt-4 rounded-md border border-info-border bg-info-surface p-4">
           <p className="text-t2 text-ink">다녀오셨나요?</p>
-          <p className="mt-0.5 text-b2 text-ink-2">찜한 모임이 지났어요. 기억이 생생할 때 남겨 두세요. 기록은 나만 볼 수 있어요.</p>
+          <p className="mt-0.5 text-b2 text-ink-2">모임 날짜가 지났어요. 다녀온 모임은 ‘내 모임’에 모아 두고, 기억이 생생할 때 기록도 남길 수 있어요.</p>
           <ul className="mt-3 space-y-2">
             {toAsk.map((m) => (
-              <li key={m.id}>
-                <Link href={`/me/records/${m.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-sm bg-card px-3 py-2.5 hover:bg-sub">
-                  <span className="min-w-0">
-                    <span className="block truncate text-l1 text-ink">{m.title}</span>
-                    <span className="mt-0.5 block text-l2 font-normal text-ink-3">
-                      {formatKstDateOnly(m.startsAt)} · {m.store.name}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-l1 text-navy">기록하기 →</span>
-                </Link>
+              <li key={m.id} className="rounded-sm bg-card px-3 py-2.5">
+                <span className="block truncate text-l1 text-ink">{m.title}</span>
+                <span className="mt-0.5 block text-l2 font-normal text-ink-3">
+                  {formatKstDateOnly(m.startsAt)} · {m.store.name}
+                  {planBy.get(m.id)?.appliedAt && " · 신청 표시한 모임"}
+                </span>
+                <form action={setAttended} className="mt-2 flex gap-2">
+                  <input type="hidden" name="meetingId" value={m.id} />
+                  <button
+                    type="submit"
+                    name="attended"
+                    value="no"
+                    className="min-h-11 flex-1 rounded-sm border border-border bg-card text-l1 text-ink-2 hover:bg-sub"
+                  >
+                    못 갔어요
+                  </button>
+                  <button
+                    type="submit"
+                    name="attended"
+                    value="yes"
+                    className="min-h-11 flex-[1.4] rounded-sm bg-navy text-l1 font-semibold text-white hover:bg-navy-hover"
+                  >
+                    다녀왔어요
+                  </button>
+                </form>
               </li>
             ))}
           </ul>
@@ -236,33 +321,119 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
             </ul>
           ))}
 
-        {tab === "records" && (
+        {tab === "mine" && (
           <>
             {sp.saved === "1" && <Notice>기록을 저장했어요.</Notice>}
-            <p className="mb-3 text-l2 font-normal text-ink-3">🔒 기록은 나만 볼 수 있어요. 책방이나 다른 사람에게 보이지 않아요.</p>
-            {data.records.length === 0 ? (
-              <Empty title="아직 남긴 기록이 없어요" body="지난 모임 상세 화면에서 ‘다녀왔어요 · 기록하기’를 누르면 여기에 모여요." />
+            {attendedMeeting && (
+              <Notice>
+                ‘{attendedMeeting.title}’을(를) 다녀온 모임에 담았어요.{" "}
+                <Link href={`/me/records/${attendedMeeting.id}`} className="font-semibold underline">
+                  지금 기록하기
+                </Link>
+              </Notice>
+            )}
+            {typeof sp.missed === "string" && (
+              <Notice>
+                <span className="flex flex-wrap items-center justify-between gap-x-3">
+                  <span>못 간 모임으로 표시했어요. 내 모임 목록에서는 빠져요.</span>
+                  <UndoAttended meetingId={Number(sp.missed)} label="되돌리기" />
+                </span>
+              </Notice>
+            )}
+            {sp.cleared === "1" && <Notice>표시를 되돌렸어요.</Notice>}
+
+            <p className="mb-4 text-l2 font-normal leading-normal text-ink-3">
+              🔒 내 모임과 기록은 나만 볼 수 있어요. 책방이나 다른 사람에게 보이지 않아요.
+              <br />
+              신청·취소·변경은 각 책방에서 해 주세요.
+            </p>
+
+            <PendingApplies items={pendingItems} loggedIn />
+
+            {appliedUpcoming.length === 0 && went.length === 0 ? (
+              <Empty
+                title="아직 담긴 모임이 없어요"
+                body="모임 상세에서 책방 신청을 마친 뒤 ‘책방에서 신청했어요’를 누르면 여기에 날짜순으로 모여요. 다녀온 뒤에는 나만 보는 기록도 남길 수 있어요."
+              />
             ) : (
-              <ul className="space-y-3">
-                {data.records.map((r) => (
-                  <li key={r.meetingId}>
-                    <Link href={`/me/records/${r.meetingId}`} className="block rounded-md border border-border-card bg-card p-4 hover:border-border-strong">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-l2 font-normal text-ink-3">
-                          {formatKstDateOnly(r.meeting.startsAt)} · {r.meeting.store.name}
+              <>
+                <section aria-labelledby="mine-upcoming">
+                  <h2 id="mine-upcoming" className="mb-2 flex items-baseline justify-between text-l1 font-semibold text-ink-2">
+                    신청한 모임 <span className="text-l2 font-normal text-ink-3">{appliedUpcoming.length}</span>
+                  </h2>
+                  {appliedUpcoming.length === 0 ? (
+                    <p className="rounded-sm bg-sub px-3 py-2.5 text-b2 text-ink-2">다가오는 신청 모임이 없어요. 모임 상세에서 ‘책방에서 신청했어요’를 누르면 여기에 모여요.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {appliedUpcoming.map((m) => (
+                        <li key={m.id}>
+                          <PlanCard meeting={m} now={now} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {appliedUpcoming.length > 0 && (
+                    <p className="mt-2 text-l2 font-normal leading-normal text-ink-3">일정은 부엉이서재가 마지막으로 확인한 정보예요. 정확한 일정은 책방 공지를 기준으로 확인해 주세요.</p>
+                  )}
+                </section>
+
+                {went.length > 0 && (
+                  <section aria-labelledby="mine-went" className="mt-8">
+                    <h2 id="mine-went" className="mb-2 flex items-baseline justify-between text-l1 font-semibold text-ink-2">
+                      다녀온 모임 <span className="text-l2 font-normal text-ink-3">{went.length}</span>
+                    </h2>
+                    <ul className="space-y-3">
+                      {went.map(({ meeting: m, record: r }) => (
+                        <li key={m.id}>
+                          <Link href={`/me/records/${m.id}`} className="block rounded-md border border-border-card bg-card p-4 hover:border-border-strong">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-l2 font-normal text-ink-3">
+                                {formatKstDateOnly(m.startsAt)} · {m.store.name}
+                              </span>
+                              {r?.rating ? <Stars value={r.rating} /> : !r && <span className="shrink-0 text-l1 text-navy">기록하기</span>}
+                            </div>
+                            <p className="mt-1.5 text-t2 text-ink">{m.title}</p>
+                            {m.bookTitle && (
+                              <p className="mt-0.5 text-b2 text-ink-2">
+                                『{m.bookTitle}』{m.bookAuthor && ` ${m.bookAuthor}`}
+                              </p>
+                            )}
+                            {r?.quote && (
+                              <blockquote className="mt-3 line-clamp-3 border-l-2 border-border-strong pl-3 text-b2 text-ink-2">{r.quote}</blockquote>
+                            )}
+                            {r?.memo && <p className="mt-2 line-clamp-2 whitespace-pre-line text-b2 text-ink-2">{r.memo}</p>}
+                          </Link>
+                          {/* 기록 없이 '다녀왔어요'만 누른 모임은 표시를 되돌릴 수 있다(기록이 있으면 기록 화면에서 지운다) */}
+                          {!r && (
+                            <div className="mt-1 flex justify-end">
+                              <UndoAttended meetingId={m.id} label="다녀온 표시 취소" />
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+              </>
+            )}
+
+            {missed.length > 0 && (
+              <details className="mt-8 rounded-md border border-border bg-sub px-4 py-1">
+                <summary className="flex min-h-11 cursor-pointer items-center text-l1 text-ink-2">못 간 모임 {missed.length}</summary>
+                <ul className="divide-y divide-border pb-2">
+                  {missed.map((m) => (
+                    <li key={m.id} className="flex items-center justify-between gap-3 py-2">
+                      <span className="min-w-0">
+                        <span className="block truncate text-l1 text-ink">{m.title}</span>
+                        <span className="mt-0.5 block text-l2 font-normal text-ink-3">
+                          {formatKstDateOnly(m.startsAt)} · {m.store.name}
                         </span>
-                        {r.rating && <Stars value={r.rating} />}
-                      </div>
-                      <p className="mt-1.5 text-t2 text-ink">{r.meeting.title}</p>
-                      {r.meeting.bookTitle && <p className="mt-0.5 text-b2 text-ink-2">『{r.meeting.bookTitle}』</p>}
-                      {r.quote && (
-                        <blockquote className="mt-3 line-clamp-3 border-l-2 border-border-strong pl-3 text-b2 text-ink-2">{r.quote}</blockquote>
-                      )}
-                      {r.memo && <p className="mt-2 line-clamp-2 whitespace-pre-line text-b2 text-ink-2">{r.memo}</p>}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+                      </span>
+                      <UndoAttended meetingId={m.id} label="되돌리기" />
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
           </>
         )}
@@ -290,9 +461,9 @@ function LogoutButton() {
 
 function Notice({ children }: { children: React.ReactNode }) {
   return (
-    <p role="status" className="mb-4 rounded-xs border border-success-border bg-success-surface px-3 py-2.5 text-b2 text-success">
+    <div role="status" className="mb-4 rounded-xs border border-success-border bg-success-surface px-3 py-2.5 text-b2 text-success">
       {children}
-    </p>
+    </div>
   );
 }
 
@@ -311,5 +482,56 @@ function Stars({ value }: { value: number }) {
       {"★".repeat(value)}
       <span className="text-border-card">{"★".repeat(5 - value)}</span>
     </span>
+  );
+}
+
+// 신청한 모임 카드: 날짜 칸 + 제목·책방·시간 + D-day.
+// 게재를 내린 책방의 모임은 상세 화면이 없으므로 링크 없이 글자로만 보여 준다.
+function PlanCard({ meeting: m, now }: { meeting: Meeting; now: Date }) {
+  const d = new Date(m.startsAt.getTime() + 9 * 3600000);
+  const days = kstDayNumber(m.startsAt) - kstDayNumber(now);
+  const dday = days === 0 ? "오늘" : days === 1 ? "내일" : `D-${days}`;
+  const body = (
+    <div className="flex gap-3">
+      <div className="flex w-12 shrink-0 flex-col items-center justify-center rounded-sm bg-fill py-1.5">
+        <span className="font-display text-t1 leading-none text-navy">{d.getUTCDate()}</span>
+        <span className="mt-1 text-l2 text-ink-3">{d.getUTCMonth() + 1}월</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-l1 font-semibold text-ink">{m.title}</p>
+        <p className="mt-0.5 text-l2 font-normal text-ink-3">
+          {formatKstDateOnly(m.startsAt)} {formatKstTime(m.startsAt)} · {m.store.name}
+        </p>
+        <p className="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <span className="rounded-xs border border-info-border bg-info-surface px-1.5 text-l2 text-navy">{dday}</span>
+          {m.status === "closed" && <span className="rounded-xs bg-fill px-1.5 text-l2 text-ink-2">신청 마감</span>}
+          {m.hidden ? (
+            <span className="text-l2 font-normal text-ink-3">게재가 내려간 모임이에요</span>
+          ) : (
+            <span className="text-l2 font-normal text-ink-3">{formatDateString(m.lastCheckedAt)} 확인</span>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+  return m.hidden ? (
+    <div className="rounded-md border border-border-card bg-sub p-3">{body}</div>
+  ) : (
+    <Link href={`/m/${m.id}`} className="block rounded-md border border-border-card bg-card p-3 hover:border-border-strong">
+      {body}
+    </Link>
+  );
+}
+
+// '다녀왔어요'·'못 갔어요' 표시를 확인 전 상태로 되돌린다
+function UndoAttended({ meetingId, label }: { meetingId: number; label: string }) {
+  if (!Number.isSafeInteger(meetingId) || meetingId <= 0) return null;
+  return (
+    <form action={setAttended}>
+      <input type="hidden" name="meetingId" value={meetingId} />
+      <button type="submit" name="attended" value="clear" className="inline-flex min-h-11 shrink-0 items-center px-1 text-l2 text-ink-2 underline hover:text-navy">
+        {label}
+      </button>
+    </form>
   );
 }

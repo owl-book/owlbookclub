@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { AUTH_COOKIE, LOGIN_MAX_AGE, signValue } from "@/lib/auth-shared";
 import { LOGIN_COOKIE_OPTIONS, getCurrentUser, isAuthEnabled } from "@/lib/auth";
-import { getMeetingForRecord, saveWish } from "@/lib/me";
+import { getMeetingForRecord, savePlan, saveWish } from "@/lib/me";
 import { isPast } from "@/lib/meetings";
 import { logEvent } from "@/lib/tracking";
 
@@ -34,6 +34,34 @@ export async function setWish(kind: "meeting" | "store", rawId: number, on: bool
   // 목록·상세·마이페이지에 보이는 하트를 모두 새로 그리도록
   revalidatePath("/", "layout");
   return on;
+}
+
+// '책방에서 신청했어요' 표시·취소. 신청 자체는 책방에서 하고, 여기서는 본인 일정에 담기만 한다.
+// 이미 지난 모임은 신청 표시 대신 '다녀왔어요'를 쓴다.
+export async function setApplied(rawId: number, on: boolean): Promise<boolean> {
+  const user = await requireUser();
+  const id = toId(rawId);
+  if (!id) throw new Error("잘못된 요청입니다.");
+  if (on) {
+    const meeting = await getMeetingForRecord(id);
+    if (!meeting || meeting.hidden || isPast(meeting)) throw new Error("신청 표시를 할 수 없는 모임입니다.");
+  }
+  await savePlan(user.id, id, { apply: on });
+  revalidatePath("/", "layout");
+  return on;
+}
+
+// 모임 뒤 확인: 다녀왔어요 / 못 갔어요 / 되돌리기(clear → 다시 '다녀오셨나요?'로)
+export async function setAttended(formData: FormData) {
+  const user = await requireUser();
+  const meetingId = toId(formData.get("meetingId"));
+  const value = formData.get("attended");
+  if (!meetingId || (value !== "yes" && value !== "no" && value !== "clear")) throw new Error("잘못된 요청입니다.");
+  const meeting = await getMeetingForRecord(meetingId);
+  if (!meeting || !isPast(meeting)) redirect("/me?tab=mine");
+  await savePlan(user.id, meetingId, { attended: value === "clear" ? null : value });
+  revalidatePath("/", "layout");
+  redirect(value === "yes" ? `/me?tab=mine&attended=${meetingId}` : value === "no" ? `/me?tab=mine&missed=${meetingId}` : "/me?tab=mine&cleared=1");
 }
 
 function clean(v: FormDataEntryValue | null, max: number): string | null {
@@ -66,7 +94,7 @@ export async function saveRecord(formData: FormData) {
   await logEvent({ type: "record", userId: user.id, meetingId, storeId: meeting.store.id, props: { action: "save" } });
 
   revalidatePath("/", "layout");
-  redirect("/me?tab=records&saved=1");
+  redirect("/me?tab=mine&saved=1");
 }
 
 export async function deleteRecord(formData: FormData) {
@@ -76,7 +104,7 @@ export async function deleteRecord(formData: FormData) {
   const { error } = await db().from("meeting_records").delete().eq("user_id", user.id).eq("meeting_id", meetingId);
   if (error) throw new Error(`기록 삭제 실패: ${error.message}`);
   revalidatePath("/", "layout");
-  redirect("/me?tab=records");
+  redirect("/me?tab=mine");
 }
 
 export async function updateDisplayName(formData: FormData) {

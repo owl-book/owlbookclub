@@ -9,7 +9,14 @@ type Props = {
   wished: boolean;
   loggedIn: boolean;
   label: string; // 화면 읽기 프로그램용: 모임 제목 또는 책방 이름
-  size?: "md" | "sm";
+  size?: "md" | "sm" | "bar"; // bar: 상세화면 아래 고정 띠에서 신청 버튼 옆에 놓는 네모 버튼
+};
+
+const SHAPES = {
+  md: "size-11 rounded-full hover:bg-sub",
+  // 보이는 원은 36px, 누르는 영역은 투명한 가장자리를 더해 44px
+  sm: "size-9 rounded-full hover:bg-sub before:absolute before:-inset-1 before:content-['']",
+  bar: "size-12 rounded-sm border border-border-card bg-card hover:bg-sub",
 };
 
 // 찜 하트. 로그인 전에는 /wish 링크(로그인 → 찜 완료 → 원래 화면), 로그인 후에는 누르는 즉시 바뀌고 서버에 저장한다.
@@ -26,8 +33,7 @@ export function WishButton({ kind, id, wished, loggedIn, label, size = "md" }: P
   }
 
   const what = kind === "meeting" ? "모임" : "책방";
-  const box = size === "sm" ? "size-9" : "size-11";
-  const className = `relative z-10 inline-flex ${box} shrink-0 items-center justify-center rounded-full hover:bg-sub active:scale-95`;
+  const className = `relative z-10 inline-flex ${SHAPES[size]} shrink-0 items-center justify-center active:scale-95`;
 
   if (!loggedIn) {
     return (

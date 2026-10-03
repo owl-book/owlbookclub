@@ -32,7 +32,7 @@ export async function MeetingCard({ meeting: m, now, wish }: { meeting: Meeting;
         <h3 className="mt-1.5 text-t2 text-ink">{m.title}</h3>
         {m.bookTitle && (
           <p className="mt-1 text-b2 text-ink-2">
-            『{m.bookTitle}』{m.bookAuthor && <span className="text-ink-3"> · {m.bookAuthor}</span>}
+            『{m.bookTitle}』{m.bookAuthor && ` ${m.bookAuthor}`}
           </p>
         )}
         <p className="mt-0.5 text-b2 text-ink-3">

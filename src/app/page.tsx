@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FilterBar } from "@/components/FilterBar";
 import { MeetingList } from "@/components/MeetingList";
+import { PendingApplies } from "@/components/PendingApplies";
 import { getWishContext } from "@/lib/me";
 import { countByDay, filterMeetings, getRecentPastMeetings, getUpcomingMeetings, matchesChoices, matchesQuery, type Choices } from "@/lib/meetings";
 import { isGuOf, isSido } from "@/lib/regions";
@@ -55,6 +56,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </h1>
         <p className="mt-2 text-b2 text-ink-2">서울·경기 동네책방 모임을 고르면 책방 신청 페이지로 바로 연결해 드립니다.</p>
       </section>
+
+      {/* 신청 페이지를 열고 돌아오지 않아 표시를 놓친 모임을 한 번 더 묻는다(로그인 기능이 켜져 있을 때만) */}
+      {wishes.enabled && <PendingApplies />}
 
       <FilterBar date={date} q={q} day={day} choices={choices} today={today} counts={counts} lastDay={lastDay} resultCount={results.length} summary={summary} />
 

@@ -8,6 +8,7 @@ import { getMeetingForRecord, getRecord } from "@/lib/me";
 import { deleteRecord, saveRecord } from "@/lib/me-actions";
 import { isPast } from "@/lib/meetings";
 import { formatKst } from "@/lib/time";
+import { ArrowLeftIcon } from "@/components/ArrowLeftIcon";
 
 export const metadata: Metadata = { title: "모임 기록", robots: { index: false } };
 
@@ -26,19 +27,39 @@ export default async function RecordPage({ params }: PageProps<"/me/records/[mee
 
   return (
     <div className="pt-2">
-      <Link href="/me?tab=records" className="-ml-1 inline-flex min-h-11 items-center gap-1 px-1 text-l1 text-ink-2 hover:text-navy">
-        ← 마이페이지
+      <Link href="/me?tab=mine" className="-ml-1 inline-flex min-h-11 items-center gap-0.5 px-1 text-l1 text-ink-2 hover:text-navy">
+        <ArrowLeftIcon />
+        마이페이지
       </Link>
 
       <h1 className="mt-1 font-display text-h2 text-ink">{record ? "내 모임 기록" : "모임 기록하기"}</h1>
 
-      <Link href={`/m/${meeting.id}`} className="mt-4 block rounded-md border border-border-card bg-sub p-4 hover:border-border-strong">
+      {/* 게재가 내려간 책방의 모임은 상세 화면이 없으므로 링크 없이 보여 준다 */}
+      {meeting.hidden ? (
+        <div className="mt-4 rounded-md border border-border-card bg-sub p-4">
         <p className="text-l2 font-normal text-ink-3">
           {formatKst(meeting.startsAt)} · {meeting.store.name}
         </p>
         <p className="mt-1 text-t2 text-ink">{meeting.title}</p>
-        {meeting.bookTitle && <p className="mt-0.5 text-b2 text-ink-2">『{meeting.bookTitle}』</p>}
+        {meeting.bookTitle && (
+          <p className="mt-0.5 text-b2 text-ink-2">
+            『{meeting.bookTitle}』{meeting.bookAuthor && ` ${meeting.bookAuthor}`}
+          </p>
+        )}
+      </div>
+      ) : (
+        <Link href={`/m/${meeting.id}`} className="mt-4 block rounded-md border border-border-card bg-sub p-4 hover:border-border-strong">
+        <p className="text-l2 font-normal text-ink-3">
+          {formatKst(meeting.startsAt)} · {meeting.store.name}
+        </p>
+        <p className="mt-1 text-t2 text-ink">{meeting.title}</p>
+        {meeting.bookTitle && (
+          <p className="mt-0.5 text-b2 text-ink-2">
+            『{meeting.bookTitle}』{meeting.bookAuthor && ` ${meeting.bookAuthor}`}
+          </p>
+        )}
       </Link>
+      )}
 
       {!isPast(meeting) ? (
         <div className="mt-6 rounded-md border border-dashed border-border-card bg-sub px-4 py-6 text-center">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { rememberApplyLeave } from "@/lib/plan-client";
 
 const HIDE_KEY = "owl_hide_apply_notice";
 const OWL_WORD = "부엉이";
@@ -15,7 +16,9 @@ function readHidden(): boolean {
 
 // 신청 버튼: 누르면 '부엉이' 안내 → 책방 사이트로 이동(같은 탭. 인앱 브라우저에서 새 탭은 잘 막힘)
 // JS 가 없어도 <a href="/go/{id}"> 로 동작한다.
-export function ApplyButton({ meetingId, storeName }: { meetingId: number; storeName: string }) {
+// 나가기 직전에 모임 번호를 남겨 두면, 돌아왔을 때 상세 화면이 '신청하셨나요?'를 한 번 묻는다(PlanMark).
+// canSave: 로그인 기능이 켜져 있어 '내 모임'에 담을 수 있을 때만 그 안내 문구를 보여 준다.
+export function ApplyButton({ meetingId, storeName, canSave = false }: { meetingId: number; storeName: string; canSave?: boolean }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [dontShow, setDontShow] = useState(false);
@@ -35,6 +38,7 @@ export function ApplyButton({ meetingId, storeName }: { meetingId: number; store
         localStorage.setItem(HIDE_KEY, "1");
       } catch {}
     }
+    rememberApplyLeave(meetingId);
     // /go 는 외부 사이트로 보내는 리다이렉트라 라우터 이동이 아닌 전체 이동이 맞다
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = href;
@@ -62,14 +66,17 @@ export function ApplyButton({ meetingId, storeName }: { meetingId: number; store
       <a
         href={href}
         onClick={(e) => {
-          if (readHidden()) return;
+          if (readHidden()) {
+            rememberApplyLeave(meetingId);
+            return;
+          }
           e.preventDefault();
           setCopied(false);
           setOpen(true);
         }}
-        className="block w-full rounded-sm border border-amber-edge bg-amber py-3.5 text-center text-t2 text-amber-ink hover:bg-amber-hover active:bg-amber-active active:text-white"
+        className="flex min-h-12 flex-1 items-center justify-center rounded-sm border border-amber-edge bg-amber px-3 text-center text-t2 text-amber-ink hover:bg-amber-hover active:bg-amber-active active:text-white"
       >
-        책방 신청 페이지로 가기 ↗
+        책방에서 신청하기 ↗
       </a>
 
       {open && (
@@ -96,6 +103,7 @@ export function ApplyButton({ meetingId, storeName }: { meetingId: number; store
             <div className="mt-4 rounded-md bg-sub px-3 py-2.5 text-b2 text-ink-2">
               <strong className="text-ink">{storeName}</strong>의 신청 페이지(외부 사이트)로 이동합니다. 신청과 결제는 책방에서
               진행되며, 정확한 내용·마감 여부도 그 페이지가 기준입니다.
+              {canSave && <span className="mt-1.5 block">신청을 마치고 이 화면으로 돌아오면 ‘내 모임’ 일정에 담을 수 있어요.</span>}
             </div>
 
             <label className="mt-4 flex min-h-11 items-center gap-2 text-b2 text-ink-2">

@@ -11,7 +11,7 @@ export function ReportLink({ meetingId, storeId, title }: { meetingId: number; s
     <a
       href={href}
       onClick={() => track("report_click", { meetingId, storeId })}
-      className="min-h-11 flex-1 rounded-sm border border-border bg-card py-3 text-center text-l1 font-semibold text-ink-2 hover:bg-sub"
+      className="inline-flex min-h-11 items-center px-2 text-l2 text-ink-3 underline underline-offset-2 hover:text-navy"
     >
       정보 오류·마감 신고
     </a>

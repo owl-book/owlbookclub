@@ -84,7 +84,8 @@ export async function getWishedMeetings(userId: string): Promise<Meeting[]> {
     .eq("meeting.store.is_blocked", false)
     .limit(300);
   if (error) throw new Error(error.message);
-  return (data as unknown as { meeting: MeetingRow }[]).map((r) => meetingFromRow(r.meeting)).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+  // 숨긴 모임은 찜 목록에서도 뺀다(상세 화면이 없으므로)
+  return (data as unknown as { meeting: MeetingRow }[]).map((r) => meetingFromRow(r.meeting)).filter((m) => !m.hidden).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
 }
 
 export async function getWishedStores(userId: string, now = new Date()): Promise<WishedStore[]> {
@@ -108,7 +109,7 @@ export async function getWishedStores(userId: string, now = new Date()): Promise
     .order("starts_at", { ascending: true })
     .limit(300);
   if (mErr) throw new Error(mErr.message);
-  const upcoming = (rows as unknown as MeetingRow[]).map(meetingFromRow);
+  const upcoming = (rows as unknown as MeetingRow[]).map(meetingFromRow).filter((m) => !m.hidden);
   return stores.map((s) => ({
     id: s.id,
     name: s.name,
@@ -181,4 +182,144 @@ export async function saveWish(userId: string, kind: "meeting" | "store", id: nu
     storeId,
     props: { target: kind, on },
   });
+}
+
+// ─────────────────────────────────────────────
+// 내 모임: 찜 → 책방에서 신청했어요 → 다녀왔어요(또는 못 갔어요)
+// 부엉이서재는 신청을 받지 않는다. 여기 남는 것은 '본인이 책방에서 신청했다고 표시한 사실'뿐이고, 본인만 본다.
+// ─────────────────────────────────────────────
+
+export type Attended = "yes" | "no";
+
+export type PlanState = { appliedAt: Date | null; attended: Attended | null };
+export type Plan = PlanState & { meetingId: number; meeting: Meeting };
+
+const PLAN_SELECT = "meeting_id, applied_at, attended";
+type PlanRow = { meeting_id: number; applied_at: string | null; attended: Attended | null };
+
+function planStateFromRow(r: PlanRow): PlanState {
+  return { appliedAt: r.applied_at ? new Date(r.applied_at) : null, attended: r.attended };
+}
+
+// 게재를 내린 책방의 모임도 본인에게는 계속 보여 준다(화면에서는 글자로만)
+export async function getPlans(userId: string): Promise<Plan[]> {
+  const { data, error } = await db()
+    .from("meeting_plans")
+    .select(`${PLAN_SELECT}, meeting:meetings!inner(${MEETING_SELECT})`)
+    .eq("user_id", userId)
+    .limit(500);
+  if (error) throw new Error(error.message);
+  return (data as unknown as (PlanRow & { meeting: MeetingRow })[]).map((r) => ({
+    meetingId: r.meeting_id,
+    ...planStateFromRow(r),
+    meeting: meetingFromRow(r.meeting),
+  }));
+}
+
+export async function getPlan(userId: string, meetingId: number): Promise<PlanState | null> {
+  const { data, error } = await db().from("meeting_plans").select(PLAN_SELECT).eq("user_id", userId).eq("meeting_id", meetingId).maybeSingle();
+  if (error) {
+    // 0009 설정문 실행 전에도 상세 화면은 떠야 한다
+    console.error("[owl] plan read failed", error.message);
+    return null;
+  }
+  return data ? planStateFromRow(data as PlanRow) : null;
+}
+
+// 내 모임 저장. 회원 번호를 직접 받으므로 서버 안에서만 부른다(화면 동작 me-actions, 로그인 직후 표시 완료 /plan)
+// - apply: true 면 신청 표시(이미 있으면 처음 시각 유지), false 면 표시 취소
+// - attended: 모임 뒤 확인. 다녀왔어요는 신청 표시가 없어도 남길 수 있고, null 이면 확인 전으로 되돌린다
+export async function savePlan(
+  userId: string,
+  meetingId: number,
+  patch: { apply?: boolean; attended?: Attended | null },
+) {
+  const { data: m } = await db().from("meetings").select("store_id").eq("id", meetingId).maybeSingle();
+  if (!m) throw new Error("모임을 찾을 수 없습니다.");
+  const current = await getPlan(userId, meetingId);
+  const next: PlanState = {
+    appliedAt: patch.apply === undefined ? (current?.appliedAt ?? null) : patch.apply ? (current?.appliedAt ?? new Date()) : null,
+    attended: patch.attended !== undefined ? patch.attended : (current?.attended ?? null),
+  };
+
+  // 남길 것이 하나도 없으면 줄을 지운다
+  const { error } =
+    !next.appliedAt && !next.attended
+      ? await db().from("meeting_plans").delete().eq("user_id", userId).eq("meeting_id", meetingId)
+      : await db().from("meeting_plans").upsert(
+          {
+            user_id: userId,
+            meeting_id: meetingId,
+            applied_at: next.appliedAt?.toISOString() ?? null,
+            attended: next.attended,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,meeting_id" },
+        );
+  if (error) throw new Error(`내 모임 저장 실패: ${error.message}`);
+
+  const action =
+    patch.apply === true
+      ? "apply"
+      : patch.apply === false
+        ? "unapply"
+        : patch.attended === "yes"
+          ? "attend_yes"
+          : patch.attended === "no"
+            ? "attend_no"
+            : "attend_clear";
+  await logEvent({
+    type: "plan",
+    userId,
+    meetingId,
+    storeId: m.store_id,
+    props: { action },
+  });
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// 이 사람(로그인 회원 또는 이 기기)이 최근 신청 페이지를 열어 본 모임 번호. 신청 표시를 놓친 모임을 다시 묻는 데 쓴다.
+export async function getClickedMeetingIds(who: { userId: string | null; visitorId: string | null }, since: Date): Promise<number[]> {
+  const conds: string[] = [];
+  if (who.userId && UUID_RE.test(who.userId)) conds.push(`user_id.eq.${who.userId}`);
+  if (who.visitorId && UUID_RE.test(who.visitorId)) conds.push(`visitor_id.eq.${who.visitorId}`);
+  if (conds.length === 0) return [];
+  const { data, error } = await db()
+    .from("events")
+    .select("meeting_id")
+    .eq("type", "apply_click")
+    .gte("created_at", since.toISOString())
+    .not("meeting_id", "is", null)
+    .or(conds.join(","))
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) {
+    console.error("[owl] clicked meetings read failed", error.message);
+    return [];
+  }
+  return [...new Set((data ?? []).map((r) => r.meeting_id as number))];
+}
+
+export async function getMeetingsByIds(ids: number[]): Promise<Meeting[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await db().from("meetings").select(MEETING_SELECT).in("id", ids.slice(0, 100));
+  if (error) throw new Error(error.message);
+  return (data as unknown as MeetingRow[]).map(meetingFromRow);
+}
+
+// '신청하셨나요?' 후보: 최근 14일 안에 신청 페이지를 열었고, 아직 열리지 않았고, 신청 표시가 없는 모임(최대 3개)
+export const PENDING_CLICK_DAYS = 14;
+
+export async function getPendingApplies(
+  who: { userId: string | null; visitorId: string | null },
+  appliedIds: Set<number>,
+  now = new Date(),
+): Promise<Meeting[]> {
+  const ids = await getClickedMeetingIds(who, new Date(now.getTime() - PENDING_CLICK_DAYS * 86400000));
+  const meetings = await getMeetingsByIds(ids.filter((id) => !appliedIds.has(id)));
+  return meetings
+    .filter((m) => !m.hidden && m.startsAt.getTime() >= now.getTime())
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
+    .slice(0, 3);
 }
