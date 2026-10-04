@@ -73,7 +73,8 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
     if (internalParam === "0") response.cookies.delete(COOKIE.internal);
   }
 
-  const isPageLoad = request.method === "GET" && !isPrefetch && !isRsc && !pathname.startsWith("/api");
+  // 관리자 화면은 방문 통계에 넣지 않는다
+  const isPageLoad = request.method === "GET" && !isPrefetch && !isRsc && !pathname.startsWith("/api") && !pathname.startsWith("/admin");
   if (newSession && isPageLoad) {
     event.waitUntil(logVisit({ vid, sid, userCookie: request.cookies.get(AUTH_COOKIE.user)?.value, utm, internal, isBot, ua, path: pathname, referrer: request.headers.get("referer") }));
   }

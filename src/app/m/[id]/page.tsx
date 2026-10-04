@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApplyButton } from "@/components/ApplyButton";
 import { BackLink } from "@/components/BackLink";
-import { ReportLink } from "@/components/ReportLink";
+import { ReportSheet } from "@/components/ReportSheet";
 import { ShareButton } from "@/components/ShareButton";
 import { StickyActionBar } from "@/components/StickyActionBar";
 import { MoreText } from "@/components/MoreText";
@@ -144,10 +144,14 @@ export default async function MeetingPage({ params, searchParams }: PageProps<"/
       )}
 
       {/* 신뢰 신호 */}
-      <p className="mt-3 rounded-md bg-sub px-3 py-2.5 text-l2 font-normal leading-normal text-ink-2">
-        부엉이서재가 <strong className="text-ink">{formatDateString(m.lastCheckedAt)}</strong>에 마지막으로 확인한 정보입니다.
-        정확한 내용·마감 여부는 책방 신청 페이지를 기준으로 확인해 주시기 바랍니다.
-      </p>
+      {/* 신뢰 신호 + 정보 오류·마감 알려주기: '언제 확인한 정보인지' 바로 옆에서 '다른 점이 있는지' 묻는다(지난 모임은 받지 않음) */}
+      <div className="mt-3 rounded-md bg-sub px-3 py-2.5 text-l2 font-normal leading-normal text-ink-2">
+        <p>
+          부엉이서재가 <strong className="text-ink">{formatDateString(m.lastCheckedAt)}</strong>에 마지막으로 확인한 정보입니다.
+          정확한 내용·마감 여부는 책방 신청 페이지를 기준으로 확인해 주시기 바랍니다.
+        </p>
+        {!past && <ReportSheet meetingId={m.id} storeId={m.store.id} closed={closed} />}
+      </div>
 
       {!past && wishes.enabled && <PlanMark meetingId={m.id} storeName={m.store.name} loggedIn={loggedIn} applied={Boolean(plan?.appliedAt)} />}
 
@@ -157,10 +161,6 @@ export default async function MeetingPage({ params, searchParams }: PageProps<"/
           <span className="mt-0.5 text-l2 font-normal text-ink-2">정확한 내용은 책방 {postPlace(m.postUrl)}에서 확인해 주세요</span>
         </a>
       )}
-
-      <div className={`${m.postUrl ? "mt-2" : "mt-4"} flex justify-center`}>
-        <ReportLink meetingId={m.id} storeId={m.store.id} title={m.title} />
-      </div>
 
       {/* 신청(또는 기록) 버튼은 스크롤과 상관없이 화면 아래에 붙어 있다. 앰버 버튼은 이 한 번만 쓴다 */}
       <StickyActionBar>
