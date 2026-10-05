@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
+import { NavProgress } from "@/components/NavProgress";
 import { hasAladinKey } from "@/lib/books";
 import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { HeaderAccount } from "@/components/HeaderAccount";
@@ -9,12 +11,12 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: { default: "부엉이서재 · 동네책방 독서모임 한눈에", template: "%s · 부엉이서재" },
+  title: { default: "부엉이들의 서재 · 동네책방에서 열리는 독서모임 모아보기", template: "%s · 부엉이들의 서재" },
   description: "흩어진 동네책방 독서모임을 날짜별로 모아 보고, 책방 신청 페이지로 바로 연결합니다.",
   openGraph: {
-    title: "부엉이서재 · 동네책방 독서모임 한눈에",
+    title: "부엉이들의 서재 · 동네책방에서 열리는 독서모임 모아보기",
     description: "흩어진 동네책방 독서모임을 날짜별로 모아 보고, 책방 신청 페이지로 바로 연결합니다.",
-    siteName: "부엉이서재",
+    siteName: "부엉이들의 서재",
     locale: "ko_KR",
     type: "website",
   },
@@ -43,15 +45,18 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           {/* 높이 h-14 고정: 목록의 날짜 제목이 이 아래(top-14)에 붙는다 */}
           <div className="mx-auto flex h-14 max-w-xl items-center justify-between px-4">
             <Link href="/" className="flex min-h-11 items-center gap-1.5 font-display text-t1 text-page focus-visible:outline-page">
-              <span aria-hidden>🦉</span> 부엉이서재
+              <span aria-hidden>🦉</span> 부엉이들의 서재
             </Link>
             {authEnabled && <HeaderAccount user={user} />}
           </div>
+          <Suspense>
+            <NavProgress />
+          </Suspense>
         </header>
         <main className="mx-auto w-full max-w-xl flex-1 px-4 pb-16">{children}</main>
         <footer className="border-t border-border bg-sub py-6 text-l2 font-normal leading-normal text-ink-3">
           <div className="mx-auto flex max-w-xl flex-col gap-2 px-4">
-            <p>부엉이서재는 모임 정보를 모아 책방 신청 페이지로 연결합니다. 신청·결제는 각 책방에서 진행됩니다.</p>
+            <p>이곳은 모임 소식을 모아 둔 게시판이에요. 신청과 결제는 각 책방에서 해 주세요.</p>
             <p>
               게재 삭제·수정을 원하시는 책방은{" "}
               {process.env.NEXT_PUBLIC_INSTAGRAM_URL ? (

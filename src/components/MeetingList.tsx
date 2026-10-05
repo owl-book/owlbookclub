@@ -6,7 +6,7 @@ import { formatDayNum, kstDayNumber } from "@/lib/time";
 const RELATIVE: Record<number, string> = { [-1]: "어제", 0: "오늘", 1: "내일", 2: "모레" };
 
 // 모임을 날짜별로 묶어 "오늘 · 10월 3일 (토)" 제목 아래에 보여준다. 들어온 순서(가까운 날짜순 또는 최근순)를 그대로 따른다.
-export function MeetingList({ meetings, now, wishes }: { meetings: Meeting[]; now: Date; wishes?: WishContext }) {
+export function MeetingList({ meetings, now, wishes, hideStore }: { meetings: Meeting[]; now: Date; wishes?: WishContext; hideStore?: boolean }) {
   const today = kstDayNumber(now);
   const groups: { day: number; items: Meeting[] }[] = [];
   for (const m of meetings) {
@@ -34,6 +34,7 @@ export function MeetingList({ meetings, now, wishes }: { meetings: Meeting[]; no
                   <MeetingCard
                     meeting={m}
                     now={now}
+                    hideStore={hideStore}
                     wish={wishes?.enabled ? { wished: wishes.meetingIds.has(m.id), loggedIn: Boolean(wishes.user) } : undefined}
                   />
                 </li>

@@ -7,11 +7,11 @@ insert into stores (name, region, is_cooperative) values
   ('[예시] 골목서점', '서울 마포구', false);
 
 insert into meetings (store_id, starts_at, title, tag_genre, tag_format, tag_cadence, post_url, apply_url, book_title_text, book_author_text, fee_text)
-select id, now() + interval '2 days', '[예시] 목요 소설 읽기', '문학', '자유토론', '정기',
+select id, now() + interval '2 days', '[예시] 목요 소설 읽기', '문학', '토론', '정기',
        'https://instagram.com/', 'https://forms.gle/example', '작별하지 않는다', '한강', '1만5천원'
 from stores where name = '[예시] 부엉이책방';
 
 insert into meetings (store_id, starts_at, title, tag_genre, tag_format, tag_cadence, apply_url, book_title_text, book_author_text)
-select id, now() + interval '9 days', '[예시] 과학책 한 권 끝내기', '과학', '발제', '일일',
+select id, now() + interval '9 days', '[예시] 과학책 한 권 끝내기', '과학', '토론', '일일',
        'https://forms.gle/example2', '코스모스', '칼 세이건'
 from stores where name = '[예시] 골목서점';

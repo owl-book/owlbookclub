@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { db, hasDb } from "@/lib/db";
 import { AUTH_COOKIE, LOGIN_MAX_AGE, hasAuthSecret, readSessionUser, type SessionUser } from "@/lib/auth-shared";
 import { PROVIDER_ORDER, isProviderReady, type OAuthProfile, type ProviderId } from "@/lib/oauth";
@@ -9,10 +10,11 @@ export function isAuthEnabled(): boolean {
   return hasAuthSecret() && hasDb() && PROVIDER_ORDER.some(isProviderReady);
 }
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
+// cache: 머리글·본문·찜 확인이 한 화면 안에서 여러 번 불러도 로그인 확인은 한 번만 한다
+export const getCurrentUser = cache(async function getCurrentUser(): Promise<SessionUser | null> {
   const store = await cookies();
   return readSessionUser(store.get(AUTH_COOKIE.user)?.value);
-}
+});
 
 // 같은 회사·같은 회원번호면 기존 회원, 없으면 새로 만든다. 별명은 매번 최신으로 갱신.
 // 사용자가 마이페이지에서 정한 별명(display_name)은 덮어쓰지 않고 함께 돌려준다.

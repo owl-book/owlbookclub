@@ -1,6 +1,8 @@
 -- 장르·모임방식 목록 표: 모임의 tag_genre·tag_format 은 이 표에 있는 이름만 넣을 수 있다 → 오타 방지
 -- Supabase 대시보드 > SQL Editor 에 통째로 붙여넣고 Run. 여러 번 실행해도 괜찮다.
 -- 목록은 첫 화면 드롭박스(src/lib/tags.ts)와 똑같이 맞춘다. 한쪽을 바꾸면 다른 쪽도 바꿀 것.
+-- ※ 모임방식 목록은 0013_formats_v2.sql 에서 바뀌었다(발제·자유토론 → 토론, 함께읽기·글쓰기 추가). 이 파일은 0013 전에만 실행할 것.
+-- ※ 장르 목록은 0014_genres_picturebook.sql 에서 바뀌었다(그림책 추가, 순서 변경).
 
 create table if not exists genres (
   name        text primary key,   -- 예: '문학'

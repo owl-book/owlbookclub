@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { AUTH_COOKIE, LOGIN_MAX_AGE, signValue } from "@/lib/auth-shared";
+import { AUTH_COOKIE, LOGIN_MAX_AGE, safeNext, signValue } from "@/lib/auth-shared";
 import { LOGIN_COOKIE_OPTIONS, getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { getMeetingForRecord, savePlan, saveWish } from "@/lib/me";
 import { isPast } from "@/lib/meetings";
@@ -94,7 +94,7 @@ export async function saveRecord(formData: FormData) {
   await logEvent({ type: "record", userId: user.id, meetingId, storeId: meeting.store.id, props: { action: "save" } });
 
   revalidatePath("/", "layout");
-  redirect("/me?tab=mine&saved=1");
+  redirect(`/me?tab=mine&saved=${meetingId}`);
 }
 
 export async function deleteRecord(formData: FormData) {
@@ -104,7 +104,7 @@ export async function deleteRecord(formData: FormData) {
   const { error } = await db().from("meeting_records").delete().eq("user_id", user.id).eq("meeting_id", meetingId);
   if (error) throw new Error(`기록 삭제 실패: ${error.message}`);
   revalidatePath("/", "layout");
-  redirect("/me?tab=mine");
+  redirect("/me?tab=mine&deleted=1");
 }
 
 export async function updateDisplayName(formData: FormData) {
@@ -123,14 +123,16 @@ export async function updateDisplayName(formData: FormData) {
   const shown = name || data.nickname?.slice(0, 20) || "회원";
   (await cookies()).set(AUTH_COOKIE.user, await signValue({ id: user.id, name: shown, provider: user.provider }, LOGIN_MAX_AGE), LOGIN_COOKIE_OPTIONS);
   revalidatePath("/", "layout");
-  redirect("/me?updated=1");
+  // 가입 직후 환영 화면에서 저장했으면 원래 보던 페이지로 돌려보낸다
+  const next = formData.get("next");
+  redirect(typeof next === "string" ? safeNext(next) : "/me?updated=1");
 }
 
 // 회원 탈퇴: 회원 정보를 지우면 찜·기록도 함께 지워진다(설정문의 on delete cascade).
 // 이용 기록(events)의 회원 번호는 이제 누구인지 알 수 없는 값이 되어 1년 보관 후 파기한다.
 export async function withdraw(formData: FormData) {
   const user = await requireUser();
-  if (formData.get("confirm") !== "yes") redirect("/me/account?error=confirm#withdraw");
+  if (formData.get("confirm") !== "yes") redirect("/me/account/withdraw?error=confirm");
   const { error } = await db().from("users").delete().eq("id", user.id);
   if (error) throw new Error(`탈퇴 처리 실패: ${error.message}`);
   (await cookies()).set(AUTH_COOKIE.user, "", { path: "/", maxAge: 0 });

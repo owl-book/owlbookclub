@@ -50,11 +50,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       )}
       <section className="mb-5">
         <h1 className="font-display text-h1 text-ink">
-          동네책방 독서모임,
+          부엉이들이 여는
           <br />
-          날짜별로 한눈에
+          독서모임
         </h1>
-        <p className="mt-2 text-b2 text-ink-2">서울·경기 동네책방 모임을 고르면 책방 신청 페이지로 바로 연결해 드립니다.</p>
+        <p className="mt-2 text-b2 text-ink-2">서울·경기 동네책방에서 열리는 독서모임을 날짜별로 모아 뒀어요.</p>
       </section>
 
       {/* 신청 페이지를 열고 돌아오지 않아 표시를 놓친 모임을 한 번 더 묻는다(로그인 기능이 켜져 있을 때만) */}

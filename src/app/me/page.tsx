@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { MeetingList } from "@/components/MeetingList";
 import { PendingApplies } from "@/components/PendingApplies";
+import { SubmitButton } from "@/components/SubmitButton";
+import { Toast } from "@/components/Toast";
 import { WishButton } from "@/components/WishButton";
 import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import {
@@ -51,12 +53,37 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
   const tab: TabKey = sp.tab === "records" ? "mine" : TABS.some((t) => t.key === sp.tab) ? (sp.tab as TabKey) : "meetings";
   const now = new Date();
 
-  let profile: Awaited<ReturnType<typeof getProfile>>;
-  try {
-    profile = await getProfile(user.id);
-  } catch (e) {
-    // 회원 저장 공간(0002·0003 설정문)을 아직 만들지 않았을 때
-    console.error("[owl] profile load failed", e);
+  // 서로 기다릴 필요가 없는 조회는 한꺼번에 묻는다(하나씩 차례로 물으면 그만큼 화면이 늦게 뜬다)
+  const { visitorId } = await getTrackContext();
+  const who = { userId: user.id, visitorId };
+  const askSince = now.getTime() - ASK_DAYS * 86400000;
+  const [profileResult, data, wishes, plans, clickedIds] = await Promise.all([
+    getProfile(user.id).then(
+      (profile) => ({ ok: true as const, profile }),
+      (e) => {
+        // 회원 저장 공간(0002·0003 설정문)을 아직 만들지 않았을 때
+        console.error("[owl] profile load failed", e);
+        return { ok: false as const };
+      },
+    ),
+    Promise.all([getWishedMeetings(user.id), getWishedStores(user.id, now), getRecords(user.id)]).then(
+      ([meetings, stores, records]) => ({ meetings, stores, records }),
+      (e) => {
+        // 찜·기록 저장 공간(0003 설정문)을 아직 만들지 않았을 때
+        console.error("[owl] mypage load failed", e);
+        return { meetings: [] as Meeting[], stores: [] as WishedStore[], records: [] as RecordWithMeeting[] };
+      },
+    ),
+    getWishContext(),
+    // 내 모임(신청 표시·다녀옴). 0009 설정문 실행 전이면 비어 있는 것으로 본다
+    getPlans(user.id).catch((e): Plan[] => {
+      console.error("[owl] plans load failed", e);
+      return [];
+    }),
+    getClickedMeetingIds(who, new Date(askSince)),
+  ]);
+
+  if (!profileResult.ok) {
     return (
       <div className="pt-10">
         <Empty title="마이페이지를 준비하고 있어요" body="잠시 뒤 다시 들어와 주세요." />
@@ -64,6 +91,7 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
       </div>
     );
   }
+  const profile = profileResult.profile;
   if (!profile) {
     // 로그인 쿠키는 남아 있는데 회원 정보가 없는 경우(탈퇴 처리 등)
     return (
@@ -75,25 +103,6 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
     );
   }
 
-  let data: { meetings: Meeting[]; stores: WishedStore[]; records: RecordWithMeeting[] };
-  try {
-    const [meetings, stores, records] = await Promise.all([getWishedMeetings(user.id), getWishedStores(user.id, now), getRecords(user.id)]);
-    data = { meetings, stores, records };
-  } catch (e) {
-    // 찜·기록 저장 공간(0003 설정문)을 아직 만들지 않았을 때
-    console.error("[owl] mypage load failed", e);
-    data = { meetings: [], stores: [], records: [] };
-  }
-  const wishes = await getWishContext();
-  const { visitorId } = await getTrackContext();
-
-  // 내 모임(신청 표시·다녀옴). 0009 설정문 실행 전이면 비어 있는 것으로 본다
-  let plans: Plan[] = [];
-  try {
-    plans = await getPlans(user.id);
-  } catch (e) {
-    console.error("[owl] plans load failed", e);
-  }
   const planBy = new Map(plans.map((p) => [p.meetingId, p]));
   const recorded = new Set(data.records.map((r) => r.meetingId));
   const upcoming = data.meetings.filter((m) => !isPast(m, now));
@@ -118,37 +127,31 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
     .sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime());
 
   // 다녀오셨나요? 아직 확인하지 않은 지난 모임: 신청 표시 → 찜 → 신청 페이지만 열어 본 모임 순
-  const askSince = now.getTime() - ASK_DAYS * 86400000;
   const unanswered = (m: Meeting) => isPast(m, now) && !recorded.has(m.id) && !planBy.get(m.id)?.attended;
   const askApplied = plans.filter((p) => p.appliedAt && unanswered(p.meeting)).map((p) => p.meeting);
   const askWished = pastWished.filter((m) => unanswered(m) && m.startsAt.getTime() >= askSince);
-  let askClicked: Meeting[] = [];
-  try {
-    const clickedIds = await getClickedMeetingIds({ userId: user.id, visitorId }, new Date(askSince));
-    askClicked = (await getMeetingsByIds(clickedIds)).filter((m) => unanswered(m) && m.startsAt.getTime() >= askSince);
-  } catch (e) {
-    console.error("[owl] clicked meetings load failed", e);
-  }
+  // 두 번째 묶음: 위 결과가 있어야 물을 수 있는 것들(신청 페이지만 열어 본 모임, 신청하셨나요? 후보)
+  const appliedIds = new Set(plans.filter((p) => p.appliedAt).map((p) => p.meetingId));
+  const [clickedMeetings, pendingMeetings] = await Promise.all([
+    getMeetingsByIds(clickedIds).catch((e): Meeting[] => {
+      console.error("[owl] clicked meetings load failed", e);
+      return [];
+    }),
+    // 신청하셨나요? 신청 페이지를 열어 본 뒤 표시를 놓친 다가오는 모임(내 모임 탭에서만)
+    tab === "mine"
+      ? getPendingApplies(who, appliedIds, now).catch((e): Meeting[] => {
+          console.error("[owl] pending applies load failed", e);
+          return [];
+        })
+      : ([] as Meeting[]),
+  ]);
+  const askClicked = clickedMeetings.filter((m) => unanswered(m) && m.startsAt.getTime() >= askSince);
   const askSeen = new Set<number>();
   const toAsk = [...askApplied.sort((a, b) => b.startsAt.getTime() - a.startsAt.getTime()), ...askWished, ...askClicked]
     .filter((m) => (askSeen.has(m.id) ? false : (askSeen.add(m.id), true)))
     .slice(0, ASK_MAX);
 
-  // 신청하셨나요? 신청 페이지를 열어 본 뒤 표시를 놓친 다가오는 모임(내 모임 탭에서만)
-  let pendingItems: { id: number; title: string; storeName: string; when: string }[] = [];
-  if (tab === "mine") {
-    try {
-      const appliedIds = new Set(plans.filter((p) => p.appliedAt).map((p) => p.meetingId));
-      pendingItems = (await getPendingApplies({ userId: user.id, visitorId }, appliedIds, now)).map((m) => ({
-        id: m.id,
-        title: m.title,
-        storeName: m.store.name,
-        when: formatKst(m.startsAt),
-      }));
-    } catch (e) {
-      console.error("[owl] pending applies load failed", e);
-    }
-  }
+  const pendingItems = pendingMeetings.map((m) => ({ id: m.id, title: m.title, storeName: m.store.name, when: formatKst(m.startsAt) }));
 
   const attendedMeeting = typeof sp.attended === "string" ? went.find((w) => String(w.meeting.id) === sp.attended)?.meeting : undefined;
   const counts: Record<TabKey, number> = { meetings: data.meetings.length, stores: data.stores.length, mine: appliedUpcoming.length + went.length };
@@ -174,7 +177,7 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
           </p>
         </div>
         <Link href="/me/account" className="inline-flex min-h-11 shrink-0 items-center rounded-sm border border-border px-3 text-l1 text-ink-2 hover:bg-sub">
-          별명 바꾸기
+          내 정보
         </Link>
       </section>
 
@@ -193,22 +196,22 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
                 </span>
                 <form action={setAttended} className="mt-2 flex gap-2">
                   <input type="hidden" name="meetingId" value={m.id} />
-                  <button
-                    type="submit"
+                  <SubmitButton
                     name="attended"
                     value="no"
+                    pendingText="저장하는 중…"
                     className="min-h-11 flex-1 rounded-sm border border-border bg-card text-l1 text-ink-2 hover:bg-sub"
                   >
                     못 갔어요
-                  </button>
-                  <button
-                    type="submit"
+                  </SubmitButton>
+                  <SubmitButton
                     name="attended"
                     value="yes"
+                    pendingText="저장하는 중…"
                     className="min-h-11 flex-[1.4] rounded-sm bg-navy text-l1 font-semibold text-white hover:bg-navy-hover"
                   >
                     다녀왔어요
-                  </button>
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -282,7 +285,9 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
                 <li key={s.id} className="rounded-md border border-border-card bg-card p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="text-t2 text-ink">{s.name}</p>
+                      <Link href={`/s/${s.id}`} className="-my-2 inline-flex min-h-11 items-center text-t2 text-ink underline decoration-border-strong underline-offset-4 hover:text-navy">
+                        {s.name}
+                      </Link>
                       <p className="mt-0.5 text-b2 text-ink-3">
                         {s.region}
                         {s.instagramUrl && (
@@ -323,7 +328,10 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
 
         {tab === "mine" && (
           <>
-            {sp.saved === "1" && <Notice>기록을 저장했어요.</Notice>}
+            {typeof sp.saved === "string" && (
+              <Toast message="기록을 저장했어요" clearParam="saved" focusId={went.some((w) => String(w.meeting.id) === sp.saved) ? `record-${sp.saved}` : undefined} />
+            )}
+            {sp.deleted === "1" && <Toast message="기록을 지웠어요" clearParam="deleted" />}
             {attendedMeeting && (
               <Notice>
                 ‘{attendedMeeting.title}’을(를) 다녀온 모임에 담았어요.{" "}
@@ -373,7 +381,7 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
                     </ul>
                   )}
                   {appliedUpcoming.length > 0 && (
-                    <p className="mt-2 text-l2 font-normal leading-normal text-ink-3">일정은 부엉이서재가 마지막으로 확인한 정보예요. 정확한 일정은 책방 공지를 기준으로 확인해 주세요.</p>
+                    <p className="mt-2 text-l2 font-normal leading-normal text-ink-3">일정은 마지막으로 확인한 정보예요. 정확한 일정은 책방 공지를 기준으로 확인해 주세요.</p>
                   )}
                 </section>
 
@@ -384,8 +392,11 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
                     </h2>
                     <ul className="space-y-3">
                       {went.map(({ meeting: m, record: r }) => (
-                        <li key={m.id}>
-                          <Link href={`/me/records/${m.id}`} className="block rounded-md border border-border-card bg-card p-4 hover:border-border-strong">
+                        <li key={m.id} id={`record-${m.id}`} className="scroll-mt-20">
+                          <Link
+                            href={`/me/records/${m.id}`}
+                            className={`block rounded-md border border-border-card bg-card p-4 hover:border-border-strong ${sp.saved === String(m.id) ? "owl-just-saved" : ""}`}
+                          >
                             <div className="flex items-center justify-between gap-2">
                               <span className="text-l2 font-normal text-ink-3">
                                 {formatKstDateOnly(m.startsAt)} · {m.store.name}
@@ -438,17 +449,11 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
           </>
         )}
       </div>
-
-      <div className="mt-10 flex items-center gap-4 border-t border-border pt-4">
-        <LogoutButton />
-        <Link href="/me/account#withdraw" className="inline-flex min-h-11 items-center text-l2 text-ink-3 underline">
-          회원 탈퇴
-        </Link>
-      </div>
     </div>
   );
 }
 
+// 평소 로그아웃은 내 정보 화면에 있다. 여기는 회원 정보를 불러오지 못해 내 정보로 갈 수 없을 때만 쓴다
 function LogoutButton() {
   return (
     <form action="/auth/logout" method="post">
@@ -529,9 +534,9 @@ function UndoAttended({ meetingId, label }: { meetingId: number; label: string }
   return (
     <form action={setAttended}>
       <input type="hidden" name="meetingId" value={meetingId} />
-      <button type="submit" name="attended" value="clear" className="inline-flex min-h-11 shrink-0 items-center px-1 text-l2 text-ink-2 underline hover:text-navy">
+      <SubmitButton name="attended" value="clear" pendingText="되돌리는 중…" className="inline-flex min-h-11 shrink-0 items-center px-1 text-l2 text-ink-2 underline hover:text-navy">
         {label}
-      </button>
+      </SubmitButton>
     </form>
   );
 }

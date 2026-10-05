@@ -68,7 +68,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     <div className="pt-10">
       <h1 className="font-display text-h2 text-ink">
-        <span aria-hidden>🦉</span> 부엉이서재 로그인
+        <span aria-hidden>🦉</span> 부엉이들의 서재 로그인
       </h1>
       <p className="mt-2 text-b2 text-ink-2">
         {sp.reason === "wish"
@@ -123,7 +123,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       )}
 
       <p className="mt-6 text-l2 font-normal leading-normal text-ink-3">
-        로그인하면 부엉이서재{" "}
+        로그인하면 부엉이들의 서재{" "}
         <Link href="/terms" className="underline">이용약관</Link>과{" "}
         <Link href="/privacy" className="underline">개인정보처리방침</Link>에 동의하게 됩니다. 로그인한 서비스에서 받는 정보는 회원 고유번호와 별명뿐이에요.
       </p>

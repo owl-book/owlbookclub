@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { db, hasDb } from "@/lib/db";
 import { matchesRegion, type Sido } from "@/lib/regions";
 import type { Format, Genre } from "@/lib/tags";
@@ -107,13 +108,28 @@ export async function getRecentPastMeetings(now = new Date(), days = 30): Promis
   return (data as unknown as MeetingRow[]).map(meetingFromRow).filter((m) => !m.hidden);
 }
 
-export async function getMeeting(id: number): Promise<Meeting | null> {
+// cache: 한 번 화면을 그리는 동안(탭 제목 만들기 + 본문) 같은 모임을 DB에서 두 번 읽지 않는다
+export const getMeeting = cache(async function getMeeting(id: number): Promise<Meeting | null> {
   if (!Number.isSafeInteger(id) || id <= 0) return null;
   if (!hasDb()) return demoMeetings(new Date()).find((m) => m.id === id) ?? null;
   const { data, error } = await db().from("meetings").select(MEETING_SELECT).eq("id", id).eq("store.is_blocked", false).maybeSingle();
   if (error) throw new Error(error.message);
   const m = data ? meetingFromRow(data as unknown as MeetingRow) : null;
   return m && !m.hidden ? m : null;
+});
+
+// 책방 상세: 한 책방의 모임을 since 이후로 모두(지난 모임 포함) 읽는다
+export async function getMeetingsSince(since: Date, opts: { storeId: number }): Promise<Meeting[]> {
+  const { data, error } = await db()
+    .from("meetings")
+    .select(MEETING_SELECT)
+    .eq("store_id", opts.storeId)
+    .eq("store.is_blocked", false)
+    .gte("starts_at", since.toISOString())
+    .order("starts_at", { ascending: true })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  return (data as unknown as MeetingRow[]).map(meetingFromRow).filter((m) => !m.hidden);
 }
 
 // 띄어쓰기·대소문자 차이를 무시하는 검색 정규화
@@ -163,7 +179,7 @@ export function countByDay(meetings: Meeting[]): Record<number, number> {
 }
 
 // ── DB 연결 전 로컬 미리보기용 예시 데이터 ──
-function demoMeetings(now: Date): Meeting[] {
+export function demoMeetings(now: Date): Meeting[] {
   const at = (days: number, hour: number, min = 0) => {
     const d = new Date(now.getTime() + days * 86400000);
     // KST 기준 hour:min 으로 맞춤
@@ -173,10 +189,10 @@ function demoMeetings(now: Date): Meeting[] {
   const today = new Date(now.getTime() + 9 * 3600000).toISOString().slice(0, 10); // KST 날짜
   const base = { postUrl: "https://www.instagram.com/", description: null, place: null, feeText: "1만5천원", lastCheckedAt: today, status: "open" as const };
   return [
-    { ...base, id: 1, startsAt: at(1, 19, 30), description: "한 달에 한 권, 소설 속 마음에 남은 장면을 함께 이야기해요. 처음 오셔도 편하게 들으실 수 있어요.\n\n진행 순서\n1. 간단한 자기소개\n2. 인상 깊은 문장 나누기\n3. 발제 질문으로 자유 토론\n\n- 책은 미리 읽어 와 주세요\n- 음료 1잔이 포함돼요\n- 끝나고 다음 달 책을 함께 골라요\n\n모임은 2시간 정도 걸리고, 마치면 책방 둘러보기 시간이 있어요. 늦게 오셔도 괜찮으니 편하게 들어와 주세요.", title: "[예시] 목요 소설 읽기", tagGenre: "문학", tagFormat: "자유토론", tagCadence: "정기", applyUrl: "https://example.com/apply/1", bookTitle: "작별하지 않는다", bookAuthor: "한강", store: { id: 1, name: "부엉이책방", region: "경기 고양시", address: "경기 고양시 일산동구 정발산로 24 2층" } },
-    { ...base, id: 2, startsAt: at(3, 14), title: "[예시] 주말 과학책 한 권", tagGenre: "과학", tagFormat: "발제", tagCadence: "일일", applyUrl: "https://example.com/apply/2", bookTitle: "코스모스", bookAuthor: "칼 세이건", store: { id: 2, name: "골목서점", region: "서울 마포구", address: null } },
+    { ...base, id: 1, startsAt: at(1, 19, 30), description: "한 달에 한 권, 소설 속 마음에 남은 장면을 함께 이야기해요. 처음 오셔도 편하게 들으실 수 있어요.\n\n진행 순서\n1. 간단한 자기소개\n2. 인상 깊은 문장 나누기\n3. 발제 질문으로 자유 토론\n\n- 책은 미리 읽어 와 주세요\n- 음료 1잔이 포함돼요\n- 끝나고 다음 달 책을 함께 골라요\n\n모임은 2시간 정도 걸리고, 마치면 책방 둘러보기 시간이 있어요. 늦게 오셔도 괜찮으니 편하게 들어와 주세요.", title: "[예시] 목요 소설 읽기", tagGenre: "문학", tagFormat: "토론", tagCadence: "정기", applyUrl: "https://example.com/apply/1", bookTitle: "작별하지 않는다", bookAuthor: "한강", store: { id: 1, name: "부엉이책방", region: "경기 고양시", address: "경기 고양시 일산동구 정발산로 24 2층" } },
+    { ...base, id: 2, startsAt: at(3, 14), title: "[예시] 주말 과학책 한 권", tagGenre: "과학", tagFormat: "토론", tagCadence: "일일", applyUrl: "https://example.com/apply/2", bookTitle: "코스모스", bookAuthor: "칼 세이건", store: { id: 2, name: "골목서점", region: "서울 마포구", address: null } },
     { ...base, id: 3, startsAt: at(6, 20), title: "[예시] 에세이 필사 모임", tagGenre: "에세이", tagFormat: "필사", tagCadence: "정기", applyUrl: "https://example.com/apply/3", bookTitle: "아무튼, 서재", bookAuthor: "김윤관", feeText: null, status: "closed", store: { id: 3, name: "책방 달빛", region: "경기 파주시", address: "경기 파주시 회동길 145" } },
-    { ...base, id: 4, startsAt: at(9, 19), place: "책방 2층 세미나실", title: "[예시] 인문 고전 함께 읽기", tagGenre: "인문", tagFormat: "발제", tagCadence: "정기", applyUrl: "https://example.com/apply/4", bookTitle: "정의란 무엇인가", bookAuthor: "마이클 샌델", store: { id: 1, name: "부엉이책방", region: "경기 고양시", address: "경기 고양시 일산동구 정발산로 24 2층" } },
+    { ...base, id: 4, startsAt: at(9, 19), place: "책방 2층 세미나실", title: "[예시] 인문 고전 함께 읽기", tagGenre: "인문", tagFormat: "함께읽기", tagCadence: "정기", applyUrl: "https://example.com/apply/4", bookTitle: "정의란 무엇인가", bookAuthor: "마이클 샌델", store: { id: 1, name: "부엉이책방", region: "경기 고양시", address: "경기 고양시 일산동구 정발산로 24 2층" } },
     { ...base, id: 5, startsAt: at(-2, 19), title: "[예시] 지난 시 낭독회", tagGenre: "문학", tagFormat: "낭독", tagCadence: "일일", applyUrl: "https://example.com/apply/5", bookTitle: "입 속의 검은 잎", bookAuthor: "기형도", store: { id: 2, name: "골목서점", region: "서울 마포구", address: null } },
   ];
 }

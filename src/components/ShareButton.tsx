@@ -9,7 +9,7 @@ export function ShareButton({ meetingId, storeId, title }: { meetingId: number; 
 
   const share = async () => {
     const url = `${location.origin}/m/${meetingId}?utm_source=share&utm_medium=button&utm_content=${meetingId}`;
-    const text = `${title} — 부엉이서재에서 찾은 독서모임`;
+    const text = `${title} — 부엉이들의 서재에서 찾은 모임`;
     if (navigator.share) {
       try {
         await navigator.share({ title: text, url });

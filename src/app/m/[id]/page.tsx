@@ -7,10 +7,12 @@ import { ReportSheet } from "@/components/ReportSheet";
 import { ShareButton } from "@/components/ShareButton";
 import { StickyActionBar } from "@/components/StickyActionBar";
 import { MoreText } from "@/components/MoreText";
+import { PinIcon } from "@/components/PinIcon";
 import { PlanMark } from "@/components/PlanMark";
 import { RichText } from "@/components/RichText";
 import { GenreTag, PlainTag, StatusBadge } from "@/components/Tag";
 import { WishButton } from "@/components/WishButton";
+import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { getPlan, getRecord, getWishContext } from "@/lib/me";
 import { getMeeting, isPast } from "@/lib/meetings";
 import { estimateLines, plainSummary } from "@/lib/rich-text";
@@ -40,11 +42,16 @@ export default async function MeetingPage({ params, searchParams }: PageProps<"/
   const past = isPast(m, now);
   const closed = m.status === "closed";
   const rel = relativeDayLabel(m.startsAt, now);
-  const wishes = await getWishContext();
+  // 찜·기록·내 모임은 서로 기다릴 필요가 없어 한꺼번에 묻는다(로그인 확인은 DB를 거치지 않아 바로 끝난다)
+  const user = isAuthEnabled() ? await getCurrentUser() : null;
+  const [wishes, record, plan] = await Promise.all([
+    getWishContext(),
+    past && user ? getRecord(user.id, m.id) : null,
+    // 내 모임(책방에서 신청했다고 표시했는지). 다가오는 모임에서만 쓴다
+    !past && user ? getPlan(user.id, m.id) : null,
+  ]);
   const loggedIn = Boolean(wishes.user);
-  const hasRecord = past && wishes.user ? Boolean(await getRecord(wishes.user.id, m.id)) : false;
-  // 내 모임(책방에서 신청했다고 표시했는지). 다가오는 모임에서만 쓴다
-  const plan = !past && wishes.user ? await getPlan(wishes.user.id, m.id) : null;
+  const hasRecord = Boolean(record);
   const recordHref = `/me/records/${m.id}`;
 
   return (
@@ -86,9 +93,13 @@ export default async function MeetingPage({ params, searchParams }: PageProps<"/
         <div className="flex gap-3">
           <dt className="w-14 shrink-0 text-ink-3">책방</dt>
           <dd className="flex flex-1 items-center justify-between gap-2">
-            <span>
-              {m.store.name} <span className="text-ink-3">· {m.store.region}</span>
-            </span>
+            {/* 책방 이름을 누르면 책방 화면(소개·이 책방의 다른 모임)으로 간다 */}
+            <Link href={`/s/${m.store.id}`} className="-my-2 inline-flex min-h-11 items-center py-2 hover:text-navy">
+              <span>
+                <span className="underline decoration-border-strong underline-offset-4">{m.store.name}</span>{" "}
+                <span className="text-ink-3">· {m.store.region}</span>
+              </span>
+            </Link>
             {wishes.enabled && (
               <span className="-my-2 -mr-2 flex shrink-0 items-center">
                 <span className="whitespace-nowrap text-l2 text-ink-3">책방 찜</span>
@@ -147,8 +158,8 @@ export default async function MeetingPage({ params, searchParams }: PageProps<"/
       {/* 신뢰 신호 + 정보 오류·마감 알려주기: '언제 확인한 정보인지' 바로 옆에서 '다른 점이 있는지' 묻는다(지난 모임은 받지 않음) */}
       <div className="mt-3 rounded-md bg-sub px-3 py-2.5 text-l2 font-normal leading-normal text-ink-2">
         <p>
-          부엉이서재가 <strong className="text-ink">{formatDateString(m.lastCheckedAt)}</strong>에 마지막으로 확인한 정보입니다.
-          정확한 내용·마감 여부는 책방 신청 페이지를 기준으로 확인해 주시기 바랍니다.
+          <strong className="text-ink">{formatDateString(m.lastCheckedAt)}</strong>에 마지막으로 확인했어요.
+          정확한 내용·마감 여부는 책방 공지를 봐 주세요.
         </p>
         {!past && <ReportSheet meetingId={m.id} storeId={m.store.id} closed={closed} />}
       </div>
@@ -205,13 +216,4 @@ function postPlace(url: string): string {
   if (host === "blog.naver.com") return "블로그";
   if (host === "cafe.naver.com") return "카페";
   return "페이지";
-}
-
-function PinIcon() {
-  return (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" />
-      <circle cx={12} cy={9.5} r={2.5} />
-    </svg>
-  );
 }

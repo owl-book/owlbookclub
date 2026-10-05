@@ -32,9 +32,10 @@ export function HeaderAccount({ user }: { user: SessionUser | null }) {
       aria-current={active ? "page" : undefined}
       className={`-mr-2 inline-flex size-11 items-center justify-center rounded-full hover:bg-navy-hover focus-visible:outline-page ${active ? "text-page" : "text-page/80"}`}
     >
-      <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round">
-        <circle cx="12" cy="8.5" r="3.75" className={active ? "fill-current" : ""} />
-        <path d="M4.75 20c.9-3.6 3.8-5.75 7.25-5.75s6.35 2.15 7.25 5.75" />
+      {/* 마이페이지 안에선 머리·몸 모두 채운다 */}
+      <svg viewBox="0 0 24 24" aria-hidden className={`size-6 ${active ? "fill-current" : "fill-none"}`} stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4.5 20.25c0-3.6 3.35-6 7.5-6s7.5 2.4 7.5 6z" />
       </svg>
     </Link>
   );

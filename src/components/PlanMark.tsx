@@ -147,7 +147,7 @@ export function PlanMark({ meetingId, storeName, loggedIn, applied: appliedProp 
                   {storeName}에서 신청하셨나요?
                 </p>
                 <p className="mt-2 text-b2 text-ink-2">
-                  책방 신청을 마친 경우에만 눌러 주세요. 부엉이서재는 신청을 대신 받지 않고, 내 일정에 담아 두기만 해요.
+                  책방 신청을 마친 경우에만 눌러 주세요. 여기서는 신청을 받지 않아요. 내 일정에 담아 두기만 해요.
                 </p>
 
                 {failed && (

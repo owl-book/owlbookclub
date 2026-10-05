@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ConfirmSubmit } from "@/components/ConfirmSubmit";
+import { SubmitButton } from "@/components/SubmitButton";
 import { RatingInput } from "@/components/RatingInput";
 import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { getMeetingForRecord, getRecord } from "@/lib/me";
@@ -108,17 +108,21 @@ export default async function RecordPage({ params }: PageProps<"/me/records/[mee
               />
             </div>
 
-            <button type="submit" className="min-h-12 w-full rounded-sm bg-navy py-3.5 text-t2 text-white hover:bg-navy-hover active:bg-navy-active">
+            <SubmitButton pendingText="저장하는 중…" className="min-h-12 w-full rounded-sm bg-navy py-3.5 text-t2 text-white hover:bg-navy-hover active:bg-navy-active">
               {record ? "수정한 내용 저장" : "기록 저장"}
-            </button>
+            </SubmitButton>
           </form>
 
           {record && (
             <form action={deleteRecord} className="mt-6 text-center">
               <input type="hidden" name="meetingId" value={meeting.id} />
-              <ConfirmSubmit message="이 기록을 지울까요? 지운 기록은 되살릴 수 없어요." className="inline-flex min-h-11 items-center text-l2 text-error underline">
+              <SubmitButton
+                confirm="이 기록을 지울까요? 지운 기록은 되살릴 수 없어요."
+                pendingText="지우는 중…"
+                className="inline-flex min-h-11 items-center text-l2 text-error underline"
+              >
                 이 기록 지우기
-              </ConfirmSubmit>
+              </SubmitButton>
             </form>
           )}
         </>

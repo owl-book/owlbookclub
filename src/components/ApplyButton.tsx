@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { rememberApplyLeave } from "@/lib/plan-client";
 
 const HIDE_KEY = "owl_hide_apply_notice";
-const OWL_WORD = "부엉이";
+const OWL_WORD = "부엉이들의 서재";
 
 function readHidden(): boolean {
   try {
@@ -14,7 +14,7 @@ function readHidden(): boolean {
   }
 }
 
-// 신청 버튼: 누르면 '부엉이' 안내 → 책방 사이트로 이동(같은 탭. 인앱 브라우저에서 새 탭은 잘 막힘)
+// 신청 버튼: 누르면 '부엉이들의 서재' 안내 → 책방 사이트로 이동(같은 탭. 인앱 브라우저에서 새 탭은 잘 막힘)
 // JS 가 없어도 <a href="/go/{id}"> 로 동작한다.
 // 나가기 직전에 모임 번호를 남겨 두면, 돌아왔을 때 상세 화면이 '신청하셨나요?'를 한 번 묻는다(PlanMark).
 // canSave: 로그인 기능이 켜져 있어 '내 모임'에 담을 수 있을 때만 그 안내 문구를 보여 준다.
@@ -65,6 +65,7 @@ export function ApplyButton({ meetingId, storeName, canSave = false }: { meeting
     <>
       <a
         href={href}
+        data-no-progress // 누르면 먼저 안내 창이 열려서, 화면 이동 막대를 띄우지 않는다
         onClick={(e) => {
           if (readHidden()) {
             rememberApplyLeave(meetingId);
@@ -91,13 +92,14 @@ export function ApplyButton({ meetingId, storeName, canSave = false }: { meeting
             <p id="owl-notice-title" className="text-t1 text-ink">
               신청서의 요청사항 또는 비고란에 <span ref={wordRef} className="text-navy">&lsquo;{OWL_WORD}&rsquo;</span>라고 적어주세요.
             </p>
+            <p className="mt-1 text-b2 text-ink-2">직접 적으실 땐 &lsquo;부엉이&rsquo;만 적어도 괜찮아요.</p>
             <p className="mt-2 text-b2 text-ink-2">
-              더 좋은 책방과 모임을 소개하는 데 도움이 됩니다.
+              더 좋은 책방과 모임을 소개하는 데 도움이 돼요.
               <br />
-              &ldquo;어떻게 알고 오셨나요?&rdquo; 칸이 있다면 &lsquo;부엉이서재&rsquo;를 골라주셔도 좋습니다.
+              &ldquo;어떻게 알고 오셨나요?&rdquo; 칸이 있다면 &lsquo;부엉이들의 서재&rsquo;를 골라주셔도 좋아요.
             </p>
             <button onClick={copy} className="mt-4 min-h-11 w-full rounded-sm border border-border-strong bg-card py-2.5 text-l1 font-semibold text-navy hover:bg-sub">
-              {copied ? "복사했어요 ✓" : "‘부엉이’ 복사하기"}
+              {copied ? "복사했어요 ✓" : "‘부엉이들의 서재’ 복사하기"}
             </button>
 
             <div className="mt-4 rounded-md bg-sub px-3 py-2.5 text-b2 text-ink-2">

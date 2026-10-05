@@ -46,7 +46,9 @@
     ".next/preview-demo/types/**/*.ts",
     ".next/preview-demo/dev/types/**/*.ts",
     ".next-buildcheck/types/**/*.ts",
-    ".next-buildcheck/dev/types/**/*.ts"
+    ".next-buildcheck/dev/types/**/*.ts",
+    ".next/buildcheck/types/**/*.ts",
+    ".next/buildcheck/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

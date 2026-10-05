@@ -39,7 +39,7 @@ create table if not exists meetings (
   starts_at        timestamptz not null,          -- 테이블 편집기에서 '2026-10-08 19:30+09' 형식으로 입력
   title            text not null,
   tag_genre        text not null,                 -- 장르: 문학, 인문, 사회, 과학, 에세이, 예술, 기타 …
-  tag_format       text not null,                 -- 진행 방식: 발제, 낭독, 자유토론, 필사, 북토크 …
+  tag_format       text not null,                 -- 모임방식: 목록은 formats 표 (0006·0013)
   tag_cadence      text not null check (tag_cadence in ('정기', '일일')),
   post_url         text,                          -- 원 게시물(인스타 등)
   apply_url        text not null,                 -- 책방 신청 페이지

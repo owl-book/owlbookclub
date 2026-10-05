@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import type { SessionUser } from "@/lib/auth-shared";
@@ -42,7 +43,8 @@ export type WishContext = {
   storeIds: Set<number>;
 };
 
-export async function getWishContext(): Promise<WishContext> {
+// cache: 한 화면 안에서 여러 번 불러도 내 찜 목록은 DB에서 한 번만 읽는다
+export const getWishContext = cache(async function getWishContext(): Promise<WishContext> {
   const empty = { meetingIds: new Set<number>(), storeIds: new Set<number>() };
   if (!isAuthEnabled()) return { enabled: false, user: null, ...empty };
   const user = await getCurrentUser();
@@ -59,7 +61,7 @@ export async function getWishContext(): Promise<WishContext> {
     meetingIds: new Set((m.data ?? []).map((r) => r.meeting_id as number)),
     storeIds: new Set((s.data ?? []).map((r) => r.store_id as number)),
   };
-}
+});
 
 export async function getProfile(userId: string): Promise<Profile | null> {
   // display_name 칸이 아직 없을 수도 있어 기본 정보와 따로 읽는다

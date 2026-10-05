@@ -36,7 +36,9 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/auth/[provid
 
     await logEvent({ type: "login", userId: user.id, path: `/auth/${provider}`, props: { provider, new_user: user.isNew } });
 
-    const res = NextResponse.redirect(new URL(next, request.url), 302);
+    // 처음 가입한 회원은 원래 보던 페이지로 가기 전에 별명부터 정할 수 있게 한다
+    const dest = user.isNew ? `/welcome?next=${encodeURIComponent(next)}` : next;
+    const res = NextResponse.redirect(new URL(dest, request.url), 302);
     res.headers.set("Cache-Control", "no-store");
     res.cookies.set(AUTH_COOKIE.oauth, "", { path: "/auth", maxAge: 0 });
     res.cookies.set(AUTH_COOKIE.user, await signValue({ id: user.id, name, provider }, LOGIN_MAX_AGE), LOGIN_COOKIE_OPTIONS);
