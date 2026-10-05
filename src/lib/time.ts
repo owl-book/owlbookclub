@@ -107,6 +107,29 @@ export function parseDayKey(v: unknown): number | null {
   return t / DAY_MS;
 }
 
+// 달력에서 여러 날을 고르면 주소에 "2026-10-08,2026-10-10"처럼 쉼표로 잇는다(예전 한 날짜 주소도 그대로 읽힌다)
+const MAX_DAYS = 31;
+
+export function parseDayKeys(v: unknown): number[] {
+  if (typeof v !== "string") return [];
+  const days = v
+    .split(",")
+    .slice(0, MAX_DAYS)
+    .map(parseDayKey)
+    .filter((d): d is number => d != null);
+  return [...new Set(days)].sort((a, b) => a - b);
+}
+
+export function dayKeys(days: number[]): string {
+  return days.map(dayKey).join(",");
+}
+
+// 고른 날짜들을 짧게: "10월 10일 (토)" 또는 "10월 10일 (토) 외 2일"
+export function formatDays(days: number[]): string {
+  if (days.length === 0) return "";
+  return days.length === 1 ? formatDayNum(days[0]) : `${formatDayNum(days[0])} 외 ${days.length - 1}일`;
+}
+
 // 날짜 번호의 년·월·일·요일(일=0)
 export function dayParts(dayNum: number) {
   const d = new Date(dayNum * DAY_MS);

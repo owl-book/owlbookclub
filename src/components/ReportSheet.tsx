@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { ChoiceChips } from "@/components/ChoiceChips";
 import { submitReport } from "@/lib/report-actions";
 import { REPORT_KINDS, REPORT_MESSAGE_MAX, type ReportKind, type ReportResult } from "@/lib/report-kinds";
 import { track } from "@/lib/track-client";
@@ -107,27 +108,7 @@ export function ReportSheet({ meetingId, storeId, closed }: Props) {
                   어떤 점이 다른가요?
                 </p>
 
-                <fieldset className="mt-4">
-                  <legend className="sr-only">다른 점 고르기</legend>
-                  <div className="flex flex-wrap gap-2">
-                    {kinds.map((k) => (
-                      <label
-                        key={k.key}
-                        className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-border-card bg-card px-4 text-l1 text-ink-2 hover:bg-sub has-[:checked]:border-navy has-[:checked]:bg-navy has-[:checked]:text-white has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-navy"
-                      >
-                        <input
-                          type="radio"
-                          name="kind"
-                          value={k.key}
-                          checked={kind === k.key}
-                          onChange={() => setKind(k.key)}
-                          className="sr-only"
-                        />
-                        {k.label}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
+                <ChoiceChips name="kind" legend="다른 점 고르기" legendHidden options={kinds} value={kind} onChange={setKind} className="mt-4" />
 
                 <label htmlFor="report-message" className="mt-5 block text-l1 font-semibold text-ink">
                   자세한 내용 <span className="font-normal text-ink-3">{kind === "other" ? "(꼭 적어 주세요)" : "(안 써도 돼요)"}</span>

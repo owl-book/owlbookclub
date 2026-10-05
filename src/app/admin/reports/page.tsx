@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { AdminLogin } from "@/components/AdminLogin";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
-import { editMeeting, logoutAdmin, resolveReport } from "@/lib/admin-actions";
+import { editMeeting, logoutAdmin, resolveInquiry, resolveReport } from "@/lib/admin-actions";
+import { inquiryLabel } from "@/lib/inquiry-kinds";
 import { reportKindLabel } from "@/lib/report-kinds";
-import { getRecentHandled, getReportInbox, type InboxItem } from "@/lib/reports";
+import { getInquiryInbox, getRecentHandled, getReportInbox, type InboxItem, type InquiryItem } from "@/lib/reports";
 import { formatDateString, formatKst } from "@/lib/time";
 
 // 운영자 전용 신고함. 사이트 어디에도 링크하지 않고, 검색에도 나오지 않게 한다(next.config 의 noindex 머리말과 함께).
@@ -25,6 +27,7 @@ const DONE_MESSAGE: Record<string, string> = {
   hide: "모임을 숨겼어요.",
   edit: "고친 내용을 저장했어요.",
   ok: "문제없음으로 닫고 확인일을 오늘로 바꿨어요.",
+  inquiry: "의견·요청을 처리 완료로 닫았어요.",
 };
 
 export default async function AdminReportsPage({ searchParams }: PageProps<"/admin/reports">) {
@@ -36,7 +39,7 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
 
   const sp = await searchParams;
   const done = typeof sp.done === "string" ? DONE_MESSAGE[sp.done] : undefined;
-  const [inbox, handled] = await Promise.all([getReportInbox(), getRecentHandled()]);
+  const [inbox, handled, inquiries] = await Promise.all([getReportInbox(), getRecentHandled(), getInquiryInbox()]);
   const reportCount = inbox.reduce((n, item) => n + item.reports.length, 0);
   const now = new Date();
 
@@ -46,26 +49,51 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
         <div>
           <h1 className="font-display text-h2 text-ink">신고함</h1>
           <p className="mt-1 text-b2 text-ink-2">
-            {reportCount > 0 ? (
+            {reportCount + inquiries.length > 0 ? (
               <>
-                처리 전 <strong className="text-ink">{reportCount}건</strong> · 모임 {inbox.length}곳
+                처리 전 모임 신고 <strong className="text-ink">{reportCount}건</strong> · 의견·요청 <strong className="text-ink">{inquiries.length}건</strong>
               </>
             ) : (
               "처리 전 신고가 없어요"
             )}
           </p>
         </div>
-        <form action={logoutAdmin}>
-          <button type="submit" className="inline-flex min-h-11 items-center px-2 text-l2 text-ink-3 underline underline-offset-2 hover:text-navy">
-            나가기
-          </button>
-        </form>
+        <div className="flex shrink-0 items-center">
+          <Link href="/admin/covers" className="inline-flex min-h-11 items-center px-2 text-l2 text-ink-3 underline underline-offset-2 hover:text-navy">
+            책 표지
+          </Link>
+          <form action={logoutAdmin}>
+            <button type="submit" className="inline-flex min-h-11 items-center px-2 text-l2 text-ink-3 underline underline-offset-2 hover:text-navy">
+              나가기
+            </button>
+          </form>
+        </div>
       </div>
 
       {done && (
         <p role="status" className="mt-4 rounded-xs border border-success-border bg-success-surface px-3 py-2.5 text-b2 text-success">
           {done}
         </p>
+      )}
+
+      {inquiries.length > 0 && (
+        <section aria-labelledby="inquiries-title" className="mt-6">
+          <h2 id="inquiries-title" className="text-t2 text-ink">
+            의견·요청 <span className="text-l1 text-ink-3">{inquiries.length}건</span>
+          </h2>
+          <p className="mt-0.5 text-l2 font-normal text-ink-3">풋바 ‘의견·요청 보내기’로 들어온 것이에요. 책방 정보 수정·게시 중단은 Supabase의 stores 표에서 하고 여기서 닫아 주세요.</p>
+          <ul className="mt-3 space-y-3">
+            {inquiries.map((q) => (
+              <InquiryCard key={q.id} item={q} now={now} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {inquiries.length > 0 && (
+        <h2 className="mt-10 text-t2 text-ink">
+          모임 신고
+        </h2>
       )}
 
       {inbox.length === 0 ? (
@@ -101,6 +129,46 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
         </section>
       )}
     </div>
+  );
+}
+
+// 의견·요청 내용은 누구나 쓸 수 있으므로 주소·연락처까지 모두 글자로만 보여 준다(눌러서 열리지 않게)
+function InquiryCard({ item: q, now }: { item: InquiryItem; now: Date }) {
+  const rows: [string, string][] = [];
+  if (q.storeName) rows.push(["책방 이름", q.storeName]);
+  if (q.link) rows.push(["주소", q.link]);
+  if (q.contact) rows.push(["연락처", q.contact]);
+  return (
+    <li className="rounded-md border border-border-card bg-card p-4">
+      <p className="text-l2">
+        <span className="font-semibold text-ink">{inquiryLabel(q.category, q.topic)}</span>
+        <span className="font-normal text-ink-3"> · {timeAgo(q.createdAt, now)}</span>
+      </p>
+      {q.store && (
+        <p className="mt-1 text-t2 text-ink">
+          <a href={`/s/${q.store.id}`} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
+            {q.store.name}
+          </a>
+        </p>
+      )}
+      {q.message && <p className="mt-1.5 whitespace-pre-wrap break-words text-b2 text-ink-2">{q.message}</p>}
+      {rows.length > 0 && (
+        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 rounded-xs bg-sub px-3 py-2 text-l2 font-normal">
+          {rows.map(([k, v]) => (
+            <div key={k} className="contents">
+              <dt className="text-ink-3">{k}</dt>
+              <dd className="select-all break-all text-ink-2">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      <form action={resolveInquiry} className="mt-3">
+        <input type="hidden" name="inquiryId" value={q.id} />
+        <button type="submit" className="min-h-11 w-full rounded-sm border border-border-strong bg-card px-2 py-2.5 text-l1 font-semibold text-navy hover:bg-sub">
+          처리 완료
+        </button>
+      </form>
+    </li>
   );
 }
 

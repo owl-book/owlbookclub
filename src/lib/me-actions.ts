@@ -135,7 +135,9 @@ export async function withdraw(formData: FormData) {
   if (formData.get("confirm") !== "yes") redirect("/me/account/withdraw?error=confirm");
   const { error } = await db().from("users").delete().eq("id", user.id);
   if (error) throw new Error(`탈퇴 처리 실패: ${error.message}`);
-  (await cookies()).set(AUTH_COOKIE.user, "", { path: "/", maxAge: 0 });
+  const store = await cookies();
+  store.set(AUTH_COOKIE.user, "", { path: "/", maxAge: 0 });
+  store.set(AUTH_COOKIE.lastProvider, "", { path: "/", maxAge: 0 });
   revalidatePath("/", "layout");
   redirect("/?bye=1");
 }

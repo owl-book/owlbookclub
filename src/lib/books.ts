@@ -1,4 +1,5 @@
 import "server-only";
+import { getManualCover } from "@/lib/book-covers";
 
 export type BookCover = { url: string; link: string | null };
 
@@ -8,9 +9,16 @@ export function hasAladinKey(): boolean {
 
 type AladinItem = { cover?: string; link?: string };
 
-// 알라딘 상품 검색 API로 책 제목 → 표지 이미지. 키가 없거나 실패하면 null(카드는 표지 자리 대체 디자인으로 보임).
-// 같은 제목은 하루 동안 캐시해 API 호출 한도(일 5천 회)를 아낀다.
+// 책 제목 → 표지 이미지. 운영자가 직접 올린 사진(/admin/covers)이 있으면 그것을 먼저 쓴다.
+// 없으면 알라딘 상품 검색 API로 찾는다. 키가 없거나 실패하면 null(카드는 표지 자리 대체 디자인으로 보임).
 export async function getBookCover(title: string | null): Promise<BookCover | null> {
+  const manual = await getManualCover(title);
+  if (manual) return { url: manual.url, link: null };
+  return getAladinCover(title);
+}
+
+// 같은 제목은 하루 동안 캐시해 API 호출 한도(일 5천 회)를 아낀다.
+async function getAladinCover(title: string | null): Promise<BookCover | null> {
   const key = process.env.ALADIN_TTB_KEY?.trim();
   const q = title?.trim();
   if (!key || !q) return null;

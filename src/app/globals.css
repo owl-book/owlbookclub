@@ -217,17 +217,49 @@ input:focus-visible {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+/* 지우기·탈퇴 전에 화면 가운데 뜨는 확인 팝업(<dialog>) */
+.owl-confirm {
+  margin: auto;
+  width: calc(100% - 2rem);
+  max-width: 22rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-card);
+  box-shadow: 0 12px 32px rgb(18 26 46 / 0.22);
+}
+.owl-confirm::backdrop {
+  background: rgb(18 26 46 / 0.45);
+}
+.owl-confirm[open] {
+  animation: owl-confirm-in 0.18s ease-out;
+}
+.owl-confirm[open]::backdrop {
+  animation: owl-fade-in 0.18s ease-out;
+}
+@keyframes owl-confirm-in {
+  from { transform: scale(0.94); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes owl-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* 화면 아래 고정 띠(상세화면 신청 버튼)가 있으면 맨 끝의 푸터가 띠에 가려지지 않도록 띠 높이만큼 비워 둔다 */
 body:has(.owl-action-bar) {
   padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
 }
 
 /* 판이 열려 있는 동안 뒤 화면이 따라 움직이지 않게 */
-html:has(.owl-sheet[open]) {
+html:has(.owl-sheet[open]),
+html:has(.owl-confirm[open]) {
   overflow: hidden;
 }
 @media (prefers-reduced-motion: reduce) {
-  .owl-sheet[open] {
+  .owl-sheet[open],
+  .owl-confirm[open],
+  .owl-confirm[open]::backdrop {
     animation: none;
   }
 }
@@ -248,7 +280,16 @@ html:has(.owl-sheet[open]) {
   0%, 40% { background-color: var(--color-success-surface); border-color: var(--color-success-border); }
   100% { background-color: var(--color-card); }
 }
+/* 가입 직후 환영 화면: 회원증이 한 번 살짝 올라온다 */
+.owl-card-in {
+  animation: owl-card-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes owl-card-in {
+  from { transform: translateY(1rem) rotate(-1.5deg); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
 @media (prefers-reduced-motion: reduce) {
+  .owl-card-in,
   .owl-toast,
   .owl-just-saved {
     animation: none;

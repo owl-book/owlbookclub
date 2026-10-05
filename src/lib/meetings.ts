@@ -155,14 +155,15 @@ export function matchesChoices(m: Meeting, c: Choices): boolean {
   );
 }
 
-// day(달력에서 고른 날짜 번호)가 있으면 날짜 버튼(date) 대신 그날만 본다
+// days(달력에서 고른 날짜 번호들)가 있으면 날짜 버튼(date) 대신 그 날들만 본다
 export function filterMeetings(
   meetings: Meeting[],
-  opts: { date: DateFilter; q: string; now: Date; day?: number | null; choices: Choices },
+  opts: { date: DateFilter; q: string; now: Date; days?: number[]; choices: Choices },
 ): Meeting[] {
+  const days = new Set(opts.days ?? []);
   return meetings.filter(
     (m) =>
-      (opts.day != null ? kstDayNumber(m.startsAt) === opts.day : matchesDateFilter(m.startsAt, opts.date, opts.now)) &&
+      (days.size > 0 ? days.has(kstDayNumber(m.startsAt)) : matchesDateFilter(m.startsAt, opts.date, opts.now)) &&
       matchesQuery(m, opts.q) &&
       matchesChoices(m, opts.choices),
   );

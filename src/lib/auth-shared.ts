@@ -4,7 +4,10 @@
 export const AUTH_COOKIE = {
   user: "owl_user", // 로그인 상태
   oauth: "owl_oauth", // 로그인 진행 중 위조 방지값(state)과 돌아갈 주소, 10분
+  lastProvider: "owl_last_login", // 이 기기에서 마지막으로 쓴 로그인 방법(kakao 등). 로그인 화면 '최근 사용' 표시용, 로그아웃해도 남는다
 } as const;
+
+export const LAST_PROVIDER_MAX_AGE = 60 * 60 * 24 * 365; // 1년
 
 export const LOGIN_MAX_AGE = 60 * 60 * 24 * 60; // 60일
 

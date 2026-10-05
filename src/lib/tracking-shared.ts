@@ -28,6 +28,16 @@ export type Utm = {
 const BOT_RE =
   /bot|crawl|spider|slurp|preview|scrap|facebookexternalhit|meta-externalagent|kakaotalk-scrap|yeti|daum|daumoa|bingpreview|headless|lighthouse|curl|wget|python-requests|axios|node-fetch|go-http-client|okhttp|java\//i;
 
+// 화면을 통째로 긁어가는 데 흔히 쓰는 프로그램들. 사람 브라우저·검색 로봇·링크 미리보기는 여기에 걸리지 않는다.
+const SCRAPER_RE =
+  /python-requests|python-urllib|aiohttp|httpx|scrapy|curl|wget|axios|node-fetch|undici|got \(|go-http-client|okhttp|java\/|apache-httpclient|libwww-perl|headlesschrome|phantomjs|puppeteer|playwright|selenium|colly|httrack|ahrefsbot|semrushbot|mj12bot|dotbot|petalbot|bytespider|gptbot|ccbot|claudebot|anthropic-ai|perplexitybot|amazonbot|dataforseobot/i;
+
+// 사용자 에이전트가 비어 있거나 수집 프로그램이면 true → proxy 에서 차단
+export function isScraperUserAgent(ua: string | null | undefined): boolean {
+  if (!ua || !ua.trim()) return true;
+  return SCRAPER_RE.test(ua);
+}
+
 export function isBotUserAgent(ua: string | null | undefined): boolean {
   if (!ua) return true;
   return BOT_RE.test(ua);

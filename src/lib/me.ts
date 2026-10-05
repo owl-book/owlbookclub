@@ -186,6 +186,15 @@ export async function saveWish(userId: string, kind: "meeting" | "store", id: nu
   });
 }
 
+// 찜이 실제로 저장돼 있는지(가입 직후 환영 화면의 '담았어요' 확인용). 못 읽으면 저장 안 된 것으로 본다
+export async function hasWish(userId: string, kind: "meeting" | "store", id: number): Promise<boolean> {
+  const table = kind === "meeting" ? "meeting_wishes" : "store_wishes";
+  const col = kind === "meeting" ? "meeting_id" : "store_id";
+  const { data, error } = await db().from(table).select(col).eq("user_id", userId).eq(col, id).maybeSingle();
+  if (error) console.error("[owl] wish check failed", error.message);
+  return !!data;
+}
+
 // ─────────────────────────────────────────────
 // 내 모임: 찜 → 책방에서 신청했어요 → 다녀왔어요(또는 못 갔어요)
 // 부엉이서재는 신청을 받지 않는다. 여기 남는 것은 '본인이 책방에서 신청했다고 표시한 사실'뿐이고, 본인만 본다.

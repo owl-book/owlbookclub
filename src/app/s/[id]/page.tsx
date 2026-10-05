@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "@/components/BackLink";
 import { MeetingList } from "@/components/MeetingList";
@@ -156,7 +157,16 @@ export default async function StorePage({ params }: PageProps<"/s/[id]">) {
         )}
       </section>
 
-      <p className="mt-8 text-l2 font-normal text-ink-3">책방 정보와 모임 일정은 책방 공지가 기준이에요. 다른 점이 있으면 모임 화면의 ‘알려주기’로 알려 주세요.</p>
+      {/* 이용자·운영자 모두 쓰는 입구: 이 책방만 미리 골라 두고 종류는 비워 둔다(게시 멈추기는 '그 밖의 문의'에서 고름) */}
+      <div className="mt-8 space-y-1 text-l2 font-normal text-ink-3">
+        <p>책방 정보와 모임 일정은 책방 공지가 기준이에요.</p>
+        <p>
+          책방 정보가 다르면{" "}
+          <Link href={`/contact?store=${s.id}`} className="-my-3 inline-flex min-h-11 items-center text-navy underline underline-offset-2 hover:text-navy-hover">
+            알려주기
+          </Link>
+        </p>
+      </div>
     </article>
   );
 }

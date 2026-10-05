@@ -104,6 +104,16 @@ export async function resolveReport(formData: FormData) {
   redirect(`${REPORTS_PATH}?done=${action}`);
 }
 
+// 의견·요청 '처리 완료'. 실제 책방 정보 수정·게시 중단은 Supabase 에서 직접 하고, 여기서는 닫기만 한다
+export async function resolveInquiry(formData: FormData) {
+  await requireAdmin();
+  const id = toId(formData.get("inquiryId"));
+  if (!id) throw new Error("잘못된 요청입니다.");
+  const { error } = await db().from("inquiries").update({ status: "done", resolved_at: new Date().toISOString() }).eq("id", id).eq("status", "open");
+  if (error) throw new Error(error.message);
+  redirect(`${REPORTS_PATH}?done=inquiry`);
+}
+
 // 일정·장소·참가비 고치기. 일시는 한국 시간 '2026-10-08T19:30' 형식으로 받는다
 export async function editMeeting(formData: FormData) {
   await requireAdmin();

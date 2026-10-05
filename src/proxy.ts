@@ -6,6 +6,7 @@ import {
   SESSION_MAX_AGE,
   YEAR,
   isBotUserAgent,
+  isScraperUserAgent,
   parseUtm,
   type Utm,
 } from "@/lib/tracking-shared";
@@ -18,6 +19,11 @@ import { AUTH_COOKIE, readSessionUser } from "@/lib/auth-shared";
 export function proxy(request: NextRequest, event: NextFetchEvent) {
   const { searchParams, pathname } = request.nextUrl;
   const ua = request.headers.get("user-agent");
+
+  // 수집 프로그램은 페이지를 주지 않는다(경쟁 서비스의 모임·책방 정보 통째 수집 방지)
+  if (isScraperUserAgent(ua)) {
+    return new NextResponse("Forbidden", { status: 403 });
+  }
   const isPrefetch =
     request.headers.has("next-router-prefetch") ||
     request.headers.get("purpose") === "prefetch" ||

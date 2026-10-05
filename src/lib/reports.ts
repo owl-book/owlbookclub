@@ -91,17 +91,70 @@ export async function getRecentHandled(limit = 10): Promise<HandledItem[]> {
   }));
 }
 
+export type InquiryItem = {
+  id: number;
+  category: string;
+  topic: string;
+  store: { id: number; name: string } | null;
+  storeName: string | null;
+  link: string | null;
+  message: string | null;
+  contact: string | null;
+  createdAt: Date;
+};
+
+type InquiryRow = {
+  id: number;
+  category: string;
+  topic: string;
+  store_name: string | null;
+  link: string | null;
+  message: string | null;
+  contact: string | null;
+  created_at: string;
+  store: { id: number; name: string } | null;
+};
+
+// 처리 전 의견·요청, 최근 것이 위로. 0016 을 실행하기 전(표가 없을 때)에는 빈 목록으로 보고 신고함은 그대로 연다
+export async function getInquiryInbox(): Promise<InquiryItem[]> {
+  const { data, error } = await db()
+    .from("inquiries")
+    .select("id, category, topic, store_name, link, message, contact, created_at, store:stores(id, name)")
+    .eq("status", "open")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) {
+    console.error("[owl] inquiry inbox failed", error.message);
+    return [];
+  }
+  return (data as unknown as InquiryRow[]).map((r) => ({
+    id: r.id,
+    category: r.category,
+    topic: r.topic,
+    store: r.store,
+    storeName: r.store_name,
+    link: r.link,
+    message: r.message,
+    contact: r.contact,
+    createdAt: new Date(r.created_at),
+  }));
+}
+
 // 보관 기간 지난 정보 지우기(개인정보처리방침 3번과 짝):
 // - 신고의 보낸 곳 구분값: 7일 뒤 비움
 // - 처리 끝난 신고: 6개월 뒤 삭제
 // - 관리자 비밀번호 시도 기록: 하루 뒤 삭제
-// 따로 예약 작업을 두지 않고, 신고가 들어오거나 관리자가 들어올 때마다 함께 정리한다.
+// - 의견·요청(inquiries): 보낸 곳 구분값 7일 뒤 비움, 처리 끝난 것의 연락처는 3개월 뒤 비움, 내용은 6개월 뒤 삭제
+// 따로 예약 작업을 두지 않고, 신고·의견이 들어오거나 관리자가 들어올 때마다 함께 정리한다.
 export async function cleanupReportData(): Promise<void> {
   const ago = (days: number) => new Date(Date.now() - days * 24 * 3600_000).toISOString();
   const results = await Promise.all([
     db().from("reports").update({ ip_hash: null, visitor_id: null }).lt("created_at", ago(7)).not("ip_hash", "is", null),
     db().from("reports").delete().eq("status", "done").lt("resolved_at", ago(183)),
     db().from("admin_login_attempts").delete().lt("created_at", ago(1)),
+    db().from("inquiries").update({ ip_hash: null, visitor_id: null }).lt("created_at", ago(7)).not("ip_hash", "is", null),
+    db().from("inquiries").update({ contact: null }).eq("status", "done").lt("resolved_at", ago(92)).not("contact", "is", null),
+    db().from("inquiries").delete().eq("status", "done").lt("resolved_at", ago(183)),
   ]);
   for (const r of results) if (r.error) console.error("[owl] report cleanup failed", r.error.message);
 }

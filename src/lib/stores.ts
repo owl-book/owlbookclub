@@ -70,6 +70,20 @@ function sortHoursByWeekday(v: string | null | undefined): string | null {
     .join("\n");
 }
 
+export type StoreOption = { id: number; name: string; region: string };
+
+// '의견·요청 보내기'의 책방 고르기 칸: 보이는 책방 전부를 지역·이름 순으로
+export async function listStoreOptions(): Promise<StoreOption[]> {
+  if (!hasDb()) {
+    const seen = new Map<number, StoreOption>();
+    for (const m of demoMeetings(new Date())) seen.set(m.store.id, { id: m.store.id, name: m.store.name, region: m.store.region });
+    return [...seen.values()];
+  }
+  const { data, error } = await db().from("stores").select("id, name, region").eq("is_blocked", false).order("region").order("name").limit(1000);
+  if (error) throw new Error(error.message);
+  return data as StoreOption[];
+}
+
 // 이 책방의 다가오는 모임(가까운 날짜순)과 최근 지난 모임(최근순)
 export async function getStoreMeetings(storeId: number, now = new Date(), pastDays = 90): Promise<{ upcoming: Meeting[]; past: Meeting[] }> {
   const all = hasDb()

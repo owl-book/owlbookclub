@@ -119,7 +119,7 @@ export default async function RecordPage({ params }: PageProps<"/me/records/[mee
               <SubmitButton
                 confirm="이 기록을 지울까요? 지운 기록은 되살릴 수 없어요."
                 pendingText="지우는 중…"
-                className="inline-flex min-h-11 items-center text-l2 text-error underline"
+                className="inline-flex min-h-11 items-center rounded-sm px-3 text-l2 text-error underline underline-offset-2 transition-colors hover:bg-error-surface hover:no-underline active:bg-error-surface"
               >
                 이 기록 지우기
               </SubmitButton>
