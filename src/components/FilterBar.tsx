@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { DATE_FILTERS, dayKey, dayKeys, dayParts, formatDayNum, formatDays, mondayOf, type DateFilter } from "@/lib/time";
+import { DATE_FILTERS, dayKey, dayKeys, dayParts, formatDayNum, formatDays, sundayOf, type DateFilter } from "@/lib/time";
 import { markListVisited } from "@/lib/nav-memory";
 import type { Choices } from "@/lib/meetings";
 import { REGIONS, SIDOS } from "@/lib/regions";
@@ -10,7 +10,7 @@ import { FORMATS, GENRES } from "@/lib/tags";
 import { track } from "@/lib/track-client";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const WEEK_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+const WEEK_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 // 날짜 버튼은 달력으로 한 번에 못 고르는 것만 둔다. '이번 주·다음 주'는 달력 화살표와 같아서 뺐다(예전 링크로 들어오면 그 버튼만 보인다).
 const DATE_CHIPS: DateFilter[] = ["all", "this-weekend", "weekday-evening"];
 
@@ -35,12 +35,13 @@ type Props = {
   today: number; // 서버가 정한 오늘(KST) — 화면 깜빡임 없이 서버·브라우저가 같은 달력을 그리도록
   counts: Record<number, number>; // 날짜 번호 → 검색어에 맞는 모임 수
   lastDay: number | null; // 가장 늦은 모임 날짜
+  earliestDay: number | null; // 가장 이른 지난 모임 날짜(여기까지 뒤로 넘겨 볼 수 있다)
   resultCount: number; // 지금 조건에 맞는 모임 수(필터 판의 '모임 N개 보기' 버튼)
   summary: string; // 목록 위 안내 글(예: '경기 문학 모임 1개 · 가까운 날짜순')
   searching: boolean; // 검색어나 필터가 있음 → 달력을 한 줄로 접어 결과를 위로 올린다
 };
 
-export function FilterBar({ date, q, days, choices, today, counts, lastDay, resultCount, summary, searching }: Props) {
+export function FilterBar({ date, q, days, choices, today, counts, lastDay, earliestDay, resultCount, summary, searching }: Props) {
   const router = useRouter();
   const [text, setText] = useState(q);
   const [pending, startTransition] = useTransition();
@@ -52,8 +53,10 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, resu
 
   // 앞으로 넘겨 볼 수 있는 끝: 마지막 모임 날짜, 최소한 다음 주까지
   const maxDay = Math.max(lastDay ?? today, today + 13);
+  // 뒤로 넘겨 볼 수 있는 끝: 가장 오래된 지난 모임 날짜(없으면 이번 주까지)
+  const minDay = Math.min(earliestDay ?? today, today);
   const firstDay = days[0] ?? null;
-  const [weekStart, setWeekStart] = useState(() => mondayOf(firstDay ?? today));
+  const [weekStart, setWeekStart] = useState(() => sundayOf(firstDay ?? today));
   const [month, setMonth] = useState(() => monthOf(firstDay ?? today));
 
   // 뒤로 가기 등으로 고른 날짜가 바뀌었는데 지금 달력에 하나도 안 보이면, 첫 날짜가 보이도록 달력을 옮긴다
@@ -63,7 +66,7 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, resu
     setPrevDaysKey(daysKey);
     const visible = days.some((d) => (expanded ? monthIndex(monthOf(d)) === monthIndex(month) : d >= weekStart && d < weekStart + 7));
     if (firstDay != null && !visible) {
-      setWeekStart(mondayOf(firstDay));
+      setWeekStart(sundayOf(firstDay));
       setMonth(monthOf(firstDay));
     }
   }
@@ -237,7 +240,7 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, resu
                 title={`${month.year}년 ${month.month}월`}
                 onPrev={() => setMonth(shiftMonth(month, -1))}
                 onNext={() => setMonth(shiftMonth(month, 1))}
-                prevDisabled={monthIndex(month) <= monthIndex(monthOf(today))}
+                prevDisabled={monthIndex(month) <= monthIndex(monthOf(minDay))}
                 nextDisabled={monthIndex(month) >= monthIndex(monthOf(maxDay))}
                 prevLabel="이전 달"
                 nextLabel="다음 달"
@@ -251,8 +254,8 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, resu
                 title={weekTitle(weekStart, today)}
                 onPrev={() => setWeekStart(weekStart - 7)}
                 onNext={() => setWeekStart(weekStart + 7)}
-                prevDisabled={weekStart <= mondayOf(today)}
-                nextDisabled={weekStart >= mondayOf(maxDay)}
+                prevDisabled={weekStart <= sundayOf(minDay)}
+                nextDisabled={weekStart >= sundayOf(maxDay)}
                 prevLabel="이전 주"
                 nextLabel="다음 주"
               />
@@ -264,8 +267,8 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, resu
             type="button"
             onClick={() => {
               // 펼칠 때는 보고 있던 주의 달을, 접을 때는 고른 날(없으면 오늘)의 주를 보여준다
-              if (expanded) setWeekStart(mondayOf(firstDay ?? today));
-              else setMonth(monthOf(Math.max(weekStart, today)));
+              if (expanded) setWeekStart(sundayOf(firstDay ?? today));
+              else setMonth(monthOf(weekStart < sundayOf(today) ? weekStart + 6 : Math.max(weekStart, today)));
               setExpanded(!expanded);
             }}
             aria-expanded={expanded}
@@ -494,7 +497,7 @@ function DayCell({
   onPick: (d: number) => void;
 }) {
   const past = day < today;
-  const disabled = !selected && past; // 지난 날만 막는다. 모임 없는 날도 미리 골라 둘 수 있다
+  const disabled = !selected && past && count === 0; // 모임이 없던 지난 날만 막는다. 앞으로의 날은 모임이 없어도 미리 골라 둘 수 있다
   const isToday = day === today;
   const label = `${formatDayNum(day)}${isToday ? ", 오늘" : ""}, ${count > 0 ? `모임 ${count}개` : "모임 없음"}`;
   return (
@@ -510,7 +513,9 @@ function DayCell({
           : disabled
             ? "text-ink-3/50"
             : count > 0
-              ? "font-semibold text-ink"
+              ? past
+                ? "text-ink-2"
+                : "font-semibold text-ink"
               : "text-ink-2"
       } ${isToday && !selected ? "ring-1 ring-border-strong" : ""} ${outside && !selected ? "opacity-50" : ""}`}
     >
@@ -518,7 +523,7 @@ function DayCell({
       {/* 모임 수만큼 점(최대 3개) */}
       <span className="flex h-1.5 items-center gap-0.5" aria-hidden>
         {Array.from({ length: Math.min(count, 3) }, (_, i) => (
-          <span key={i} className={`h-1.5 w-1.5 rounded-full ${selected ? "bg-white" : "bg-navy"}`} />
+          <span key={i} className={`h-1.5 w-1.5 rounded-full ${selected ? "bg-white" : past ? "bg-border-card" : "bg-navy"}`} />
         ))}
       </span>
     </button>
@@ -603,17 +608,17 @@ function shiftMonth(m: Month, by: number): Month {
   return { year: Math.floor(i / 12), month: (i % 12) + 1 };
 }
 
-// 그 달을 덮는 월~일 주들의 날짜 번호 (앞뒤 달 날짜 포함)
+// 그 달을 덮는 일~토 주들의 날짜 번호 (앞뒤 달 날짜 포함)
 function monthDays(m: Month): number[] {
   const first = Date.UTC(m.year, m.month - 1, 1) / DAY_MS;
   const last = Date.UTC(m.year, m.month, 0) / DAY_MS;
-  const start = mondayOf(first);
-  const end = mondayOf(last) + 6;
+  const start = sundayOf(first);
+  const end = sundayOf(last) + 6;
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 }
 
 function weekTitle(weekStart: number, today: number): string {
-  const diff = (weekStart - mondayOf(today)) / 7;
+  const diff = (weekStart - sundayOf(today)) / 7;
   if (diff === 0) return "이번 주";
   if (diff === 1) return "다음 주";
   const a = dayParts(weekStart);

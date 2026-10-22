@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { AdminLogin } from "@/components/AdminLogin";
+import { AdminNav } from "@/components/AdminNav";
 import { CoverUploadForm } from "@/components/CoverUploadForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
 import { getCoverBooks, type CoverBook } from "@/lib/book-covers";
 import { removeBookCover } from "@/lib/cover-actions";
+import { getReviewCount } from "@/lib/review";
+import { getInquiryInbox, getReportInbox } from "@/lib/reports";
 import { formatKst } from "@/lib/time";
 
 // 운영자 전용 책 표지 화면. 모임에 적힌 책 제목을 책마다 하나로 묶어 보여 주고, 책마다 사진을 한 번 올린다.
@@ -23,19 +25,18 @@ const DONE_MESSAGE: Record<string, string> = {
 export default async function AdminCoversPage({ searchParams }: PageProps<"/admin/covers">) {
   await connection();
   if (!isAdminEnabled()) notFound();
-  if (!(await isAdmin())) return <AdminLogin />;
+  if (!(await isAdmin())) return <AdminLogin next="/admin/covers" />;
 
   const sp = await searchParams;
   const done = typeof sp.done === "string" ? DONE_MESSAGE[sp.done] : undefined;
-  const books = await getCoverBooks();
+  const [books, inbox, inquiries, reviewCount] = await Promise.all([getCoverBooks(), getReportInbox(), getInquiryInbox(), getReviewCount()]);
+  const reportCount = inbox.reduce((n, item) => n + item.reports.length, 0) + inquiries.length;
   const missing = books.filter((b) => !b.cover).length;
 
   return (
-    <div className="pt-5">
-      <Link href="/admin/reports" className="inline-flex min-h-11 items-center text-l1 text-ink-2 underline underline-offset-2 hover:text-navy">
-        신고함으로
-      </Link>
-      <h1 className="mt-1 font-display text-h2 text-ink">책 표지</h1>
+    <div>
+      <AdminNav current="covers" counts={{ review: reviewCount, reports: reportCount, covers: missing }} />
+      <h1 className="mt-5 font-display text-h2 text-ink">책 표지</h1>
       <p className="mt-1 text-b2 text-ink-2">
         {books.length === 0 ? (
           "모임에 책 제목이 들어가면 여기에 책이 모여요."

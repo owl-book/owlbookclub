@@ -67,10 +67,22 @@ export function formatKstDateOnly(d: Date): string {
   return `${w.getUTCMonth() + 1}월 ${w.getUTCDate()}일 (${WEEKDAYS[w.getUTCDay()]})`;
 }
 
+// "10월 29일"
+export function formatKstMonthDay(d: Date): string {
+  const w = toKstWall(d);
+  return `${w.getUTCMonth() + 1}월 ${w.getUTCDate()}일`;
+}
+
 // "2026-10-01" 형식의 날짜 문자열 → "10월 1일"
 export function formatDateString(s: string): string {
   const [, m, d] = s.split("-").map(Number);
   return `${m}월 ${d}일`;
+}
+
+// "2026-10-20" → "10월 20일 (화)"
+export function formatDateStringWithDay(s: string): string {
+  const [y, m, d] = s.split("-").map(Number);
+  return `${m}월 ${d}일 (${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`;
 }
 
 // KST 기준 날짜 번호(같은 날이면 같은 값) — 목록의 날짜 묶음·"오늘/내일" 계산용
@@ -84,6 +96,28 @@ export function relativeDayLabel(d: Date, now: Date): string | null {
   if (diff === 1) return "내일";
   if (diff === 2) return "모레";
   return null;
+}
+
+type MeetingTimeFields = { startsAt: Date; endsAt?: Date | null; timeNote: string | null };
+
+// 모임 시각: 시간 안내(timeNote)가 있으면 그 글자를, 없으면 "오후 7:30" 또는 끝나는 시각까지 "오후 6:30 ~ 9:00"
+export function meetingTime(m: MeetingTimeFields): string {
+  return m.timeNote ?? formatKstTimeRange(m.startsAt, m.endsAt ?? null);
+}
+
+// 모임 일시: "10월 8일 (수) 오후 7:30 ~ 9:30" 또는 "10월 13일 (화) (8세) 오후 3:50 / (7세) 오후 5:00"
+export function meetingWhen(m: MeetingTimeFields): string {
+  return `${formatKstDateOnly(m.startsAt)} ${meetingTime(m)}`;
+}
+
+// 시작~끝: 오전·오후가 같으면 끝에는 다시 붙이지 않는다("오후 6:30 ~ 9:00").
+// 다르면 둘 다("오전 11:00 ~ 오후 1:30"), 자정을 넘기면 "오후 10:00 ~ 다음 날 오전 1:00"
+export function formatKstTimeRange(start: Date, end: Date | null): string {
+  const from = formatKstTime(start);
+  if (!end || end.getTime() <= start.getTime()) return from;
+  const to = formatKstTime(end);
+  if (kstDayNumber(end) !== kstDayNumber(start)) return `${from} ~ 다음 날 ${to}`;
+  return from.slice(0, 2) === to.slice(0, 2) ? `${from} ~ ${to.slice(3)}` : `${from} ~ ${to}`;
 }
 
 // "오후 7:30"
@@ -136,9 +170,9 @@ export function dayParts(dayNum: number) {
   return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, date: d.getUTCDate(), dow: d.getUTCDay() };
 }
 
-// 그 날짜가 속한 주의 월요일 날짜 번호
-export function mondayOf(dayNum: number): number {
-  return dayNum - ((dayParts(dayNum).dow + 6) % 7);
+// 그 날짜가 속한 주(일~토)의 일요일 날짜 번호
+export function sundayOf(dayNum: number): number {
+  return dayNum - dayParts(dayNum).dow;
 }
 
 // "10월 8일 (수)"

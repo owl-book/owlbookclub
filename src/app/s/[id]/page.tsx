@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BackLink } from "@/components/BackLink";
+import { ExhibitionList } from "@/components/ExhibitionCard";
 import { MeetingList } from "@/components/MeetingList";
 import { PinIcon } from "@/components/PinIcon";
 import { WishButton } from "@/components/WishButton";
+import { getStoreExhibitions } from "@/lib/exhibitions";
 import { getWishContext } from "@/lib/me";
 import { getStore, getStoreMeetings } from "@/lib/stores";
 
@@ -21,7 +23,7 @@ export async function generateMetadata({ params }: PageProps<"/s/[id]">): Promis
   };
 }
 
-// 책방 상세: 남색 '간판'(지역·이름·한 줄 소개·찜) → 위치·운영시간·대표번호·인스타 → 이 책방의 독서모임.
+// 책방 상세: 남색 '간판'(지역·이름·한 줄 소개·찜) → 위치·운영시간·대표번호·인스타 → 이 책방의 전시(있을 때만) → 이 책방의 독서모임.
 // 운영시간·대표번호는 네이버 플레이스에서 옮겨 적은 것이라, 있으면 그 출처를 칸 아래에 함께 밝힌다.
 // 책방 홍보 이미지는 쓰지 않는다(게재 원칙). 앰버 버튼도 쓰지 않는다: 이 화면의 일은 모임 고르기이고, 책방으로 나가는 신청은 모임 상세에서 한다.
 export default async function StorePage({ params }: PageProps<"/s/[id]">) {
@@ -30,7 +32,7 @@ export default async function StorePage({ params }: PageProps<"/s/[id]">) {
   if (!s) notFound();
 
   const now = new Date();
-  const [{ upcoming, past }, wishes] = await Promise.all([getStoreMeetings(s.id, now), getWishContext()]);
+  const [{ upcoming, past }, wishes, exhibitions] = await Promise.all([getStoreMeetings(s.id, now), getWishContext(), getStoreExhibitions(s.id, now)]);
   const loggedIn = Boolean(wishes.user);
   const handle = s.instagramUrl ? instagramHandle(s.instagramUrl) : null;
 
@@ -127,6 +129,17 @@ export default async function StorePage({ params }: PageProps<"/s/[id]">) {
         </div>
       )}
 
+      {/* 이 책방에서 지금 하는·곧 열리는 전시. 있을 때만, 모임보다 위에(기간이 정해져 있어 놓치기 쉬워서) */}
+      {exhibitions.length > 0 && (
+        <section aria-labelledby="store-exhibitions" className="mt-8">
+          <h2 id="store-exhibitions" className="text-t2 text-ink">
+            이 책방의 전시
+            <span className="ml-1.5 text-l1 text-ink-3">{exhibitions.length}개</span>
+          </h2>
+          <ExhibitionList list={exhibitions} now={now} wishes={wishes} hideStore className="mt-2" />
+        </section>
+      )}
+
       <section aria-labelledby="store-meetings" className="mt-8">
         <h2 id="store-meetings" className="text-t2 text-ink">
           이 책방의 독서모임
@@ -156,6 +169,15 @@ export default async function StorePage({ params }: PageProps<"/s/[id]">) {
           </details>
         )}
       </section>
+
+      {/* 책방 인스타를 보고 바로 들어온 단골 독자가 다른 동네책방도 구경하도록 */}
+      <Link
+        href="/stores"
+        className="mt-8 flex min-h-11 items-center justify-between rounded-md border border-border-card bg-card px-4 py-3 text-b2 text-ink hover:border-border-strong"
+      >
+        다른 동네책방도 둘러보기
+        <span aria-hidden className="text-ink-3">→</span>
+      </Link>
 
       {/* 이용자·운영자 모두 쓰는 입구: 이 책방만 미리 골라 두고 종류는 비워 둔다(게시 멈추기는 '그 밖의 문의'에서 고름) */}
       <div className="mt-8 space-y-1 text-l2 font-normal text-ink-3">

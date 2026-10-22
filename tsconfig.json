@@ -48,7 +48,11 @@
     ".next-buildcheck/types/**/*.ts",
     ".next-buildcheck/dev/types/**/*.ts",
     ".next/buildcheck/types/**/*.ts",
-    ".next/buildcheck/dev/types/**/*.ts"
+    ".next/buildcheck/dev/types/**/*.ts",
+    ".next/preview-admin/types/**/*.ts",
+    ".next/preview-admin/dev/types/**/*.ts",
+    ".next/preview-ga/types/**/*.ts",
+    ".next/preview-ga/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

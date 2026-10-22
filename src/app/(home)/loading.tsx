@@ -5,11 +5,11 @@ import { Bone, LoadingNote, MeetingListSkeleton } from "@/components/Skeleton";
 const intro = (
   <section className="mb-5">
     <h1 className="font-display text-h1 text-ink">
-      부엉이들이 여는
+      우리 동네 책방의
       <br />
-      독서모임
+      다양한 모임 소식들
     </h1>
-    <p className="mt-2 text-b2 text-ink-2">서울·경기 동네책방에서 열리는 독서모임을 날짜별로 모아 뒀어요.</p>
+    <p className="mt-2 text-b2 text-ink-2">경기도 구리/남양주/의정부 지역의 동네책방에서 열리는 독서모임을 날짜별로 모아 뒀어요.</p>
   </section>
 );
 // 날짜 버튼 줄·달력·모임 수와 필터 버튼

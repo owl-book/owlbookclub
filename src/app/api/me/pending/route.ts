@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { getPendingApplies, getPlans } from "@/lib/me";
 import { getTrackContext } from "@/lib/tracking";
-import { formatKst } from "@/lib/time";
+import { meetingWhen } from "@/lib/time";
 
 // 첫 화면의 '신청하셨나요?' 안내용: 이 사람(로그인 회원 또는 이 기기)이 최근 신청 페이지를 열어 본, 아직 표시하지 않은 모임.
 // 본인 쿠키로만 찾으므로 다른 사람의 기록은 돌려주지 않는다.
@@ -18,7 +18,7 @@ export async function GET() {
     return NextResponse.json(
       {
         loggedIn: Boolean(user),
-        items: meetings.map((m) => ({ id: m.id, title: m.title, storeName: m.store.name, when: formatKst(m.startsAt) })),
+        items: meetings.map((m) => ({ id: m.id, title: m.title, storeName: m.store.name, when: meetingWhen(m) })),
       },
       { headers: { "Cache-Control": "no-store" } },
     );

@@ -4,11 +4,11 @@ import { useState, useTransition } from "react";
 import { setWish } from "@/lib/me-actions";
 
 type Props = {
-  kind: "meeting" | "store";
+  kind: "meeting" | "store" | "exhibition";
   id: number;
   wished: boolean;
   loggedIn: boolean;
-  label: string; // 화면 읽기 프로그램용: 모임 제목 또는 책방 이름
+  label: string; // 화면 읽기 프로그램용: 모임 제목, 책방 이름 또는 전시 이름
   size?: "md" | "sm" | "bar"; // bar: 상세화면 아래 고정 띠에서 신청 버튼 옆에 놓는 네모 버튼
 };
 
@@ -32,7 +32,7 @@ export function WishButton({ kind, id, wished, loggedIn, label, size = "md" }: P
     setOn(wished);
   }
 
-  const what = kind === "meeting" ? "모임" : "책방";
+  const what = kind === "meeting" ? "모임" : kind === "store" ? "책방" : "전시";
   const className = `relative z-10 inline-flex ${SHAPES[size]} shrink-0 items-center justify-center active:scale-95`;
 
   if (!loggedIn) {

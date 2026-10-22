@@ -5,20 +5,12 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
 import { COVER_BUCKET, titleKey } from "@/lib/book-covers";
+import { imageType } from "@/lib/image-shrink";
 
 // 관리자 표지 화면(/admin/covers)의 동작. 맨 앞에서 관리자 출입증을 다시 확인한다(requireAdmin).
 
 const COVERS_PATH = "/admin/covers";
 const MAX_BYTES = 1024 * 1024; // 화면에서 가로 480px 로 줄여 보내므로 넉넉하다(보관함 제한 0017 과 같은 값)
-
-// 파일 앞부분으로 실제 그림 종류를 확인한다(이름·브라우저가 알려 준 종류만 믿지 않는다)
-function imageType(b: Uint8Array): { ext: string; mime: string } | null {
-  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return { ext: "jpg", mime: "image/jpeg" };
-  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return { ext: "png", mime: "image/png" };
-  const ascii = (from: number, to: number) => String.fromCharCode(...b.slice(from, to));
-  if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") return { ext: "webp", mime: "image/webp" };
-  return null;
-}
 
 export type CoverUploadState = { error?: string } | undefined;
 

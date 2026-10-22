@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
+import { ExhibitionList } from "@/components/ExhibitionCard";
 import { MeetingList } from "@/components/MeetingList";
 import { PendingApplies } from "@/components/PendingApplies";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -16,16 +17,19 @@ import {
   getProfile,
   getRecords,
   getWishContext,
+  getWishedExhibitions,
   getWishedMeetings,
   getWishedStores,
   type Plan,
   type RecordWithMeeting,
+  type WishContext,
   type WishedStore,
 } from "@/lib/me";
+import { groupExhibitions, type Exhibition } from "@/lib/exhibitions";
 import { setAttended } from "@/lib/me-actions";
 import { isPast, type Meeting } from "@/lib/meetings";
 import { PROVIDERS, isProviderId } from "@/lib/oauth";
-import { formatDateString, formatKst, formatKstDateOnly, formatKstTime, kstDayNumber } from "@/lib/time";
+import { formatDateString, formatKstDateOnly, kstDayNumber, meetingWhen } from "@/lib/time";
 import { getTrackContext } from "@/lib/tracking";
 
 export const metadata: Metadata = { title: "마이페이지", robots: { index: false } };
@@ -33,6 +37,7 @@ export const metadata: Metadata = { title: "마이페이지", robots: { index: f
 const TABS = [
   { key: "meetings", label: "찜한 모임" },
   { key: "stores", label: "찜한 책방" },
+  { key: "exhibitions", label: "찜한 전시" },
   { key: "mine", label: "내 모임" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
@@ -57,7 +62,7 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
   const { visitorId } = await getTrackContext();
   const who = { userId: user.id, visitorId };
   const askSince = now.getTime() - ASK_DAYS * 86400000;
-  const [profileResult, data, wishes, plans, clickedIds] = await Promise.all([
+  const [profileResult, data, wishes, plans, clickedIds, wishedExhibitions] = await Promise.all([
     getProfile(user.id).then(
       (profile) => ({ ok: true as const, profile }),
       (e) => {
@@ -81,6 +86,8 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
       return [];
     }),
     getClickedMeetingIds(who, new Date(askSince)),
+    // 찜한 전시: 0024 설정문 실행 전이면 빈 목록(함수 안에서 처리)
+    getWishedExhibitions(user.id),
   ]);
 
   if (!profileResult.ok) {
@@ -151,10 +158,10 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
     .filter((m) => (askSeen.has(m.id) ? false : (askSeen.add(m.id), true)))
     .slice(0, ASK_MAX);
 
-  const pendingItems = pendingMeetings.map((m) => ({ id: m.id, title: m.title, storeName: m.store.name, when: formatKst(m.startsAt) }));
+  const pendingItems = pendingMeetings.map((m) => ({ id: m.id, title: m.title, storeName: m.store.name, when: meetingWhen(m) }));
 
   const attendedMeeting = typeof sp.attended === "string" ? went.find((w) => String(w.meeting.id) === sp.attended)?.meeting : undefined;
-  const counts: Record<TabKey, number> = { meetings: data.meetings.length, stores: data.stores.length, mine: appliedUpcoming.length + went.length };
+  const counts: Record<TabKey, number> = { meetings: data.meetings.length, stores: data.stores.length, exhibitions: wishedExhibitions.length, mine: appliedUpcoming.length + went.length };
 
   const providerLabel = isProviderId(profile.provider) ? PROVIDERS[profile.provider].label : profile.provider;
   const name = profile.displayName || profile.nickname || "회원";
@@ -231,7 +238,7 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
                   replace
                   scroll={false}
                   aria-current={on ? "page" : undefined}
-                  className={`flex min-h-12 items-center justify-center gap-1 border-b-2 text-l1 ${on ? "border-navy font-semibold text-navy" : "border-transparent text-ink-3 hover:text-ink-2"}`}
+                  className={`flex min-h-12 items-center justify-center gap-1 whitespace-nowrap border-b-2 text-l1 ${on ? "border-navy font-semibold text-navy" : "border-transparent text-ink-3 hover:text-ink-2"}`}
                 >
                   {t.label}
                   <span className={on ? "text-navy" : "text-ink-3"}>{counts[t.key]}</span>
@@ -313,7 +320,7 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
                           <Link href={`/m/${m.id}`} className="flex min-h-11 items-center justify-between gap-3 py-2.5 hover:text-navy">
                             <span className="min-w-0">
                               <span className="block truncate text-l1 text-ink">{m.title}</span>
-                              <span className="mt-0.5 block text-l2 font-normal text-ink-3">{formatKst(m.startsAt)}</span>
+                              <span className="mt-0.5 block text-l2 font-normal text-ink-3">{meetingWhen(m)}</span>
                             </span>
                             <span aria-hidden className="text-ink-3">›</span>
                           </Link>
@@ -324,6 +331,13 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
                 </li>
               ))}
             </ul>
+          ))}
+
+        {tab === "exhibitions" &&
+          (wishedExhibitions.length === 0 ? (
+            <Empty title="찜한 전시가 없어요" body="전시 카드의 하트를 누르면 여기에 모여요. 끝나기 전에 다녀오세요." />
+          ) : (
+            <WishedExhibitions list={wishedExhibitions} now={now} wishes={wishes} />
           ))}
 
         {tab === "mine" && (
@@ -453,6 +467,27 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
   );
 }
 
+// 찜한 전시: 지금 하는·곧 열리는 전시를 끝나는 날 가까운 순으로, 지난 전시는 아래에 따로
+function WishedExhibitions({ list, now, wishes }: { list: Exhibition[]; now: Date; wishes: WishContext }) {
+  const g = groupExhibitions(list, now);
+  const active = [...g.now, ...g.soon];
+  return (
+    <>
+      {active.length > 0 ? (
+        <ExhibitionList list={active} now={now} wishes={wishes} />
+      ) : (
+        <Empty title="다가오는 찜한 전시가 없어요" body="찜한 전시가 모두 끝났어요. 새 전시는 전시 메뉴에서 볼 수 있어요." />
+      )}
+      {g.past.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-2 text-l1 font-semibold text-ink-2">지난 찜 전시</h2>
+          <ExhibitionList list={g.past} now={now} wishes={wishes} />
+        </section>
+      )}
+    </>
+  );
+}
+
 // 평소 로그아웃은 내 정보 화면에 있다. 여기는 회원 정보를 불러오지 못해 내 정보로 갈 수 없을 때만 쓴다
 function LogoutButton() {
   return (
@@ -505,7 +540,7 @@ function PlanCard({ meeting: m, now }: { meeting: Meeting; now: Date }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-l1 font-semibold text-ink">{m.title}</p>
         <p className="mt-0.5 text-l2 font-normal text-ink-3">
-          {formatKstDateOnly(m.startsAt)} {formatKstTime(m.startsAt)} · {m.store.name}
+          {meetingWhen(m)} · {m.store.name}
         </p>
         <p className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <span className="rounded-xs border border-info-border bg-info-surface px-1.5 text-l2 text-navy">{dday}</span>

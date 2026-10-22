@@ -3,17 +3,20 @@ import { FilterBar } from "@/components/FilterBar";
 import { MeetingList } from "@/components/MeetingList";
 import { PendingApplies } from "@/components/PendingApplies";
 import { getWishContext } from "@/lib/me";
-import { countByDay, filterMeetings, getRecentPastMeetings, getUpcomingMeetings, matchesChoices, matchesQuery, type Choices } from "@/lib/meetings";
+import { attachSeries, collapseSeries, countByDay, filterMeetings, getRecentPastMeetings, getUpcomingMeetings, matchesChoices, matchesQuery, type Choices } from "@/lib/meetings";
 import { isGuOf, isSido } from "@/lib/regions";
 import { isFormat, isGenre } from "@/lib/tags";
 import { DATE_FILTERS, formatDays, isDateFilter, kstDayNumber, parseDayKeys } from "@/lib/time";
+
+// 달력에서 뒤로 넘겨 볼 수 있는 지난 기간(일)
+const PAST_CALENDAR_DAYS = 180;
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
   const now = new Date();
   const today = kstDayNumber(now);
-  // 달력에서 고른 날짜들(지난 날은 예전 링크로 들어와도 뺀다)
-  const days = parseDayKeys(sp.day).filter((d) => d >= today);
+  // 달력에서 고른 날짜들(지난 날은 달력이 보여 주는 범위까지만)
+  const days = parseDayKeys(sp.day).filter((d) => d >= today - PAST_CALENDAR_DAYS);
   const date = days.length === 0 && isDateFilter(sp.d) ? sp.d : "all";
   const q = typeof sp.q === "string" ? sp.q.slice(0, 50) : "";
   const sido = isSido(sp.sido) ? sp.sido : null;
@@ -21,13 +24,26 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const choices: Choices = { sido, gu, genre: isGenre(sp.genre) ? sp.genre : null, format: isFormat(sp.format) ? sp.format : null };
   const showPast = sp.past === "1";
 
-  const [upcoming, wishes] = await Promise.all([getUpcomingMeetings(now), getWishContext()]);
-  const results = filterMeetings(upcoming, { date, q, now, days, choices });
+  // 여러 회차를 한 번에 신청하는 모임은 날짜 조건 없는 목록에서만 가장 가까운 회차 한 장으로 접는다.
+  // 달력 점·날짜를 고른 목록에는 모든 회차가 그 날짜에 보인다(지난 모임도 접지 않음)
+  const [upcomingAll, pastAll, wishes] = await Promise.all([
+    getUpcomingMeetings(now).then(attachSeries),
+    getRecentPastMeetings(now, PAST_CALENDAR_DAYS, 1000).then(attachSeries),
+    getWishContext(),
+  ]);
+  // 달력에서 날짜를 고르면 지난 모임까지 날짜순으로, 아니면 다가오는 모임만
+  const upcoming = collapseSeries(upcomingAll);
+  const pastAsc = [...pastAll].reverse();
+  const pool = days.length ? [...pastAsc, ...upcomingAll] : date !== "all" ? upcomingAll : upcoming;
+  const results = filterMeetings(pool, { date, q, now, days, choices });
 
-  // 달력의 점: 날짜 조건은 빼고 검색어·필터만 반영한 모임 수
+  // 달력의 점: 날짜 조건은 빼고 검색어·필터만 반영한 모임 수(지난 날 점도 함께)
   const searched = upcoming.filter((m) => matchesQuery(m, q) && matchesChoices(m, choices));
-  const counts = countByDay(searched);
-  const lastDay = upcoming.length ? kstDayNumber(upcoming[upcoming.length - 1].startsAt) : null;
+  const searchedAll = upcomingAll.filter((m) => matchesQuery(m, q) && matchesChoices(m, choices));
+  const counts = countByDay([...pastAsc.filter((m) => matchesQuery(m, q) && matchesChoices(m, choices)), ...searchedAll]);
+  const lastDay = upcomingAll.length ? kstDayNumber(upcomingAll[upcomingAll.length - 1].startsAt) : null;
+  // 뒤로 넘겨 볼 수 있는 끝: 가장 오래된 지난 모임 날짜
+  const earliestDay = pastAsc.length ? kstDayNumber(pastAsc[0].startsAt) : null;
 
   // 빈 결과: 검색어는 유지한 채 가까운 다른 날짜 모임, 그래도 없으면 전체에서 가까운 모임
   let nearby: typeof upcoming = [];
@@ -36,7 +52,19 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     if (nearby.length === 0) nearby = upcoming.slice(0, 3);
   }
 
-  const past = showPast ? await getRecentPastMeetings(now) : [];
+  // 아래 '최근 30일 지난 모임'은 위에서 읽은 지난 모임에서 30일치만 쓴다
+  // 검색어·필터가 있으면 지난 모임도 같은 조건으로 거른다
+  const past = showPast
+    ? pastAll.filter((m) => m.startsAt.getTime() >= now.getTime() - 30 * 86400000 && matchesQuery(m, q) && matchesChoices(m, choices)).slice(0, 100)
+    : [];
+  // '지난 모임 보기'는 지금 검색어·필터·날짜를 그대로 두고 past=1 만 더한다
+  const pastParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp)) {
+    if (key === "past" || key === "bye" || value === undefined) continue;
+    for (const v of Array.isArray(value) ? value : [value]) pastParams.append(key, v);
+  }
+  pastParams.set("past", "1");
+  const pastHref = `/?${pastParams.toString()}`;
   const dateLabel = days.length ? formatDays(days) : date !== "all" ? DATE_FILTERS.find((f) => f.key === date)?.label : "";
   const regionLabel = sido ? `${sido}${gu ? ` ${gu}` : ""}` : "";
   const condition = [regionLabel, choices.genre ?? "", choices.format ?? "", q ? `‘${q}’` : "", dateLabel].filter(Boolean).join(" ");
@@ -58,18 +86,18 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       ) : (
         <section className="mb-5">
           <h1 className="font-display text-h1 text-ink">
-            부엉이들이 여는
+            우리 동네 책방의
             <br />
-            독서모임
+            다양한 모임 소식들
           </h1>
-          <p className="mt-2 text-b2 text-ink-2">서울·경기 동네책방에서 열리는 독서모임을 날짜별로 모아 뒀어요.</p>
+          <p className="mt-2 text-b2 text-ink-2">경기도 구리/남양주/의정부 지역의 동네책방에서 열리는 독서모임을 날짜별로 모아 뒀어요.</p>
         </section>
       )}
 
       {/* 신청 페이지를 열고 돌아오지 않아 표시를 놓친 모임을 한 번 더 묻는다(로그인 기능이 켜져 있을 때만) */}
       {wishes.enabled && <PendingApplies />}
 
-      <FilterBar date={date} q={q} days={days} choices={choices} today={today} counts={counts} lastDay={lastDay} resultCount={results.length} summary={summary} searching={searching} />
+      <FilterBar date={date} q={q} days={days} choices={choices} today={today} counts={counts} lastDay={lastDay} earliestDay={earliestDay} resultCount={results.length} summary={summary} searching={searching} />
 
       <section className="mt-1" aria-live="polite">
         {results.length > 0 ? (
@@ -102,13 +130,13 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           <>
             <h2 className="mb-1 text-l1 font-semibold text-ink-2">최근 30일 지난 모임</h2>
             {past.length === 0 ? (
-              <p className="text-b2 text-ink-2">지난 모임이 없습니다.</p>
+              <p className="text-b2 text-ink-2">{searching ? "조건에 맞는 지난 모임이 없습니다." : "지난 모임이 없습니다."}</p>
             ) : (
               <MeetingList meetings={past} now={now} wishes={wishes} />
             )}
           </>
         ) : (
-          <Link href="/?past=1" className="inline-flex min-h-11 items-center text-l1 text-ink-2 underline">
+          <Link href={pastHref} scroll={false} className="inline-flex min-h-11 items-center text-l1 text-ink-2 underline">
             지난 모임 보기
           </Link>
         )}

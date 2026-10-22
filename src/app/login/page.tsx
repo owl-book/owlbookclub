@@ -5,7 +5,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { AUTH_COOKIE, safeNext } from "@/lib/auth-shared";
-import { PROVIDER_ORDER, isProviderReady, type ProviderId } from "@/lib/oauth";
+import { PROVIDER_ORDER, isProviderReady, isProviderShownOn, type ProviderId } from "@/lib/oauth";
 import { OpenExternalBrowser } from "@/components/OpenExternalBrowser";
 
 export const metadata: Metadata = { title: "로그인", robots: { index: false } };
@@ -89,8 +89,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   if (await getCurrentUser()) redirect(next);
 
   const error = typeof sp.error === "string" ? ERRORS[sp.error] : undefined;
-  const providers = isAuthEnabled() ? PROVIDER_ORDER.filter(isProviderReady) : [];
-  const inApp = inAppBrowser((await headers()).get("user-agent") ?? "");
+  const h = await headers();
+  const host = h.get("host") ?? "";
+  const providers = isAuthEnabled() ? PROVIDER_ORDER.filter((id) => isProviderReady(id) && isProviderShownOn(id, host)) : [];
+  const inApp = inAppBrowser(h.get("user-agent") ?? "");
   // 이 기기에서 지난번에 쓴 로그인 방법. 버튼 순서는 그대로 두고 말풍선만 붙인다
   const lastProvider = (await cookies()).get(AUTH_COOKIE.lastProvider)?.value;
 

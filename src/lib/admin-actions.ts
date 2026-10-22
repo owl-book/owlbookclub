@@ -18,6 +18,9 @@ const REPORTS_PATH = "/admin/reports";
 
 const LOGIN_LIMITS = { perIp10min: 5, all1h: 30 }; // 같은 곳 10분 5번, 전체 1시간 30번 틀리면 잠시 막기
 
+// 로그인 뒤 갈 수 있는 화면. 폼에서 온 값은 이 목록에 있을 때만 따른다(다른 사이트로 보내지 않게)
+const AFTER_LOGIN = new Set(["/admin/review", "/admin/reports", "/admin/covers"]);
+
 export type LoginState = { error?: "wrong" | "locked" | "off" } | undefined;
 
 export async function loginAdmin(_prev: LoginState, formData: FormData): Promise<LoginState> {
@@ -42,7 +45,8 @@ export async function loginAdmin(_prev: LoginState, formData: FormData): Promise
 
   (await cookies()).set(ADMIN_COOKIE, makeAdminToken(), ADMIN_COOKIE_OPTIONS);
   await cleanupReportData();
-  redirect(REPORTS_PATH);
+  const next = formData.get("next");
+  redirect(typeof next === "string" && AFTER_LOGIN.has(next) ? next : REPORTS_PATH);
 }
 
 export async function logoutAdmin() {

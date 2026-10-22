@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { safeNext } from "@/lib/auth-shared";
 import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
-import { saveWish } from "@/lib/me";
+import { isWishKind, saveWish } from "@/lib/me";
 
 // 로그인 전에 하트를 누른 경우: /wish?t=meeting&id=3&next=/m/3
 // 로그인 안 됨 → 로그인 화면(돌아올 곳 = 이 주소) → 로그인 후 다시 여기로 와서 찜을 '켜기만' 하고 원래 화면으로.
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   const back = NextResponse.redirect(new URL(next, request.url), 303);
   back.headers.set("Cache-Control", "no-store");
 
-  if (!isAuthEnabled() || (kind !== "meeting" && kind !== "store") || !Number.isSafeInteger(id) || id <= 0) return back;
+  if (!isAuthEnabled() || !isWishKind(kind) || !Number.isSafeInteger(id) || id <= 0) return back;
 
   const user = await getCurrentUser();
   if (!user) {

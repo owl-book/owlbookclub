@@ -10,13 +10,14 @@ type Props = {
   storeName: string;
   loggedIn: boolean;
   applied: boolean;
+  seriesLeft?: number; // 묶음 모임이면 신청 표시 때 함께 담기는 남은 회차 수
 };
 
 // 모임 상세의 '책방에서 신청했어요' 표시.
 // - 책방 사이트에서 이 화면으로 돌아오면 한 번 묻는다(뒤로 가기로 돌아와 페이지가 그대로 복원된 경우도 포함)
 // - 놓친 사람을 위해 본문에 '이미 신청하셨나요?' 줄을 늘 둔다
 // 부엉이서재는 신청을 받지 않으므로, 문구는 항상 '책방에서' 신청한 사실을 표시하는 것으로 쓴다.
-export function PlanMark({ meetingId, storeName, loggedIn, applied: appliedProp }: Props) {
+export function PlanMark({ meetingId, storeName, loggedIn, applied: appliedProp, seriesLeft = 0 }: Props) {
   const [applied, setAppliedState] = useState(appliedProp);
   const [synced, setSynced] = useState(appliedProp);
   const [open, setOpen] = useState(false);
@@ -91,7 +92,9 @@ export function PlanMark({ meetingId, storeName, loggedIn, applied: appliedProp 
         <div className="mt-4 flex items-center justify-between gap-3 rounded-md border border-border-card bg-card px-4 py-3">
           <div className="min-w-0">
             <p className="text-l1 font-semibold text-ink">책방에서 이미 신청하셨나요?</p>
-            <p className="mt-0.5 text-l2 font-normal leading-normal text-ink-3">표시해 두면 마이페이지 ‘내 모임’에 날짜순으로 모여요.</p>
+            <p className="mt-0.5 text-l2 font-normal leading-normal text-ink-3">
+              {seriesLeft > 1 ? `표시해 두면 남은 ${seriesLeft}회가 모두 ‘내 모임’에 날짜순으로 담겨요.` : "표시해 두면 마이페이지 ‘내 모임’에 날짜순으로 모여요."}
+            </p>
           </div>
           <button
             type="button"

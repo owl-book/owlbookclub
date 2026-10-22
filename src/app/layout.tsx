@@ -1,16 +1,24 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { headers } from "next/headers";
 import { NavProgress } from "@/components/NavProgress";
 import { hasAladinKey } from "@/lib/books";
 import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { HeaderAccount } from "@/components/HeaderAccount";
+import { HeaderNav } from "@/components/HeaderNav";
 import { INSTAGRAM_HANDLE } from "@/lib/operator";
+import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { HEADER } from "@/lib/tracking-shared";
 import "./globals.css";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
+
+// 구글 애널리틱스 측정 ID(G-로 시작). 없거나 모양이 다르면 GA 를 아예 불러오지 않는다
+const gaIdRaw = process.env.NEXT_PUBLIC_GA_ID?.trim();
+const gaId = gaIdRaw && /^G-[A-Z0-9]+$/.test(gaIdRaw) ? gaIdRaw : null;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -35,6 +43,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // 로그인 키가 아직 없으면 헤더에 로그인 버튼을 보이지 않는다
   const authEnabled = isAuthEnabled();
   const user = authEnabled ? await getCurrentUser() : null;
+  // 운영자 기기(?owl_internal=1 로 표시한 기기)는 GA 통계에서도 뺀다
+  const isInternal = (await headers()).get(HEADER.internal) === "1";
   return (
     <html lang="ko" className="h-full antialiased">
       <head>
@@ -47,10 +57,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <header className="sticky top-0 z-20 border-b border-navy bg-navy">
           {/* 높이 h-14 고정: 목록의 날짜 제목이 이 아래(top-14)에 붙는다 */}
           <div className="mx-auto flex h-14 max-w-xl items-center justify-between px-4">
-            <Link href="/" className="flex min-h-11 items-center gap-1.5 font-display text-t1 text-page focus-visible:outline-page">
+            <Link href="/" className="flex min-h-11 items-center gap-1.5 whitespace-nowrap font-display text-t1 text-page focus-visible:outline-page">
               <span aria-hidden>🦉</span> 부엉이들의 서재
             </Link>
-            {authEnabled && <HeaderAccount user={user} />}
+            {/* 오른쪽: 로그인·마이페이지 아이콘, 맨 끝에 메뉴 버튼 */}
+            <div className="flex shrink-0 items-center">
+              {authEnabled && <HeaderAccount user={user} />}
+              <HeaderNav />
+            </div>
           </div>
           <Suspense>
             <NavProgress />
@@ -110,6 +124,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             </div>
           </div>
         </footer>
+        {gaId && !isInternal && <GoogleAnalytics gaId={gaId} />}
       </body>
     </html>
   );

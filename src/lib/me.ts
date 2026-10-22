@@ -5,8 +5,9 @@ import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import type { SessionUser } from "@/lib/auth-shared";
 import { logEvent } from "@/lib/tracking";
 import { MEETING_SELECT, meetingFromRow, type Meeting, type MeetingRow } from "@/lib/meetings";
+import { exhibitionFromRow, type Exhibition, type ExhibitionRow } from "@/lib/exhibitions";
 
-// 마이페이지 데이터: 찜(책방·모임)과 다녀온 모임 기록.
+// 마이페이지 데이터: 찜(책방·모임·전시)과 다녀온 모임 기록.
 // 모든 조회는 로그인한 본인의 user_id 로만 거른다 — 기록은 비공개라 다른 사람 것을 꺼낼 길을 만들지 않는다.
 
 export type Profile = {
@@ -41,25 +42,40 @@ export type WishContext = {
   user: SessionUser | null;
   meetingIds: Set<number>;
   storeIds: Set<number>;
+  exhibitionIds: Set<number>;
+};
+
+export type WishKind = "meeting" | "store" | "exhibition";
+
+export function isWishKind(v: unknown): v is WishKind {
+  return v === "meeting" || v === "store" || v === "exhibition";
+}
+
+const WISH_TABLE: Record<WishKind, { table: string; col: string }> = {
+  meeting: { table: "meeting_wishes", col: "meeting_id" },
+  store: { table: "store_wishes", col: "store_id" },
+  exhibition: { table: "exhibition_wishes", col: "exhibition_id" },
 };
 
 // cache: 한 화면 안에서 여러 번 불러도 내 찜 목록은 DB에서 한 번만 읽는다
 export const getWishContext = cache(async function getWishContext(): Promise<WishContext> {
-  const empty = { meetingIds: new Set<number>(), storeIds: new Set<number>() };
+  const empty = { meetingIds: new Set<number>(), storeIds: new Set<number>(), exhibitionIds: new Set<number>() };
   if (!isAuthEnabled()) return { enabled: false, user: null, ...empty };
   const user = await getCurrentUser();
   if (!user) return { enabled: true, user: null, ...empty };
   // 찜 표가 아직 없을 때(설정문 실행 전)도 화면은 떠야 하므로 오류는 빈 목록으로 처리
-  const [m, s] = await Promise.all([
+  const [m, s, e] = await Promise.all([
     db().from("meeting_wishes").select("meeting_id").eq("user_id", user.id),
     db().from("store_wishes").select("store_id").eq("user_id", user.id),
+    db().from("exhibition_wishes").select("exhibition_id").eq("user_id", user.id),
   ]);
-  if (m.error || s.error) console.error("[owl] wish ids failed", m.error?.message ?? s.error?.message);
+  if (m.error || s.error || e.error) console.error("[owl] wish ids failed", m.error?.message ?? s.error?.message ?? e.error?.message);
   return {
     enabled: true,
     user,
     meetingIds: new Set((m.data ?? []).map((r) => r.meeting_id as number)),
     storeIds: new Set((s.data ?? []).map((r) => r.store_id as number)),
+    exhibitionIds: new Set((e.data ?? []).map((r) => r.exhibition_id as number)),
   };
 });
 
@@ -121,6 +137,22 @@ export async function getWishedStores(userId: string, now = new Date()): Promise
   }));
 }
 
+// 찜한 전시(숨긴 전시·게재 차단 책방의 전시는 뺀다). 0024 실행 전이면 빈 목록
+export async function getWishedExhibitions(userId: string): Promise<Exhibition[]> {
+  const { data, error } = await db()
+    .from("exhibition_wishes")
+    .select("created_at, exhibition:exhibitions!inner(*, store:stores!inner(id, name, region, is_blocked))")
+    .eq("user_id", userId)
+    .eq("exhibition.is_hidden", false)
+    .eq("exhibition.store.is_blocked", false)
+    .limit(300);
+  if (error) {
+    console.error("[owl] wished exhibitions read failed", error.message);
+    return [];
+  }
+  return (data as unknown as { exhibition: ExhibitionRow }[]).map((r) => exhibitionFromRow(r.exhibition));
+}
+
 const RECORD_SELECT = "meeting_id, rating, quote, memo, updated_at";
 type RecordRow = { meeting_id: number; rating: number | null; quote: string | null; memo: string | null; updated_at: string };
 
@@ -164,17 +196,16 @@ export async function getMeetingForRecord(meetingId: number): Promise<Meeting | 
 }
 
 // 찜 저장. 회원 번호를 직접 받으므로 서버 안에서만 부른다(하트 버튼 동작 setWish, 로그인 직후 찜 완료 /wish)
-export async function saveWish(userId: string, kind: "meeting" | "store", id: number, on: boolean) {
-  const table = kind === "meeting" ? "meeting_wishes" : "store_wishes";
-  const col = kind === "meeting" ? "meeting_id" : "store_id";
+export async function saveWish(userId: string, kind: WishKind, id: number, on: boolean) {
+  const { table, col } = WISH_TABLE[kind];
   const { error } = on
     ? await db().from(table).upsert({ user_id: userId, [col]: id }, { onConflict: `user_id,${col}`, ignoreDuplicates: true })
     : await db().from(table).delete().eq("user_id", userId).eq(col, id);
   if (error) throw new Error(`찜 저장 실패: ${error.message}`);
 
   let storeId: number | null = kind === "store" ? id : null;
-  if (kind === "meeting") {
-    const { data } = await db().from("meetings").select("store_id").eq("id", id).maybeSingle();
+  if (kind !== "store") {
+    const { data } = await db().from(kind === "meeting" ? "meetings" : "exhibitions").select("store_id").eq("id", id).maybeSingle();
     storeId = data?.store_id ?? null;
   }
   await logEvent({
@@ -187,9 +218,8 @@ export async function saveWish(userId: string, kind: "meeting" | "store", id: nu
 }
 
 // 찜이 실제로 저장돼 있는지(가입 직후 환영 화면의 '담았어요' 확인용). 못 읽으면 저장 안 된 것으로 본다
-export async function hasWish(userId: string, kind: "meeting" | "store", id: number): Promise<boolean> {
-  const table = kind === "meeting" ? "meeting_wishes" : "store_wishes";
-  const col = kind === "meeting" ? "meeting_id" : "store_id";
+export async function hasWish(userId: string, kind: WishKind, id: number): Promise<boolean> {
+  const { table, col } = WISH_TABLE[kind];
   const { data, error } = await db().from(table).select(col).eq("user_id", userId).eq(col, id).maybeSingle();
   if (error) console.error("[owl] wish check failed", error.message);
   return !!data;
@@ -240,13 +270,36 @@ export async function getPlan(userId: string, meetingId: number): Promise<PlanSt
 // 내 모임 저장. 회원 번호를 직접 받으므로 서버 안에서만 부른다(화면 동작 me-actions, 로그인 직후 표시 완료 /plan)
 // - apply: true 면 신청 표시(이미 있으면 처음 시각 유지), false 면 표시 취소
 // - attended: 모임 뒤 확인. 다녀왔어요는 신청 표시가 없어도 남길 수 있고, null 이면 확인 전으로 되돌린다
+// - 여러 회차를 한 번에 신청하는 묶음 모임(series_key)은 신청 표시·취소를 아직 안 지난 다른 회차에도 똑같이 한다(다녀왔어요는 회차별)
 export async function savePlan(
   userId: string,
   meetingId: number,
   patch: { apply?: boolean; attended?: Attended | null },
 ) {
-  const { data: m } = await db().from("meetings").select("store_id").eq("id", meetingId).maybeSingle();
+  // '*': 묶음 칸(series_key, 0019)이 DB에 생기기 전에도 읽기가 깨지지 않게
+  const { data: m } = await db().from("meetings").select("*").eq("id", meetingId).maybeSingle();
   if (!m) throw new Error("모임을 찾을 수 없습니다.");
+  await savePlanOne(userId, meetingId, m.store_id, patch);
+  const key = typeof m.series_key === "string" ? m.series_key.trim() : "";
+  if (patch.apply === undefined || !key) return;
+  const { data: siblings, error } = await db()
+    .from("meetings")
+    .select("id, store_id, is_hidden")
+    .eq("series_key", key)
+    .neq("id", meetingId)
+    .gte("starts_at", new Date().toISOString());
+  if (error) throw new Error(`내 모임 저장 실패: ${error.message}`);
+  for (const s of siblings ?? []) {
+    if (!s.is_hidden) await savePlanOne(userId, s.id, s.store_id, { apply: patch.apply });
+  }
+}
+
+async function savePlanOne(
+  userId: string,
+  meetingId: number,
+  storeId: number,
+  patch: { apply?: boolean; attended?: Attended | null },
+) {
   const current = await getPlan(userId, meetingId);
   const next: PlanState = {
     appliedAt: patch.apply === undefined ? (current?.appliedAt ?? null) : patch.apply ? (current?.appliedAt ?? new Date()) : null,
@@ -283,7 +336,7 @@ export async function savePlan(
     type: "plan",
     userId,
     meetingId,
-    storeId: m.store_id,
+    storeId,
     props: { action },
   });
 }

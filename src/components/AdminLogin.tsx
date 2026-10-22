@@ -9,14 +9,15 @@ const MESSAGES = {
   off: "관리자 비밀번호가 설정되지 않았어요.",
 } as const;
 
-// 관리자 신고함 들어가기. 비밀번호 관리 앱이 자동으로 채울 수 있게 표준 비밀번호 칸을 쓴다
-export function AdminLogin() {
+// 운영자 화면 들어가기. next: 들어간 뒤 열 화면(신고함·책 표지). 비밀번호 관리 앱이 자동으로 채울 수 있게 표준 비밀번호 칸을 쓴다
+export function AdminLogin({ next }: { next: "/admin/review" | "/admin/reports" | "/admin/covers" }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(loginAdmin, undefined);
   return (
     <form action={action} className="mx-auto mt-10 max-w-sm rounded-md border border-border-card bg-card p-5">
-      <h1 className="font-display text-h2 text-ink">신고함</h1>
+      <h1 className="font-display text-h2 text-ink">운영자 화면</h1>
       <p className="mt-1 text-b2 text-ink-2">운영자만 들어올 수 있어요.</p>
       {/* 비밀번호 관리 앱이 어느 계정의 비밀번호인지 알 수 있게 숨은 아이디 칸을 둔다 */}
+      <input type="hidden" name="next" value={next} />
       <input type="text" name="username" autoComplete="username" defaultValue="owl-admin" hidden readOnly />
       <label htmlFor="admin-password" className="mt-5 block text-l1 font-semibold text-ink">
         관리자 비밀번호

@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { db, hasDb } from "@/lib/db";
-import { demoMeetings, getMeetingsSince, isPast, type Meeting } from "@/lib/meetings";
+import { attachSeries, collapseSeries, demoMeetings, getMeetingsSince, isPast, type Meeting } from "@/lib/meetings";
 
 export type Store = {
   id: number;
@@ -84,14 +84,67 @@ export async function listStoreOptions(): Promise<StoreOption[]> {
   return data as StoreOption[];
 }
 
+// 책방 모아보기 한 칸: 목록 카드에 필요한 것만
+export type StoreSummary = {
+  id: number;
+  name: string;
+  region: string;
+  intro: string | null;
+  createdAt: string; // 최신·오래된 등록순 정렬용
+  openCount: number; // 지금 신청할 수 있는 모임 수(묶음 모임은 1개로)
+};
+
+// 책방 모아보기: 공개된 모임이 한 번이라도 올라온 책방 전부(지금 모집 중인 모임이 0개여도 넣는다).
+// 승인 대기 책방은 is_blocked 라서 빠진다. 정렬은 화면에서 한다
+export async function listStoreSummaries(now = new Date()): Promise<StoreSummary[]> {
+  if (!hasDb()) {
+    const map = new Map<number, StoreSummary>();
+    for (const m of demoMeetings(now)) {
+      const s = map.get(m.store.id) ?? { id: m.store.id, name: m.store.name, region: m.store.region, intro: demoStore(m.store.id)?.intro ?? null, createdAt: `2026-10-0${m.store.id}`, openCount: 0 };
+      if (!isPast(m, now) && m.status === "open") s.openCount++;
+      map.set(m.store.id, s);
+    }
+    return [...map.values()];
+  }
+  const [stores, meetings] = await Promise.all([
+    db().from("stores").select("*").eq("is_blocked", false).limit(1000),
+    db().from("meetings").select("id, store_id, starts_at, status, series_key, is_hidden").eq("is_hidden", false).limit(5000),
+  ]);
+  if (stores.error) throw new Error(stores.error.message);
+  if (meetings.error) throw new Error(meetings.error.message);
+
+  type Row = { id: number; store_id: number; starts_at: string; status: string; series_key: string | null };
+  const listed = new Set<number>();
+  // 책방별로 지금 신청할 수 있는 모임을 센다. 같은 묶음(series_key)의 회차들은 한 번에 신청하니 하나로 센다
+  const open = new Map<number, Set<string>>();
+  for (const m of meetings.data as Row[]) {
+    listed.add(m.store_id);
+    if (m.status !== "open" || new Date(m.starts_at).getTime() < now.getTime()) continue;
+    const keys = open.get(m.store_id) ?? new Set<string>();
+    keys.add(m.series_key?.trim() || `id:${m.id}`);
+    open.set(m.store_id, keys);
+  }
+  return (stores.data as (StoreRow & { created_at: string })[])
+    .filter((r) => listed.has(r.id))
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      region: r.region,
+      intro: r.intro?.trim() || null,
+      createdAt: r.created_at,
+      openCount: open.get(r.id)?.size ?? 0,
+    }));
+}
+
 // 이 책방의 다가오는 모임(가까운 날짜순)과 최근 지난 모임(최근순)
 export async function getStoreMeetings(storeId: number, now = new Date(), pastDays = 90): Promise<{ upcoming: Meeting[]; past: Meeting[] }> {
   const all = hasDb()
     ? await getMeetingsSince(new Date(now.getTime() - pastDays * 86400000), { storeId })
     : demoMeetings(now).filter((m) => m.store.id === storeId);
-  const sorted = [...all].sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
+  const sorted = (await attachSeries(all)).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime());
   return {
-    upcoming: sorted.filter((m) => !isPast(m, now)),
+    // 여러 회차를 한 번에 신청하는 모임은 가장 가까운 회차 한 장으로 접는다. 지난 모임은 회차별 기록을 위해 그대로 둔다
+    upcoming: collapseSeries(sorted.filter((m) => !isPast(m, now))),
     past: sorted.filter((m) => isPast(m, now)).reverse(),
   };
 }

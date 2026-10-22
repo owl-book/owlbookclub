@@ -7,7 +7,7 @@ import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { getMeetingForRecord, getRecord } from "@/lib/me";
 import { deleteRecord, saveRecord } from "@/lib/me-actions";
 import { isPast } from "@/lib/meetings";
-import { formatKst } from "@/lib/time";
+import { meetingWhen } from "@/lib/time";
 import { ArrowLeftIcon } from "@/components/ArrowLeftIcon";
 
 export const metadata: Metadata = { title: "모임 기록", robots: { index: false } };
@@ -38,7 +38,7 @@ export default async function RecordPage({ params }: PageProps<"/me/records/[mee
       {meeting.hidden ? (
         <div className="mt-4 rounded-md border border-border-card bg-sub p-4">
         <p className="text-l2 font-normal text-ink-3">
-          {formatKst(meeting.startsAt)} · {meeting.store.name}
+          {meetingWhen(meeting)} · {meeting.store.name}
         </p>
         <p className="mt-1 text-t2 text-ink">{meeting.title}</p>
         {meeting.bookTitle && (
@@ -50,7 +50,7 @@ export default async function RecordPage({ params }: PageProps<"/me/records/[mee
       ) : (
         <Link href={`/m/${meeting.id}`} className="mt-4 block rounded-md border border-border-card bg-sub p-4 hover:border-border-strong">
         <p className="text-l2 font-normal text-ink-3">
-          {formatKst(meeting.startsAt)} · {meeting.store.name}
+          {meetingWhen(meeting)} · {meeting.store.name}
         </p>
         <p className="mt-1 text-t2 text-ink">{meeting.title}</p>
         {meeting.bookTitle && (

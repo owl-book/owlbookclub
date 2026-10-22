@@ -2,27 +2,12 @@
 
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { uploadBookCover, type CoverUploadState } from "@/lib/cover-actions";
+import { shrinkImage } from "@/lib/image-shrink";
 
 // 책 표지 사진 고르기 → 화면에서 미리 줄이기 → 올리기.
-// 휴대폰 사진(수 MB)을 그대로 보내지 않고 가로 480px JPG(보통 100KB 안팎)로 줄여 보낸다. 카드 표지는 72px 라 충분하다.
+// 가로 480px JPG(보통 100KB 안팎)로 줄여 보낸다. 카드 표지는 72px 라 충분하다.
 const MAX_W = 480;
 const MAX_H = 720;
-
-async function shrink(file: File): Promise<Blob> {
-  // 사진 방향(세로로 찍은 사진)을 반영해서 연다
-  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-  const scale = Math.min(1, MAX_W / bitmap.width, MAX_H / bitmap.height);
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("no canvas");
-  ctx.fillStyle = "#ffffff"; // 투명한 PNG 는 흰 바탕으로
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/jpeg", 0.85));
-}
 
 export function CoverUploadForm({ title, hasCover }: { title: string; hasCover: boolean }) {
   const inputId = useId();
@@ -44,7 +29,7 @@ export function CoverUploadForm({ title, hasCover }: { title: string; hasCover: 
     if (!file) return;
     setPickError(null);
     try {
-      const blob = await shrink(file);
+      const { blob } = await shrinkImage(file, MAX_W, MAX_H);
       blobRef.current = blob;
       setPreview(URL.createObjectURL(blob));
     } catch {

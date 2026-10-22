@@ -102,6 +102,15 @@ export function isProviderReady(id: ProviderId): boolean {
   return Boolean(p.clientId() && (!p.secretRequired || p.clientSecret()));
 }
 
+// 네이버 로그인은 검수가 끝날 때까지 예전 주소(owlbookclub.vercel.app)에서만 된다.
+// 새 주소(owlbookclub.com)에서는 네이버가 '서비스 설정 오류'를 띄우므로 버튼을 숨긴다. 검수 뒤 서비스 URL을 바꾸면 이 줄을 지울 것
+const NAVER_HIDDEN_HOST = /(^|\.)owlbookclub\.com$/i;
+
+// 이 주소(host)로 들어온 사람에게 이 로그인 버튼을 보여줘도 되는지
+export function isProviderShownOn(id: ProviderId, host: string): boolean {
+  return !(id === "naver" && NAVER_HIDDEN_HOST.test(host.split(":")[0]));
+}
+
 export function redirectUri(origin: string, id: ProviderId): string {
   return `${origin}/auth/${id}/callback`;
 }

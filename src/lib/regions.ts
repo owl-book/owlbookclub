@@ -35,3 +35,19 @@ export function matchesRegion(region: string, sido: Sido | null, gu: string | nu
   if (!first?.startsWith(sido)) return false; // '서울특별시'처럼 적어도 맞도록
   return !gu || second === gu;
 }
+
+export type RegionChoice = { sido: Sido; gu: string | null; label: string };
+
+// 목록 화면의 지역 칸: 실제로 있는 지역만, 가나다순. '경기 구리시' → 칩 글자는 '구리시'(시·도만 적힌 곳은 시·도 이름)
+export function regionChoicesOf(regions: string[]): RegionChoice[] {
+  const seen = new Map<string, RegionChoice>();
+  for (const region of regions) {
+    const [first, second] = region.trim().split(/\s+/);
+    const sido = SIDOS.find((x) => first?.startsWith(x));
+    if (!sido) continue;
+    const gu = isGuOf(sido, second) ? second : null;
+    const label = gu ?? sido;
+    if (!seen.has(`${sido} ${label}`)) seen.set(`${sido} ${label}`, { sido, gu, label });
+  }
+  return [...seen.values()].sort((a, b) => a.label.localeCompare(b.label, "ko"));
+}

@@ -3,11 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { AdminLogin } from "@/components/AdminLogin";
+import { AdminNav } from "@/components/AdminNav";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
-import { editMeeting, logoutAdmin, resolveInquiry, resolveReport } from "@/lib/admin-actions";
+import { editMeeting, resolveInquiry, resolveReport } from "@/lib/admin-actions";
+import { getCoverBooks } from "@/lib/book-covers";
 import { inquiryLabel } from "@/lib/inquiry-kinds";
 import { reportKindLabel } from "@/lib/report-kinds";
+import { getReviewCount } from "@/lib/review";
 import { getInquiryInbox, getRecentHandled, getReportInbox, type InboxItem, type InquiryItem } from "@/lib/reports";
 import { formatDateString, formatKst } from "@/lib/time";
 
@@ -35,40 +38,27 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
   await connection();
   // 비밀번호가 설정되지 않았으면 이 주소가 있다는 것도 알리지 않는다
   if (!isAdminEnabled()) notFound();
-  if (!(await isAdmin())) return <AdminLogin />;
+  if (!(await isAdmin())) return <AdminLogin next="/admin/reports" />;
 
   const sp = await searchParams;
   const done = typeof sp.done === "string" ? DONE_MESSAGE[sp.done] : undefined;
-  const [inbox, handled, inquiries] = await Promise.all([getReportInbox(), getRecentHandled(), getInquiryInbox()]);
+  const [inbox, handled, inquiries, books, reviewCount] = await Promise.all([getReportInbox(), getRecentHandled(), getInquiryInbox(), getCoverBooks(), getReviewCount()]);
   const reportCount = inbox.reduce((n, item) => n + item.reports.length, 0);
   const now = new Date();
 
   return (
-    <div className="pt-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-h2 text-ink">신고함</h1>
-          <p className="mt-1 text-b2 text-ink-2">
-            {reportCount + inquiries.length > 0 ? (
-              <>
-                처리 전 모임 신고 <strong className="text-ink">{reportCount}건</strong> · 의견·요청 <strong className="text-ink">{inquiries.length}건</strong>
-              </>
-            ) : (
-              "처리 전 신고가 없어요"
-            )}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center">
-          <Link href="/admin/covers" className="inline-flex min-h-11 items-center px-2 text-l2 text-ink-3 underline underline-offset-2 hover:text-navy">
-            책 표지
-          </Link>
-          <form action={logoutAdmin}>
-            <button type="submit" className="inline-flex min-h-11 items-center px-2 text-l2 text-ink-3 underline underline-offset-2 hover:text-navy">
-              나가기
-            </button>
-          </form>
-        </div>
-      </div>
+    <div>
+      <AdminNav current="reports" counts={{ review: reviewCount, reports: reportCount + inquiries.length, covers: books.filter((b) => !b.cover).length }} />
+      <h1 className="mt-5 font-display text-h2 text-ink">신고함</h1>
+      <p className="mt-1 text-b2 text-ink-2">
+        {reportCount + inquiries.length > 0 ? (
+          <>
+            처리 전 모임 신고 <strong className="text-ink">{reportCount}건</strong> · 의견·요청 <strong className="text-ink">{inquiries.length}건</strong>
+          </>
+        ) : (
+          "처리 전 신고가 없어요"
+        )}
+      </p>
 
       {done && (
         <p role="status" className="mt-4 rounded-xs border border-success-border bg-success-surface px-3 py-2.5 text-b2 text-success">

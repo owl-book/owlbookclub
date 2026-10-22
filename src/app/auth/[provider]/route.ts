@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_COOKIE, safeNext, signValue } from "@/lib/auth-shared";
 import { isAuthEnabled } from "@/lib/auth";
-import { PROVIDERS, isProviderId, isProviderReady, redirectUri } from "@/lib/oauth";
+import { PROVIDERS, isProviderId, isProviderReady, isProviderShownOn, redirectUri } from "@/lib/oauth";
 
 const STATE_MAX_AGE = 60 * 10;
 
@@ -9,7 +9,7 @@ const STATE_MAX_AGE = 60 * 10;
 export async function GET(request: NextRequest, ctx: RouteContext<"/auth/[provider]">) {
   const { provider } = await ctx.params;
   const next = safeNext(request.nextUrl.searchParams.get("next"));
-  if (!isProviderId(provider) || !isProviderReady(provider) || !isAuthEnabled()) {
+  if (!isProviderId(provider) || !isProviderReady(provider) || !isProviderShownOn(provider, request.headers.get("host") ?? request.nextUrl.host) || !isAuthEnabled()) {
     return NextResponse.redirect(new URL(`/login?error=unavailable&next=${encodeURIComponent(next)}`, request.url), 302);
   }
 

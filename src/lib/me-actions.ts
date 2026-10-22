@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { AUTH_COOKIE, LOGIN_MAX_AGE, safeNext, signValue } from "@/lib/auth-shared";
 import { LOGIN_COOKIE_OPTIONS, getCurrentUser, isAuthEnabled } from "@/lib/auth";
-import { getMeetingForRecord, savePlan, saveWish } from "@/lib/me";
+import { getMeetingForRecord, isWishKind, savePlan, saveWish, type WishKind } from "@/lib/me";
 import { isPast } from "@/lib/meetings";
 import { logEvent } from "@/lib/tracking";
 
@@ -26,10 +26,10 @@ function toId(v: unknown): number | null {
 }
 
 // 찜 켜기·끄기. 성공하면 최종 상태를 돌려준다(하트 버튼이 바로 반영).
-export async function setWish(kind: "meeting" | "store", rawId: number, on: boolean): Promise<boolean> {
+export async function setWish(kind: WishKind, rawId: number, on: boolean): Promise<boolean> {
   const user = await requireUser();
   const id = toId(rawId);
-  if (!id || (kind !== "meeting" && kind !== "store")) throw new Error("잘못된 요청입니다.");
+  if (!id || !isWishKind(kind)) throw new Error("잘못된 요청입니다.");
   await saveWish(user.id, kind, id, on);
   // 목록·상세·마이페이지에 보이는 하트를 모두 새로 그리도록
   revalidatePath("/", "layout");

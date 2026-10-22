@@ -65,14 +65,14 @@ export function ReportSheet({ meetingId, storeId, closed }: Props) {
 
   return (
     <>
-      <div className="mt-1 flex items-center justify-between gap-2">
+      <div className="mt-0.5 flex items-center">
         <span className="text-ink-2">{sent ? "알려주셔서 고마워요." : "다른 점이 있나요?"}</span>
         <button
           ref={triggerRef}
           type="button"
           onClick={openSheet}
           aria-haspopup="dialog"
-          className="-my-2 -mr-2 inline-flex min-h-11 shrink-0 items-center px-2 font-semibold text-navy underline underline-offset-2 hover:text-navy-hover"
+          className="-my-3 -mr-2 inline-flex min-h-11 shrink-0 items-center px-2 font-semibold text-navy underline underline-offset-2 hover:text-navy-hover"
         >
           {sent ? "더 알려주기" : "알려주기"}
         </button>
