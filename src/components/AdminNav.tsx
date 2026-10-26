@@ -8,6 +8,7 @@ const TABS = [
   { key: "reports", href: "/admin/reports", label: "신고함" },
   { key: "covers", href: "/admin/covers", label: "책 표지" },
   { key: "push", href: "/admin/push", label: "알림" },
+  { key: "stats", href: "/admin/stats", label: "통계" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -29,16 +30,16 @@ export function AdminNav({ current, counts }: Props) {
         </form>
       </div>
       <nav aria-label="운영자 화면" className="border-b border-border">
-        <ul className="flex gap-1">
+        <ul className="flex gap-1 overflow-x-auto">
           {TABS.map((t) => {
             const active = t.key === current;
             const count = counts[t.key] ?? 0;
             return (
-              <li key={t.key}>
+              <li key={t.key} className="shrink-0">
                 <Link
                   href={t.href}
                   aria-current={active ? "page" : undefined}
-                  className={`-mb-px inline-flex min-h-11 items-center gap-1.5 border-b-2 px-3 text-t2 ${
+                  className={`-mb-px inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 text-t2 ${
                     active ? "border-navy text-ink" : "border-transparent text-ink-3 hover:text-navy"
                   }`}
                 >

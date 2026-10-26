@@ -8,6 +8,7 @@ import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { HeaderAccount } from "@/components/HeaderAccount";
 import { HeaderNav } from "@/components/HeaderNav";
 import { INSTAGRAM_HANDLE } from "@/lib/operator";
+import { CardClickTracker } from "@/components/CardClickTracker";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { KeepAppLogin } from "@/components/KeepAppLogin";
 import { PushAsk } from "@/components/PushAsk";
@@ -136,6 +137,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         {user && isPushEnabled() && <PushAsk vapidKey={vapidPublicKey()!} />}
         {/* 홈 화면 앱에서는 열 때마다 로그인 기간을 늘린다 */}
         {user && <KeepAppLogin />}
+        <CardClickTracker />
         {gaId && !isInternal && <GoogleAnalytics gaId={gaId} />}
       </body>
     </html>
