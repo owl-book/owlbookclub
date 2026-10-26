@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { logoutAdmin } from "@/lib/admin-actions";
 
-// 운영자 화면 맨 위 탭. 승인 대기·신고함·책 표지를 오가고, 탭마다 남은 할 일 수를 보여 준다.
+// 운영자 화면 맨 위 탭. 승인 대기·신고함·책 표지·알림을 오가고, 탭마다 남은 할 일 수를 보여 준다(알림 탭은 할 일이 없어 숫자 없음).
 // 나가기는 탭과 떨어진 오른쪽 위에 둬서 탭을 누르려다 잘못 누르지 않게 한다.
 const TABS = [
   { key: "review", href: "/admin/review", label: "승인 대기" },
   { key: "reports", href: "/admin/reports", label: "신고함" },
   { key: "covers", href: "/admin/covers", label: "책 표지" },
+  { key: "push", href: "/admin/push", label: "알림" },
 ] as const;
 
+type TabKey = (typeof TABS)[number]["key"];
+
 type Props = {
-  current: (typeof TABS)[number]["key"];
-  counts: Record<(typeof TABS)[number]["key"], number>;
+  current: TabKey;
+  counts: Partial<Record<TabKey, number>>;
 };
 
 export function AdminNav({ current, counts }: Props) {
@@ -29,7 +32,7 @@ export function AdminNav({ current, counts }: Props) {
         <ul className="flex gap-1">
           {TABS.map((t) => {
             const active = t.key === current;
-            const count = counts[t.key];
+            const count = counts[t.key] ?? 0;
             return (
               <li key={t.key}>
                 <Link

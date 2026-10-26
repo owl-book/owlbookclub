@@ -9,7 +9,7 @@ import { hasDb } from "@/lib/db";
 // - 비밀번호가 16자보다 짧으면 관리자 화면 전체를 끈다(약한 비밀번호로 열리지 않게)
 
 export const ADMIN_COOKIE = "owl_admin";
-export const ADMIN_MAX_AGE = 60 * 60 * 24 * 30; // 30일
+export const ADMIN_MAX_AGE = 60 * 60 * 12; // 12시간: 하루 작업하는 동안만 유지하고, 다음 날엔 다시 묻는다
 export const ADMIN_PASSWORD_MIN = 16;
 
 function adminPassword(): string | undefined {

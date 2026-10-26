@@ -127,6 +127,7 @@ async function logVisit(v: {
   }
 }
 
+// sw.js(알림 프로그램)·manifest.webmanifest(앱 설치 정보)는 휴대폰이 알아서 받아 가는 파일이라 방문으로 세지 않는다
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico|txt|xml)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico|txt|xml|js|webmanifest)$).*)"],
 };

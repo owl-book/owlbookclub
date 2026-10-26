@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { setWish } from "@/lib/me-actions";
+import { WISHED_EVENT, type WishedDetail } from "@/lib/push-client";
 
 type Props = {
   kind: "meeting" | "store" | "exhibition";
@@ -69,6 +70,8 @@ export function WishButton({ kind, id, wished, loggedIn, label, size = "md" }: P
         startTransition(async () => {
           try {
             await setWish(kind, id, nextOn);
+            // 찜했을 때 알림을 한 번 권한다(PushAsk 가 듣고, 물을 때가 아니면 아무것도 안 함)
+            if (nextOn) window.dispatchEvent(new CustomEvent<WishedDetail>(WISHED_EVENT, { detail: { kind } }));
           } catch {
             setOn(!nextOn);
             setFailed(true);

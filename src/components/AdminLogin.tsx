@@ -9,8 +9,8 @@ const MESSAGES = {
   off: "관리자 비밀번호가 설정되지 않았어요.",
 } as const;
 
-// 운영자 화면 들어가기. next: 들어간 뒤 열 화면(신고함·책 표지). 비밀번호 관리 앱이 자동으로 채울 수 있게 표준 비밀번호 칸을 쓴다
-export function AdminLogin({ next }: { next: "/admin/review" | "/admin/reports" | "/admin/covers" }) {
+// 운영자 화면 들어가기. next: 들어간 뒤 열 화면(승인 대기·신고함·책 표지·알림). 비밀번호 관리 앱이 자동으로 채울 수 있게 표준 비밀번호 칸을 쓴다
+export function AdminLogin({ next }: { next: "/admin/review" | "/admin/reports" | "/admin/covers" | "/admin/push" }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(loginAdmin, undefined);
   return (
     <form action={action} className="mx-auto mt-10 max-w-sm rounded-md border border-border-card bg-card p-5">
