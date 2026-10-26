@@ -75,9 +75,9 @@
 
   /* 08. 라운드 — 기능 영역(입력·버튼)은 lg를 넘기지 않음 */
   --radius-xs: 4px; /* 입력, 태그 */
-  --radius-sm: 8px; /* 버튼 */
-  --radius-md: 12px; /* 카드 */
-  --radius-lg: 20px; /* 모달, 일러스트 컨테이너 */
+  --radius-sm: 4px; /* 버튼 */
+  --radius-md: 4px; /* 카드 */
+  --radius-lg: 4px; /* 모달, 일러스트 컨테이너 */
   --radius-full: 99px; /* 칩 */
 
   /* 09. 글꼴 */

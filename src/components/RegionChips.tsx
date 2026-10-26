@@ -40,7 +40,7 @@ function RegionChip({ href, selected, children }: { href: string; selected: bool
       href={href}
       scroll={false}
       aria-current={selected ? "true" : undefined}
-      className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 text-l1 ${
+      className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-xs border px-4 text-l1 ${
         selected ? "border-navy bg-navy text-white" : "border-border-card bg-card text-ink-2 hover:bg-sub"
       }`}
     >
