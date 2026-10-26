@@ -6,6 +6,10 @@ import {
   SESSION_MAX_AGE,
   YEAR,
   isBotUserAgent,
+  isButtonOnlyPath,
+  isLocalHost,
+  isProbePath,
+  isSameSiteReferer,
   isScraperUserAgent,
   parseUtm,
   type Utm,
@@ -29,7 +33,7 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
     request.headers.get("purpose") === "prefetch" ||
     request.headers.get("sec-purpose")?.includes("prefetch");
   const isRsc = request.headers.has("rsc");
-  const isBot = isBotUserAgent(ua) || request.method === "HEAD";
+  const isBot = isBotUserAgent(ua) || request.method === "HEAD" || isProbePath(pathname);
 
   const existingVid = request.cookies.get(COOKIE.visitor)?.value;
   const existingSid = request.cookies.get(COOKIE.session)?.value;
@@ -58,6 +62,7 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
   let internal = request.cookies.get(COOKIE.internal)?.value === "1";
   if (internalParam === "1") internal = true;
   if (internalParam === "0") internal = false;
+  if (isLocalHost(request.nextUrl.hostname)) internal = true;
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(HEADER.visitor, vid);
@@ -82,7 +87,10 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
   // 관리자 화면은 방문 통계에 넣지 않는다
   const isPageLoad = request.method === "GET" && !isPrefetch && !isRsc && !pathname.startsWith("/api") && !pathname.startsWith("/admin");
   if (newSession && isPageLoad) {
-    event.waitUntil(logVisit({ vid, sid, userCookie: request.cookies.get(AUTH_COOKIE.user)?.value, utm, internal, isBot, ua, path: pathname, referrer: request.headers.get("referer") }));
+    const referrer = request.headers.get("referer");
+    // 버튼으로만 가는 주소에 바깥에서 곧바로 들어온 첫 방문은 봇으로 남긴다(쿠키는 그대로: 숫자에서만 뺀다)
+    const directToButtonPath = isButtonOnlyPath(pathname) && !isSameSiteReferer(referrer, request.nextUrl.host);
+    event.waitUntil(logVisit({ vid, sid, userCookie: request.cookies.get(AUTH_COOKIE.user)?.value, utm, internal, isBot: isBot || directToButtonPath, ua, path: pathname, referrer }));
   }
 
   return response;

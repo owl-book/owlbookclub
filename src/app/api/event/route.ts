@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { logEvent, type EventType } from "@/lib/tracking";
 
-// 브라우저에서 보내는 사용 이벤트(검색·필터·공유·신고 클릭·모임 카드 클릭·책방 화면 조회·책방 연락 클릭·검색 0건)
+// 브라우저에서 보내는 사용 이벤트(검색·필터·공유·신고 클릭·모임 카드 클릭·책방 화면 조회·책방 연락 클릭·검색 0건·사람 확인)
 // 신청 클릭과 방문은 서버(/go, proxy)에서 직접 기록하므로 여기서 받지 않는다.
-const ALLOWED: EventType[] = ["search", "filter", "share", "report_click", "card_click", "store_view", "store_contact", "search_empty"];
+const ALLOWED: EventType[] = ["search", "filter", "share", "report_click", "card_click", "store_view", "store_contact", "search_empty", "page_seen"];
 
 export async function POST(request: NextRequest) {
   let body: unknown;

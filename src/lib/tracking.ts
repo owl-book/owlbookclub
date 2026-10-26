@@ -4,7 +4,7 @@ import { db, hasDb } from "@/lib/db";
 import { HEADER, isBotUserAgent, parseUtm } from "@/lib/tracking-shared";
 import { getCurrentUser } from "@/lib/auth";
 
-export type EventType = "visit" | "search" | "filter" | "share" | "apply_click" | "report_click" | "post_click" | "login" | "wish" | "record" | "plan" | "card_click" | "store_view" | "store_contact" | "search_empty";
+export type EventType = "visit" | "search" | "filter" | "share" | "apply_click" | "report_click" | "post_click" | "login" | "wish" | "record" | "plan" | "card_click" | "store_view" | "store_contact" | "search_empty" | "page_seen";
 
 type TrackContext = {
   visitorId: string;

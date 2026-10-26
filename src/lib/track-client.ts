@@ -1,6 +1,6 @@
 // 브라우저 → /api/event. 페이지 이동 직전에도 유실되지 않도록 sendBeacon 우선.
 export function track(
-  type: "search" | "filter" | "share" | "report_click" | "card_click" | "store_view" | "store_contact" | "search_empty",
+  type: "search" | "filter" | "share" | "report_click" | "card_click" | "store_view" | "store_contact" | "search_empty" | "page_seen",
   data: { meetingId?: number; storeId?: number; props?: Record<string, unknown> } = {},
 ) {
   const body = JSON.stringify({ type, path: location.pathname, ...data });
