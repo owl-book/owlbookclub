@@ -292,7 +292,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
                 onToggle={toggleMonth}
               />
               <WeekHeader />
-              <div role="group" aria-label={`${month.year}년 ${month.month}월 날짜`} className="grid grid-cols-7 gap-y-1">{monthDays(month).map((d) => cell(d, dayParts(d).month !== month.month))}</div>
+              <div role="group" aria-label={`${month.year}년 ${month.month}월 날짜`} className="grid grid-cols-7 gap-y-1 py-1">{monthDays(month).map((d) => cell(d, dayParts(d).month !== month.month))}</div>
             </>
           ) : (
             <>
@@ -308,7 +308,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
                 onToggle={toggleMonth}
               />
               <WeekHeader />
-              <div role="group" aria-label={`${weekTitle(weekStart, today)} 날짜`} className="grid grid-cols-7">{Array.from({ length: 7 }, (_, i) => cell(weekStart + i))}</div>
+              <div role="group" aria-label={`${weekTitle(weekStart, today)} 날짜`} className="grid grid-cols-7 py-1">{Array.from({ length: 7 }, (_, i) => cell(weekStart + i))}</div>
             </>
           )}
         </div>
