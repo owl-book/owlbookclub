@@ -102,7 +102,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       <div id="meetings" className="scroll-mt-20" />
       <FilterBar regions={regions} date={date} q={q} days={days} choices={choices} today={today} counts={counts} lastDay={lastDay} earliestDay={earliestDay} resultCount={results.length} summary={summary} searching={searching} />
 
-      <section className="mt-1" aria-live="polite">
+      <section aria-live="polite">
         {results.length > 0 ? (
           <>
             <MeetingList

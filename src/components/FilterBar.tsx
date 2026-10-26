@@ -329,10 +329,12 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
       </div>
 
       {/* 불러오는 중 표시: 높이를 미리 잡아 두어 화면이 밀리지 않게 */}
-      <div className="h-0.5 overflow-hidden rounded-full" role="status">
+      <div className="relative h-0" role="status">
         {pending && (
           <>
-            <div className="owl-loading h-full w-1/3 rounded-full bg-navy" />
+            <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden rounded-full">
+              <div className="owl-loading h-full w-1/3 rounded-full bg-navy" />
+            </div>
             <span className="sr-only">모임을 불러오는 중</span>
           </>
         )}

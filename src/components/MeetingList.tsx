@@ -54,7 +54,7 @@ export function MeetingList({
         return (
           <section key={g.day} aria-label={formatDayNum(g.day)}>
             {/* 머리글(h-14) 바로 아래에 붙어서, 스크롤해도 지금 보는 날짜가 보인다 */}
-            <h2 className="sticky top-14 z-10 -mx-4 bg-page/95 px-4 py-2 text-l1 font-semibold text-ink backdrop-blur">
+            <h2 className="sticky top-14 z-10 -mx-4 bg-page/95 px-4 py-1 text-l1 font-semibold text-ink backdrop-blur">
               {joinDot(rel && <span className="text-navy">{rel}</span>, formatDayNum(g.day))}
               <span className="fig ml-1.5 font-medium text-ink-3">{count(g.items.length, "개")}</span>
             </h2>
