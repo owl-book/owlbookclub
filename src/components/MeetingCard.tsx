@@ -45,15 +45,11 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
           >
             {m.title}
           </Link>
-          {/* 회차(묶음) → 마감·지난 모임 순으로 배지를 제목이 끝나는 곳 바로 오른쪽에 */}
-          {idx && (
-            <span className="ml-1.5 align-middle">
-              <SeriesBadge index={idx} total={sessions.length} collapsed={Boolean(m.series?.collapsed)} />
-            </span>
-          )}
-          {statusKind && (
-            <span className="ml-1.5 align-middle">
-              <StatusBadge kind={statusKind} />
+          {/* 회차(묶음) → 마감·지난 모임 순. 제목이 끝나는 곳 바로 오른쪽에 붙고, 한 줄에 안 들어가면 배지 묶음이 통째로 다음 줄로 내려간다(제목은 나뉘지 않음) */}
+          {(idx || statusKind) && (
+            <span className="ml-1.5 inline-flex items-center gap-1.5 whitespace-nowrap align-middle">
+              {idx && <SeriesBadge index={idx} total={sessions.length} collapsed={Boolean(m.series?.collapsed)} />}
+              {statusKind && <StatusBadge kind={statusKind} />}
             </span>
           )}
         </h3>
