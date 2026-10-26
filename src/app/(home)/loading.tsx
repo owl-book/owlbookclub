@@ -2,30 +2,23 @@ import { Suspense } from "react";
 import { SearchModeSwitch } from "@/components/SearchModeSwitch";
 import { Bone, LoadingNote, MeetingListSkeleton } from "@/components/Skeleton";
 
+// 광고 슬라이더(HomeSlider)와 같은 크기(멈춤·넘김 버튼은 장 안에 얹혀 따로 줄이 없다)
 const intro = (
-  <section className="mb-5">
-    <h1 className="font-display text-h1 text-ink">
-      우리 동네 책방의
-      <br />
-      다양한 모임 소식들
-    </h1>
-    <p className="mt-2 text-b2 text-ink-2">경기도 구리/남양주/의정부 지역의 동네책방에서 열리는 독서모임을 날짜별로 모아 뒀어요.</p>
-  </section>
+  <div className="mb-4">
+    <Bone className="h-[181px] rounded-md" />
+  </div>
 );
-// 날짜 버튼 줄·달력·모임 수와 필터 버튼
+// 날짜 버튼·필터 버튼 한 줄, 달력, 모임 수
 const controls = (
   <>
     <div className="flex gap-2">
       <Bone className="h-11 w-16 rounded-full" />
-      <Bone className="h-11 w-16 rounded-full" />
       <Bone className="h-11 w-20 rounded-full" />
       <Bone className="h-11 w-20 rounded-full" />
+      <Bone className="ml-auto h-11 w-20 rounded-full" />
     </div>
-    <Bone className="h-28 rounded-md" />
-    <div className="flex items-center justify-between">
-      <Bone className="h-3 w-32" />
-      <Bone className="h-11 w-20 rounded-full" />
-    </div>
+    <Bone className="h-[124px] rounded-md" />
+    <Bone className="h-3 w-32" />
   </>
 );
 // 검색 중: 날짜·필터 두 버튼과 모임 수
