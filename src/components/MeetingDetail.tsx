@@ -135,6 +135,8 @@ export function MeetingDetail({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`${m.store.name} 위치를 네이버 지도에서 보기`}
+                data-owl-contact="map"
+                data-owl-store={m.store.id}
                 className="-my-3 -mr-2 inline-flex min-h-11 shrink-0 items-center gap-1 px-2 text-l2 text-navy underline underline-offset-2 hover:text-navy-hover"
               >
                 <PinIcon />

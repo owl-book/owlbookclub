@@ -100,6 +100,8 @@ export default async function ExhibitionPage({ params }: PageProps<"/e/[id]">) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`${e.store.name} 위치를 네이버 지도에서 보기`}
+                  data-owl-contact="map"
+                  data-owl-store={e.store.id}
                   className={EXTERNAL_LINK}
                 >
                   <PinIcon />

@@ -53,6 +53,8 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
   const sheetRef = useRef<HTMLDialogElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
   const scrollAfterSearch = useRef(false);
+  // 사용자가 검색·필터·날짜를 바꿨을 때만 결과 0건을 기록한다(처음 열거나 뒤로 가기로 온 화면은 세지 않음)
+  const checkEmpty = useRef(false);
 
   // 앞으로 넘겨 볼 수 있는 끝: 마지막 모임 날짜, 최소한 다음 주까지
   const maxDay = Math.max(lastDay ?? today, today + 13);
@@ -95,9 +97,22 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
     el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
   }, [pending]);
 
+  // 바꾼 조건의 결과가 도착했는데 0건이면 '찾는데 없는' 조건으로 남긴다(어드민 '통계'의 결과 0건 검색)
+  useEffect(() => {
+    if (pending || !checkEmpty.current) return;
+    checkEmpty.current = false;
+    if (resultCount > 0) return;
+    const { sido, gu, genre, format } = choices;
+    const when = days.length ? days.map(dayKey).join(",") : date;
+    track("search_empty", { props: { q: maskQuery(q), sido: sido ?? "", gu: gu ?? "", genre: genre ?? "", format: format ?? "", date: when } });
+  }, [pending, resultCount, choices, days, date, q]);
+
   const { sido, gu } = choices;
   const pickedCount = [sido, choices.genre, choices.format].filter(Boolean).length;
-  const go = (href: string) => startTransition(() => router.push(href, { scroll: false }));
+  const go = (href: string) => {
+    checkEmpty.current = true;
+    startTransition(() => router.push(href, { scroll: false }));
+  };
 
   // 필터 하나를 바꾸면 나머지 선택은 그대로 두고 다시 찾는다
   const pick = (change: Partial<Choices>) => {

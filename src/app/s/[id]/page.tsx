@@ -5,6 +5,7 @@ import { BackLink } from "@/components/BackLink";
 import { ExhibitionList } from "@/components/ExhibitionCard";
 import { MeetingList } from "@/components/MeetingList";
 import { PinIcon } from "@/components/PinIcon";
+import { StoreViewTracker } from "@/components/StoreViewTracker";
 import { WishButton } from "@/components/WishButton";
 import { getStoreExhibitions } from "@/lib/exhibitions";
 import { getWishContext } from "@/lib/me";
@@ -38,6 +39,7 @@ export default async function StorePage({ params }: PageProps<"/s/[id]">) {
 
   return (
     <article className="pt-2">
+      <StoreViewTracker storeId={s.id} />
       <BackLink label="뒤로" />
 
       <header className="mt-1 rounded-lg bg-dk-card px-5 pb-5 pt-6">
@@ -68,6 +70,8 @@ export default async function StorePage({ params }: PageProps<"/s/[id]">) {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`${s.name} 위치를 네이버 지도에서 보기`}
+                    data-owl-contact="map"
+                    data-owl-store={s.id}
                     className={EXTERNAL_LINK}
                   >
                     <PinIcon />
@@ -87,7 +91,7 @@ export default async function StorePage({ params }: PageProps<"/s/[id]">) {
                 <dt className="w-16 shrink-0 text-ink-3">대표번호</dt>
                 <dd className="flex min-w-0 flex-1 items-start justify-between gap-2">
                   <span className="min-w-0">{s.phone}</span>
-                  <a href={`tel:${s.phone.replace(/[^0-9+]/g, "")}`} aria-label={`${s.name}에 전화 걸기`} className={EXTERNAL_LINK}>
+                  <a href={`tel:${s.phone.replace(/[^0-9+]/g, "")}`} aria-label={`${s.name}에 전화 걸기`} data-owl-contact="tel" data-owl-store={s.id} className={EXTERNAL_LINK}>
                     전화
                   </a>
                 </dd>
@@ -113,6 +117,8 @@ export default async function StorePage({ params }: PageProps<"/s/[id]">) {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`${s.name} 인스타그램 계정 보기 (새 창)`}
+                    data-owl-contact="instagram"
+                    data-owl-store={s.id}
                     className={EXTERNAL_LINK}
                   >
                     책방 계정 보기 ↗
