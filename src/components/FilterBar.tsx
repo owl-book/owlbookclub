@@ -156,7 +156,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
               if (f.key !== "all") track("filter", { props: { date: f.key, q: maskQuery(text) } });
               go(buildHref(f.key, text, [], choices));
             }}
-            className={`min-h-11 shrink-0 rounded-xs px-4 text-l1 ${
+            className={`min-h-11 shrink-0 rounded-xs px-3 text-l1 ${
               active ? "bg-navy font-semibold text-page" : searching ? "border border-border bg-card text-ink-2 hover:border-border-strong" : "bg-fill text-ink-2 hover:text-ink"
             }`}
           >
@@ -177,7 +177,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
       className={`flex min-h-11 items-center gap-1.5 text-l1 ${
         searching
           ? `min-w-0 flex-[2] rounded-sm border px-3 ${pickedCount ? "border-navy font-semibold text-navy" : "border-border-control bg-card text-ink-2 hover:border-border-strong"}`
-          : `shrink-0 rounded-xs px-3.5 ${pickedCount ? "bg-navy font-semibold text-page" : "bg-fill text-ink-2 hover:text-ink"}`
+          : `shrink-0 rounded-xs px-3 ${pickedCount ? "bg-navy font-semibold text-page" : "bg-fill text-ink-2 hover:text-ink"}`
       }`}
     >
       <FilterIcon />
