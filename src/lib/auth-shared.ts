@@ -9,7 +9,11 @@ export const AUTH_COOKIE = {
 
 export const LAST_PROVIDER_MAX_AGE = 60 * 60 * 24 * 365; // 1년
 
-export const LOGIN_MAX_AGE = 60 * 60 * 24 * 60; // 60일
+// 일반 브라우저: 로그인한 때부터 24시간이 지나면 풀린다(쓰는 중이어도 늘리지 않음)
+export const LOGIN_MAX_AGE = 60 * 60 * 24; // 24시간
+
+// 홈 화면에 설치한 앱: 앱을 열 때마다 이 기간으로 다시 늘린다(하루에 한 번). 1년 동안 한 번도 안 열면 그때 풀린다
+export const APP_LOGIN_MAX_AGE = 60 * 60 * 24 * 365; // 1년
 
 export type SessionUser = {
   id: string; // users.id

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { AUTH_COOKIE, LOGIN_MAX_AGE, safeNext, signValue } from "@/lib/auth-shared";
+import { AUTH_COOKIE, safeNext, signValue, verifyValue } from "@/lib/auth-shared";
 import { LOGIN_COOKIE_OPTIONS, getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { getMeetingForRecord, isWishKind, savePlan, saveWish, type WishKind } from "@/lib/me";
 import { isPast } from "@/lib/meetings";
@@ -119,9 +119,14 @@ export async function updateDisplayName(formData: FormData) {
   if (error) throw new Error(`별명 저장 실패: ${error.message}`);
   if (!data) redirect("/login?next=/me");
 
-  // 헤더에 보이는 이름은 로그인 쿠키에 들어 있으므로 새 이름으로 다시 서명한다
+  // 헤더에 보이는 이름은 로그인 쿠키에 들어 있으므로 새 이름으로 다시 서명한다.
+  // 남은 로그인 기간은 그대로 둔다(브라우저 24시간을 늘리지도, 홈 화면 앱의 1년을 줄이지도 않게)
   const shown = name || data.nickname?.slice(0, 20) || "회원";
-  (await cookies()).set(AUTH_COOKIE.user, await signValue({ id: user.id, name: shown, provider: user.provider }, LOGIN_MAX_AGE), LOGIN_COOKIE_OPTIONS);
+  const store = await cookies();
+  const current = await verifyValue<{ exp: number }>(store.get(AUTH_COOKIE.user)?.value);
+  const left = current ? current.exp - Math.floor(Date.now() / 1000) : 0;
+  if (left <= 0) redirect("/login?next=/me");
+  store.set(AUTH_COOKIE.user, await signValue({ id: user.id, name: shown, provider: user.provider }, left), { ...LOGIN_COOKIE_OPTIONS, maxAge: left });
   revalidatePath("/", "layout");
   // 가입 직후 환영 화면에서 저장했으면 원래 보던 페이지로 돌려보낸다
   const next = formData.get("next");
