@@ -292,7 +292,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
                 onToggle={toggleMonth}
               />
               <WeekHeader />
-              <div className="grid grid-cols-7 gap-y-1">{monthDays(month).map((d) => cell(d, dayParts(d).month !== month.month))}</div>
+              <div role="group" aria-label={`${month.year}년 ${month.month}월 날짜`} className="grid grid-cols-7 gap-y-1">{monthDays(month).map((d) => cell(d, dayParts(d).month !== month.month))}</div>
             </>
           ) : (
             <>
@@ -308,7 +308,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
                 onToggle={toggleMonth}
               />
               <WeekHeader />
-              <div className="grid grid-cols-7">{Array.from({ length: 7 }, (_, i) => cell(weekStart + i))}</div>
+              <div role="group" aria-label={`${weekTitle(weekStart, today)} 날짜`} className="grid grid-cols-7">{Array.from({ length: 7 }, (_, i) => cell(weekStart + i))}</div>
             </>
           )}
         </div>
@@ -531,18 +531,15 @@ function DayCell({
       disabled={disabled}
       aria-pressed={selected}
       aria-label={label}
+      aria-current={isToday ? "date" : undefined}
       onClick={() => onPick(day)}
       className={`mx-auto flex h-11 w-11 flex-col items-center justify-center gap-1 rounded-sm text-b2 ${
         selected
           ? "bg-navy font-semibold text-page"
-          : disabled
-            ? "text-ink-3/50"
-            : count > 0
-              ? past
-                ? "text-ink-2"
-                : "font-semibold text-ink"
-              : "text-ink-2"
-      } ${isToday && !selected ? "ring-1 ring-border-strong" : ""} ${outside && !selected ? "opacity-50" : ""}`}
+          : count > 0 && !past && !outside
+            ? "font-semibold text-ink"
+            : "text-ink-2"
+      } ${isToday && !selected ? "ring-1 ring-border-strong" : ""}`}
     >
       <span className="fig leading-none">{dayParts(day).date}</span>
       {/* 모임 수만큼 점(최대 3개) */}
