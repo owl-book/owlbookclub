@@ -34,10 +34,8 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
         <BookCover url={cover?.url ?? null} title={m.bookTitle} />
       </div>
       <div className="min-w-0 flex-1">
-        {/* 시각 바로 오른쪽에 묶음 → 마감(지난 모임) 순으로 배지를 붙인다. 폭이 모자라면 다음 줄로 넘긴다 */}
-        <div className={`flex flex-wrap items-center gap-1.5 ${wish ? "pr-9" : ""}`}>
+                <div className={`flex flex-wrap items-center gap-1.5 ${wish ? "pr-9" : ""}`}>
           <span className={`fig text-l1 font-semibold ${dim ? "text-ink-3" : "text-navy"}`}>{meetingTime(m)}</span>
-          {idx && <SeriesBadge index={idx} total={sessions.length} collapsed={Boolean(m.series?.collapsed)} />}
         </div>
         <h3 className="mt-1.5 text-t2 text-ink">
           <Link
@@ -47,7 +45,12 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
           >
             {m.title}
           </Link>
-          {/* 마감·지난 모임 배지는 제목이 끝나는 곳 바로 오른쪽에 */}
+          {/* 회차(묶음) → 마감·지난 모임 순으로 배지를 제목이 끝나는 곳 바로 오른쪽에 */}
+          {idx && (
+            <span className="ml-1.5 align-middle">
+              <SeriesBadge index={idx} total={sessions.length} collapsed={Boolean(m.series?.collapsed)} />
+            </span>
+          )}
           {statusKind && (
             <span className="ml-1.5 align-middle">
               <StatusBadge kind={statusKind} />
