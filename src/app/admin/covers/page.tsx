@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { AdminLogin } from "@/components/AdminLogin";
@@ -6,7 +7,7 @@ import { AdminNav } from "@/components/AdminNav";
 import { CoverUploadForm } from "@/components/CoverUploadForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
-import { getCoverBooks, type CoverBook } from "@/lib/book-covers";
+import { getCoverBooks, titleKey, type CoverBook } from "@/lib/book-covers";
 import { removeBookCover } from "@/lib/cover-actions";
 import { getReviewCount } from "@/lib/review";
 import { getInquiryInbox, getReportInbox } from "@/lib/reports";
@@ -32,6 +33,10 @@ export default async function AdminCoversPage({ searchParams }: PageProps<"/admi
   const [books, inbox, inquiries, reviewCount] = await Promise.all([getCoverBooks(), getReportInbox(), getInquiryInbox(), getReviewCount()]);
   const reportCount = inbox.reduce((n, item) => n + item.reports.length, 0) + inquiries.length;
   const missing = books.filter((b) => !b.cover).length;
+  // 책 제목·작가명으로 찾기. 띄어쓰기·따옴표·대소문자는 무시한다(같은 책 묶는 기준과 같음)
+  const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 100) : "";
+  const needle = titleKey(q);
+  const shown = needle ? books.filter((b) => titleKey(b.title).includes(needle) || (b.author ? titleKey(b.author).includes(needle) : false)) : books;
 
   return (
     <div>
@@ -59,17 +64,45 @@ export default async function AdminCoversPage({ searchParams }: PageProps<"/admi
       )}
 
       {books.length > 0 && (
-        <ul className="mt-5 space-y-3">
-          {books.map((b) => (
-            <BookRow key={b.key} book={b} />
+        <form role="search" action="/admin/covers" className="mt-5 flex gap-2">
+          <input
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder="책 제목 또는 작가명"
+            aria-label="책 표지 검색"
+            enterKeyHint="search"
+            className="min-h-11 min-w-0 flex-1 rounded-xs border border-border-control bg-card px-3 py-2.5 text-b1 text-ink placeholder:text-ink-3 focus:border-navy"
+          />
+          <button type="submit" className="min-h-11 shrink-0 rounded-sm bg-navy px-4 text-l1 font-semibold text-white hover:bg-navy-hover active:bg-navy-active">
+            검색
+          </button>
+        </form>
+      )}
+
+      {q && (
+        <p className="mt-3 text-b2 text-ink-2">
+          ‘{q}’ 검색 결과 <strong className="text-ink">{shown.length}권</strong>
+          <Link href="/admin/covers" className="ml-2 inline-flex min-h-11 items-center text-l1 underline underline-offset-2 hover:text-ink">
+            전체 보기
+          </Link>
+        </p>
+      )}
+
+      {shown.length > 0 ? (
+        <ul className={q ? "mt-1 space-y-3" : "mt-5 space-y-3"}>
+          {shown.map((b) => (
+            <BookRow key={b.key} book={b} q={q} />
           ))}
         </ul>
+      ) : (
+        q && <p className="mt-2 text-b2 text-ink-2">맞는 책이 없어요. 제목이나 작가명을 줄여서 다시 찾아 보세요.</p>
       )}
     </div>
   );
 }
 
-function BookRow({ book: b }: { book: CoverBook }) {
+function BookRow({ book: b, q }: { book: CoverBook; q: string }) {
   return (
     <li className="rounded-md border border-border-card bg-card p-4">
       <div className="flex gap-3.5">
@@ -90,11 +123,12 @@ function BookRow({ book: b }: { book: CoverBook }) {
         </div>
       </div>
 
-      <CoverUploadForm title={b.title} hasCover={Boolean(b.cover)} />
+      <CoverUploadForm title={b.title} hasCover={Boolean(b.cover)} q={q} />
 
       {b.cover && (
         <form action={removeBookCover} className="mt-1">
           <input type="hidden" name="key" value={b.key} />
+          {q && <input type="hidden" name="q" value={q} />}
           <SubmitButton
             pendingText="빼는 중…"
             confirm={`『${b.title}』 사진을 뺄까요? 이 책을 읽는 모임 카드에는 다시 사진 대신 책 제목이 보여요.`}

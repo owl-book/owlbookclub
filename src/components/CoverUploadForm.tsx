@@ -9,7 +9,7 @@ import { shrinkImage } from "@/lib/image-shrink";
 const MAX_W = 480;
 const MAX_H = 720;
 
-export function CoverUploadForm({ title, hasCover }: { title: string; hasCover: boolean }) {
+export function CoverUploadForm({ title, hasCover, q }: { title: string; hasCover: boolean; q?: string }) {
   const inputId = useId();
   const blobRef = useRef<Blob | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -44,6 +44,7 @@ export function CoverUploadForm({ title, hasCover }: { title: string; hasCover: 
   return (
     <form action={formAction} className="mt-3">
       <input type="hidden" name="title" value={title} />
+      {q && <input type="hidden" name="q" value={q} />}
       {preview && (
         <div className="mb-3 flex items-end gap-3">
           {/* 카드와 같은 2:3 칸에 맞춰 미리 보여 준다 */}

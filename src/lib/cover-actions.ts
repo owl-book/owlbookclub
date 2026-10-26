@@ -12,6 +12,14 @@ import { imageType } from "@/lib/image-shrink";
 const COVERS_PATH = "/admin/covers";
 const MAX_BYTES = 1024 * 1024; // 화면에서 가로 480px 로 줄여 보내므로 넉넉하다(보관함 제한 0017 과 같은 값)
 
+// 올리기·빼기 뒤에도 보던 검색 결과로 돌아가게 검색어를 이어 붙인다
+function backTo(done: string, formData: FormData): string {
+  const q = formData.get("q");
+  const qs = new URLSearchParams({ done });
+  if (typeof q === "string" && q.trim()) qs.set("q", q.trim().slice(0, 100));
+  return `${COVERS_PATH}?${qs}`;
+}
+
 export type CoverUploadState = { error?: string } | undefined;
 
 export async function uploadBookCover(_prev: CoverUploadState, formData: FormData): Promise<CoverUploadState> {
@@ -47,7 +55,7 @@ export async function uploadBookCover(_prev: CoverUploadState, formData: FormDat
   if (oldPath && oldPath !== path) await db().storage.from(COVER_BUCKET).remove([oldPath]);
 
   revalidatePath("/", "layout");
-  redirect(`${COVERS_PATH}?done=${oldPath ? "replace" : "upload"}`);
+  redirect(backTo(oldPath ? "replace" : "upload", formData));
 }
 
 // 사진 빼기: 그 책은 다시 표지 대신 디자인(또는 책 API 표지)으로 보인다
@@ -62,5 +70,5 @@ export async function removeBookCover(formData: FormData) {
   if (path) await db().storage.from(COVER_BUCKET).remove([path]);
 
   revalidatePath("/", "layout");
-  redirect(`${COVERS_PATH}?done=remove`);
+  redirect(backTo("remove", formData));
 }
