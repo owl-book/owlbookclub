@@ -105,7 +105,7 @@ export function HomeSlider({ slides: all }: { slides: Slide[] }) {
       ref={root}
       aria-roledescription="carousel"
       aria-label="부엉이들의 서재 안내"
-      className="relative mb-4"
+      className="relative mb-3"
       onPointerEnter={(e) => e.pointerType === "mouse" && setHover(true)}
       onPointerLeave={(e) => e.pointerType === "mouse" && setHover(false)}
     >
@@ -209,7 +209,7 @@ function SlideCard({ slide: s, position }: { slide: Slide; position: number }) {
           BETA
         </span>
       )}
-      <p className={`relative mt-1.5 whitespace-pre-line text-b2 ${tone.body}`}>{s.body}</p>
+      <p className={`relative mt-1.5 hidden whitespace-pre-line text-b2 sm:block ${tone.body}`}>{s.body}</p>
       {s.note && <p className={`relative mt-1 hidden max-w-[17rem] text-l2 sm:block ${tone.body}`}>{s.note}</p>}
       {/* 맨 아래 줄: 왼쪽에 누르는 곳 글자, 오른쪽은 멈춤·넘김 버튼 자리로 비워 둔다(장 전체가 링크라 버튼 모양 대신 글자로).
           줄 높이·바닥 여백을 버튼 받침(44px, 바닥에서 6px)에 맞춰 글자가 '1 / 3'과 같은 높이에 온다 */}
@@ -225,7 +225,7 @@ function SlideCard({ slide: s, position }: { slide: Slide; position: number }) {
       </span>
     </>
   );
-  const box = `@container relative flex w-full flex-col overflow-hidden rounded-md px-5 pb-2.5 pt-4 ${tone.box}`;
+  const box = `@container relative flex w-full flex-col overflow-hidden rounded-md px-5 pb-2.5 pt-3 ${tone.box}`;
   if (!s.href) return <div className={box}>{inner}</div>;
   return (
     <Link

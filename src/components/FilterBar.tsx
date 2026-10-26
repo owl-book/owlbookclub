@@ -206,7 +206,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
   const dateClearLabel = days.length ? formatDays(days) : date !== "all" ? (DATE_FILTERS.find((f) => f.key === date)?.label ?? null) : null;
 
   return (
-    <div className="space-y-3" aria-busy={pending}>
+    <div className="space-y-2" aria-busy={pending}>
       <form
         role="search"
         onSubmit={(e) => {
@@ -276,7 +276,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
       )}
 
       {(!searching || calOpen) && (
-        <div id="date-panel" className="rounded-md bg-sub px-2 pb-2 pt-1">
+        <div id="date-panel" className="rounded-md bg-sub px-2 pb-1 pt-1">
           {searching && dateChips}
           {expanded ? (
             <>
@@ -532,7 +532,7 @@ function DayCell({
       aria-pressed={selected}
       aria-label={label}
       onClick={() => onPick(day)}
-      className={`mx-auto flex h-12 w-11 flex-col items-center justify-center gap-1 rounded-sm text-b2 ${
+      className={`mx-auto flex h-11 w-11 flex-col items-center justify-center gap-1 rounded-sm text-b2 ${
         selected
           ? "bg-navy font-semibold text-page"
           : disabled
@@ -607,7 +607,7 @@ function CalendarNav(props: {
 
 function WeekHeader() {
   return (
-    <div className="grid grid-cols-7 pb-1 text-center text-l2 text-ink-3" aria-hidden>
+    <div className="grid grid-cols-7 text-center text-l2 text-ink-3" aria-hidden>
       {WEEK_LABELS.map((w) => (
         <span key={w}>{w}</span>
       ))}

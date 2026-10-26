@@ -82,7 +82,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const emptyDays = days.filter((d) => !counts[d]);
 
   return (
-    <div className="pt-5">
+    <div className="pt-3">
       {sp.bye === "1" && (
         <p role="status" className="mb-4 rounded-xs border border-info-border bg-info-surface px-3 py-2.5 text-b2 text-info">
           탈퇴가 끝났어요. 찜과 기록을 모두 지웠습니다. 그동안 고마웠어요.
