@@ -9,6 +9,7 @@ import type { RegionChoice } from "@/lib/regions";
 import { FORMATS, GENRES } from "@/lib/tags";
 import { track } from "@/lib/track-client";
 import { count } from "@/lib/format";
+import { gaEvent, maskQuery } from "@/lib/ga";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -103,6 +104,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
     const next = { ...choices, ...change };
     const picked = Object.fromEntries(Object.entries(change).filter(([, v]) => v));
     if (Object.keys(picked).length) track("filter", { props: { ...picked, q: text.trim() } });
+    for (const [group, value] of Object.entries(picked)) gaEvent("filter_chip", { group, value: String(value) });
     go(buildHref(date, text, days, next));
   };
 
@@ -111,6 +113,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
     const picked = days.includes(d);
     const next = picked ? days.filter((x) => x !== d) : [...days, d].sort((a, b) => a - b);
     if (!picked) track("filter", { props: { day: dayKey(d), via: "calendar", picked: next.length, q: text.trim() } });
+    if (!picked) gaEvent("calendar_pick", { view: expanded ? "month" : "week", day: dayKey(d) });
     go(buildHref("all", text, next, choices));
   };
 
@@ -134,6 +137,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
             aria-pressed={active}
             onClick={() => {
               if (active) return;
+              gaEvent("filter_chip", { group: "date", value: f.key });
               if (f.key !== "all") track("filter", { props: { date: f.key, q: text.trim() } });
               go(buildHref(f.key, text, [], choices));
             }}
@@ -179,6 +183,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
   const toggleMonth = () => {
     if (expanded) setWeekStart(sundayOf(firstDay ?? today));
     else setMonth(monthOf(weekStart < sundayOf(today) ? weekStart + 6 : Math.max(weekStart, today)));
+    if (!expanded) gaEvent("month_open", { mode: searching ? "search" : "home" });
     setExpanded(!expanded);
   };
 
@@ -193,6 +198,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
           e.preventDefault();
           (document.activeElement as HTMLElement | null)?.blur(); // 모바일 키보드 닫기
           if (text.trim()) track("search", { props: { q: text.trim(), date } });
+          if (text.trim()) gaEvent("search", { q: maskQuery(text), date });
           scrollAfterSearch.current = true;
           go(buildHref(date, text, days, choices));
         }}
@@ -234,7 +240,10 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => setCalOpen(!calOpen)}
+            onClick={() => {
+              if (!calOpen) gaEvent("month_open", { mode: "search" });
+              setCalOpen(!calOpen);
+            }}
             aria-expanded={calOpen}
             aria-controls="date-panel"
             className={`flex min-h-11 min-w-0 flex-[3] items-center gap-1.5 rounded-sm border px-3 text-l1 ${

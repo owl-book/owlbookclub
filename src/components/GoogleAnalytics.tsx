@@ -3,12 +3,7 @@
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void;
-  }
-}
+import { gaEvent } from "@/lib/ga";
 
 // 구글 애널리틱스(GA4): 방문·머문 시간·화면 이동은 GA 가 알아서 센다.
 // 모임·책방·신청 버튼 클릭은 각 부품을 고치지 않고, 화면 전체에서 링크 주소로 알아본다.
@@ -50,8 +45,4 @@ export function GoogleAnalytics({ gaId }: { gaId: string }) {
       </Script>
     </>
   );
-}
-
-function gaEvent(name: string, params: Record<string, string>) {
-  window.gtag?.("event", name, params);
 }

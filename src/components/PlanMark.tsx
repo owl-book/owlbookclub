@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { setApplied } from "@/lib/me-actions";
 import { planLoginHref, takeApplyReturn } from "@/lib/plan-client";
+import { gaEvent } from "@/lib/ga";
 
 type Props = {
   meetingId: number;
@@ -32,7 +33,9 @@ export function PlanMark({ meetingId, storeName, loggedIn, applied: appliedProp,
 
   useEffect(() => {
     const check = () => {
-      if (takeApplyReturn(meetingId) && !appliedProp) {
+      if (!takeApplyReturn(meetingId)) return;
+      gaEvent("apply_return", { meeting_id: meetingId });
+      if (!appliedProp) {
         setDone(false);
         setFailed(false);
         setOpen(true);
@@ -57,6 +60,7 @@ export function PlanMark({ meetingId, storeName, loggedIn, applied: appliedProp,
     startTransition(async () => {
       try {
         await setApplied(meetingId, on);
+        gaEvent(on ? "plan_add" : "plan_remove", { source: "detail", meeting_id: meetingId });
         setAppliedState(on);
         if (on) setDone(true);
       } catch {

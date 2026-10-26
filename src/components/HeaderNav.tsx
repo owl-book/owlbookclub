@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { gaEvent } from "@/lib/ga";
 
 // 헤더 오른쪽 끝 메뉴 버튼(☰): 누르면 헤더 바로 아래로 독자용 메뉴(모임 | 책방 | 전시)가 펼쳐진다.
 // 좁은 휴대폰에서 메뉴 글자가 헤더에 다 들어가지 않아 버튼 하나로 접었다.
@@ -41,7 +42,10 @@ export function HeaderNav() {
         aria-label={open ? "메뉴 닫기" : "메뉴 열기"}
         aria-expanded={open}
         aria-controls="header-menu"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (!open) gaEvent("menu_open");
+          setOpen((v) => !v);
+        }}
         className="-mr-2 inline-flex size-11 items-center justify-center rounded-full text-page/80 hover:bg-navy-hover hover:text-page focus-visible:outline-page"
       >
         <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round">
@@ -62,7 +66,10 @@ export function HeaderNav() {
                     <Link
                       href={it.href}
                       aria-current={active ? "page" : undefined}
-                      onClick={() => setOpen(false)}
+                      onClick={() => {
+                        gaEvent("menu_click", { item: it.label });
+                        setOpen(false);
+                      }}
                       className={`flex min-h-12 items-center border-l px-4 text-t2 ${
                         active ? "border-navy bg-sub font-semibold text-navy" : "border-transparent text-ink-2 hover:bg-sub hover:text-navy"
                       }`}

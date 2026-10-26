@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { setWish } from "@/lib/me-actions";
 import { WISHED_EVENT, type WishedDetail } from "@/lib/push-client";
+import { gaEvent } from "@/lib/ga";
 
 type Props = {
   kind: "meeting" | "store" | "exhibition";
@@ -43,6 +44,7 @@ export function WishButton({ kind, id, wished, loggedIn, label, size = "md" }: P
         // 누르는 순간의 주소(검색어·날짜 조건 포함)로 돌아오도록
         onClick={(e) => {
           e.stopPropagation();
+          gaEvent("wish", { kind, on: false, login_required: true });
           const next = window.location.pathname + window.location.search;
           e.currentTarget.href = `/wish?t=${kind}&id=${id}&next=${encodeURIComponent(next)}`;
         }}
@@ -65,6 +67,7 @@ export function WishButton({ kind, id, wished, loggedIn, label, size = "md" }: P
         e.preventDefault();
         e.stopPropagation();
         const nextOn = !on;
+        gaEvent("wish", { kind, on: nextOn, login_required: false });
         setOn(nextOn);
         setFailed(false);
         startTransition(async () => {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { setApplied } from "@/lib/me-actions";
 import { addDismissed, planLoginHref, readDismissed } from "@/lib/plan-client";
+import { gaEvent } from "@/lib/ga";
 
 export type PendingItem = { id: number; title: string; storeName: string; when: string };
 
@@ -52,6 +53,7 @@ export function PendingApplies({ items: initial, loggedIn: initialLoggedIn }: { 
     startTransition(async () => {
       try {
         await setApplied(item.id, true);
+        gaEvent("plan_add", { source: "pending_prompt", meeting_id: item.id });
         setItems((list) => list.filter((i) => i.id !== item.id));
         setSavedTitle(item.title);
       } catch {
