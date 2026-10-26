@@ -118,7 +118,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
   const pick = (change: Partial<Choices>) => {
     const next = { ...choices, ...change };
     const picked = Object.fromEntries(Object.entries(change).filter(([, v]) => v));
-    if (Object.keys(picked).length) track("filter", { props: { ...picked, q: text.trim() } });
+    if (Object.keys(picked).length) track("filter", { props: { ...picked, q: maskQuery(text) } });
     for (const [group, value] of Object.entries(picked)) gaEvent("filter_chip", { group, value: String(value) });
     go(buildHref(date, text, days, next));
   };
@@ -127,7 +127,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
   const pickDay = (d: number) => {
     const picked = days.includes(d);
     const next = picked ? days.filter((x) => x !== d) : [...days, d].sort((a, b) => a - b);
-    if (!picked) track("filter", { props: { day: dayKey(d), via: "calendar", picked: next.length, q: text.trim() } });
+    if (!picked) track("filter", { props: { day: dayKey(d), via: "calendar", picked: next.length, q: maskQuery(text) } });
     if (!picked) gaEvent("calendar_pick", { view: expanded ? "month" : "week", day: dayKey(d) });
     go(buildHref("all", text, next, choices));
   };
@@ -153,7 +153,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
             onClick={() => {
               if (active) return;
               gaEvent("filter_chip", { group: "date", value: f.key });
-              if (f.key !== "all") track("filter", { props: { date: f.key, q: text.trim() } });
+              if (f.key !== "all") track("filter", { props: { date: f.key, q: maskQuery(text) } });
               go(buildHref(f.key, text, [], choices));
             }}
             className={`min-h-11 shrink-0 rounded-xs px-4 text-l1 ${
@@ -212,7 +212,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
         onSubmit={(e) => {
           e.preventDefault();
           (document.activeElement as HTMLElement | null)?.blur(); // 모바일 키보드 닫기
-          if (text.trim()) track("search", { props: { q: text.trim(), date } });
+          if (text.trim()) track("search", { props: { q: maskQuery(text), date } });
           if (text.trim()) gaEvent("search", { q: maskQuery(text), date });
           scrollAfterSearch.current = true;
           go(buildHref(date, text, days, choices));
