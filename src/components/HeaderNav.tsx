@@ -53,7 +53,7 @@ export function HeaderNav() {
         <>
           {/* 메뉴 밖(어두워진 부분)을 누르면 닫힌다 */}
           <div aria-hidden onClick={() => setOpen(false)} className="fixed inset-x-0 bottom-0 top-14 bg-navy-900/30" />
-          <nav id="header-menu" aria-label="메뉴" className="absolute inset-x-0 top-full border-b border-border bg-page shadow-sm">
+          <nav id="header-menu" aria-label="메뉴" className="absolute inset-x-0 top-full border-b border-border bg-page">
             <ul className="mx-auto max-w-xl py-2">
               {ITEMS.map((it) => {
                 const active = it.match(pathname);
@@ -63,7 +63,7 @@ export function HeaderNav() {
                       href={it.href}
                       aria-current={active ? "page" : undefined}
                       onClick={() => setOpen(false)}
-                      className={`flex min-h-12 items-center border-l-4 px-4 text-t2 ${
+                      className={`flex min-h-12 items-center border-l px-4 text-t2 ${
                         active ? "border-navy bg-sub font-semibold text-navy" : "border-transparent text-ink-2 hover:bg-sub hover:text-navy"
                       }`}
                     >

@@ -90,14 +90,14 @@ export function PendingApplies({ items: initial, loggedIn: initialLoggedIn }: { 
                       type="button"
                       onClick={() => mark(item)}
                       disabled={pending}
-                      className="min-h-11 flex-[1.4] rounded-sm bg-navy text-l1 font-semibold text-white hover:bg-navy-hover disabled:opacity-60"
+                      className="min-h-11 flex-[1.4] rounded-sm bg-navy text-l1 font-semibold text-page hover:bg-navy-hover disabled:opacity-60"
                     >
                       책방에서 신청했어요
                     </button>
                   ) : (
                     <a
                       href={planLoginHref(item.id, here)}
-                      className="flex min-h-11 flex-[1.4] items-center justify-center rounded-sm bg-navy text-l1 font-semibold text-white hover:bg-navy-hover"
+                      className="flex min-h-11 flex-[1.4] items-center justify-center rounded-sm bg-navy text-l1 font-semibold text-page hover:bg-navy-hover"
                     >
                       책방에서 신청했어요
                     </a>

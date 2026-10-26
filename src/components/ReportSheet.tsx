@@ -97,7 +97,7 @@ export function ReportSheet({ meetingId, storeId, closed }: Props) {
                   type="button"
                   onClick={close}
                   autoFocus
-                  className="mt-5 min-h-11 w-full rounded-sm bg-navy py-3 text-l1 font-semibold text-white hover:bg-navy-hover"
+                  className="mt-5 min-h-11 w-full rounded-sm bg-navy py-3 text-l1 font-semibold text-page hover:bg-navy-hover"
                 >
                   닫기
                 </button>
@@ -151,7 +151,7 @@ export function ReportSheet({ meetingId, storeId, closed }: Props) {
                   <button
                     type="submit"
                     disabled={!kind || needsMessage || pending}
-                    className="min-h-11 flex-[2] rounded-sm bg-navy py-3 text-l1 font-semibold text-white hover:bg-navy-hover disabled:bg-fill disabled:text-ink-3"
+                    className="min-h-11 flex-[2] rounded-sm bg-navy py-3 text-l1 font-semibold text-page hover:bg-navy-hover disabled:bg-fill disabled:text-ink-3"
                   >
                     {pending ? "보내는 중…" : "알려주기"}
                   </button>

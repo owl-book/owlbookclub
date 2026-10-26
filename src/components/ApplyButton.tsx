@@ -92,7 +92,7 @@ export function ApplyButton({
           setCopied(false);
           setOpen(true);
         }}
-        className="flex min-h-12 flex-1 items-center justify-center rounded-sm border border-amber-edge bg-amber px-3 text-center text-t2 text-amber-ink hover:bg-amber-hover active:bg-amber-active active:text-white"
+        className="flex min-h-12 flex-1 items-center justify-center rounded-sm border border-amber-edge bg-amber px-3 text-center text-t2 text-amber-ink hover:bg-amber-hover active:bg-amber-active active:text-page"
       >
         {dm ? "인스타 DM으로 신청하기 ↗" : sms ? "문자로 신청하기 ↗" : "책방에서 신청하기 ↗"}
       </a>

@@ -138,7 +138,7 @@ export function PlanMark({ meetingId, storeName, loggedIn, applied: appliedProp,
                   </button>
                   <Link
                     href="/me?tab=mine"
-                    className="flex min-h-11 flex-[2] items-center justify-center rounded-sm bg-navy py-3 text-l1 font-semibold text-white hover:bg-navy-hover"
+                    className="flex min-h-11 flex-[2] items-center justify-center rounded-sm bg-navy py-3 text-l1 font-semibold text-page hover:bg-navy-hover"
                   >
                     내 모임 보기
                   </Link>
@@ -172,14 +172,14 @@ export function PlanMark({ meetingId, storeName, loggedIn, applied: appliedProp,
                       type="button"
                       onClick={() => save(true)}
                       disabled={pending}
-                      className="min-h-11 flex-[2] rounded-sm bg-navy py-3 text-l1 font-semibold text-white hover:bg-navy-hover disabled:opacity-60"
+                      className="min-h-11 flex-[2] rounded-sm bg-navy py-3 text-l1 font-semibold text-page hover:bg-navy-hover disabled:opacity-60"
                     >
                       {pending ? "담는 중…" : "책방에서 신청했어요"}
                     </button>
                   ) : (
                     <a
                       href={planLoginHref(meetingId, `/m/${meetingId}?planned=1`)}
-                      className="flex min-h-11 flex-[2] flex-col items-center justify-center rounded-sm bg-navy py-2 text-white hover:bg-navy-hover"
+                      className="flex min-h-11 flex-[2] flex-col items-center justify-center rounded-sm bg-navy py-2 text-page hover:bg-navy-hover"
                     >
                       <span className="text-l1 font-semibold">책방에서 신청했어요</span>
                       <span className="text-l2 font-normal text-dk-ink-2">로그인 후 바로 담겨요</span>

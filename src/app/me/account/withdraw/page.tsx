@@ -38,7 +38,7 @@ export default async function WithdrawPage({ searchParams }: PageProps<"/me/acco
 
       <Link
         href="/me"
-        className="mt-6 flex min-h-12 w-full items-center justify-center rounded-sm bg-navy py-3 text-t2 text-white hover:bg-navy-hover active:bg-navy-active"
+        className="mt-6 flex min-h-12 w-full items-center justify-center rounded-sm bg-navy py-3 text-t2 text-page hover:bg-navy-hover active:bg-navy-active"
       >
         계속 이용하기
       </Link>

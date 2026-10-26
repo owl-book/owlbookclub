@@ -108,7 +108,7 @@ export default async function RecordPage({ params }: PageProps<"/me/records/[mee
               />
             </div>
 
-            <SubmitButton pendingText="저장하는 중…" className="min-h-12 w-full rounded-sm bg-navy py-3.5 text-t2 text-white hover:bg-navy-hover active:bg-navy-active">
+            <SubmitButton pendingText="저장하는 중…" className="min-h-12 w-full rounded-sm bg-navy py-3.5 text-t2 text-page hover:bg-navy-hover active:bg-navy-active">
               {record ? "수정한 내용 저장" : "기록 저장"}
             </SubmitButton>
           </form>

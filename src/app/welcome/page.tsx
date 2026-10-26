@@ -121,7 +121,7 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
           </div>
         </section>
 
-        <SubmitButton pendingText="저장하는 중…" className="mt-5 min-h-12 w-full rounded-sm bg-navy py-3 text-t2 text-white hover:bg-navy-hover active:bg-navy-active">
+        <SubmitButton pendingText="저장하는 중…" className="mt-5 min-h-12 w-full rounded-sm bg-navy py-3 text-t2 text-page hover:bg-navy-hover active:bg-navy-active">
           {saved ? backLabel(next) : "이 별명으로 시작하기"}
         </SubmitButton>
       </form>

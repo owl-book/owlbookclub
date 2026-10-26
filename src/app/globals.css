@@ -117,12 +117,13 @@
   --illustration-bark-light: #a98363;
   --illustration-cream: #f5ede0;
   --illustration-blush: #f6e0c8;
+  --illustration-leaf: #e6eed6; /* 슬라이더 3장 그림 속 나뭇잎을 연하게 푼 연두(글 받침용) */
 
   /* 09. 타이포 스케일 원본 (사용자 화면 기준. *-admin 값은 운영자 화면용) */
   --text-h1-size: 36px;  --text-h1-line: 1.35;  --text-h1-tracking: -0.03em;
   --text-h2-size: 28px;  --text-h2-line: 1.4;   --text-h2-tracking: -0.02em;
-  --text-t1-size: 20px;  --text-t1-size-admin: 22px;  --text-t1-line: 1.45; --text-t1-weight: 700;
-  --text-t2-size: 17px;  --text-t2-size-admin: 18px;  --text-t2-line: 1.45; --text-t2-weight: 700;
+  --text-t1-size: 20px;  --text-t1-size-admin: 22px;  --text-t1-line: 1.45; --text-t1-weight: 600;
+  --text-t2-size: 17px;  --text-t2-size-admin: 18px;  --text-t2-line: 1.45; --text-t2-weight: 600;
   --text-b1-size: 16px;  --text-b1-size-admin: 18px;  --text-b1-line: 1.65; --text-b1-weight: 400;
   --text-b2-size: 14px;  --text-b2-size-admin: 16px;  --text-b2-line: 1.6;  --text-b2-weight: 400;
   --text-l1-size: 14px;  --text-l1-size-admin: 16px;
@@ -150,6 +151,11 @@ body {
   word-break: keep-all;
   overflow-wrap: anywhere;
   font-synthesis: none;
+}
+
+/* 사용자에게 보이는 숫자는 폭이 같은 숫자로(날짜·시각·개수가 세로로 맞도록) */
+.fig {
+  font-variant-numeric: tabular-nums;
 }
 
 /* 제목 글꼴은 weight 400 하나뿐 — 굵게 흉내 내지 않도록 */
@@ -195,6 +201,15 @@ input:focus-visible {
   .owl-bone {
     animation: none;
   }
+}
+
+/* 홈 광고 슬라이더(HomeSlider): 옆으로 넘기는 칸의 스크롤 막대를 숨기고, 끝에서 화면 전체가 같이 밀리지 않게 */
+.owl-slider {
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.owl-slider::-webkit-scrollbar {
+  display: none;
 }
 
 /* 아래에서 올라오는 필터 판(<dialog>) */

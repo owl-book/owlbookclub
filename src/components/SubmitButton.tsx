@@ -76,7 +76,7 @@ export function SubmitButton({ className, children, pendingText, name, value, co
               value={value}
               disabled={pending}
               aria-busy={mine || undefined}
-              className="min-h-11 flex-1 rounded-sm bg-error py-3 text-l1 font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80 disabled:cursor-wait disabled:opacity-60"
+              className="min-h-11 flex-1 rounded-sm bg-error py-3 text-l1 font-semibold text-page transition-opacity hover:opacity-90 active:opacity-80 disabled:cursor-wait disabled:opacity-60"
             >
               {mine ? pendingText : children}
             </button>

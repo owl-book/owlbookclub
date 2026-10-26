@@ -86,7 +86,7 @@ export function ContactForm({ stores, initialCategory, initialStoreId }: Props) 
           {sentStore && (
             <Link
               href={`/s/${sentStore.id}`}
-              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-sm bg-navy px-4 text-l1 font-semibold text-white hover:bg-navy-hover"
+              className="inline-flex min-h-11 flex-1 items-center justify-center rounded-sm bg-navy px-4 text-l1 font-semibold text-page hover:bg-navy-hover"
             >
               {sentStore.name} 화면으로
             </Link>
@@ -96,7 +96,7 @@ export function ContactForm({ stores, initialCategory, initialStoreId }: Props) 
             className={
               sentStore
                 ? "inline-flex min-h-11 flex-1 items-center justify-center rounded-sm border border-border bg-card px-4 text-l1 font-semibold text-ink-2 hover:bg-page"
-                : "inline-flex min-h-11 flex-1 items-center justify-center rounded-sm bg-navy px-4 text-l1 font-semibold text-white hover:bg-navy-hover"
+                : "inline-flex min-h-11 flex-1 items-center justify-center rounded-sm bg-navy px-4 text-l1 font-semibold text-page hover:bg-navy-hover"
             }
           >
             모임 둘러보기
@@ -226,7 +226,7 @@ export function ContactForm({ stores, initialCategory, initialStoreId }: Props) 
             <button
               type="submit"
               disabled={missing || pending}
-              className="min-h-11 w-full rounded-sm bg-navy py-3 text-l1 font-semibold text-white hover:bg-navy-hover disabled:bg-fill disabled:text-ink-3"
+              className="min-h-11 w-full rounded-sm bg-navy py-3 text-l1 font-semibold text-page hover:bg-navy-hover disabled:bg-fill disabled:text-ink-3"
             >
               {pending ? "보내는 중…" : "보내기"}
             </button>

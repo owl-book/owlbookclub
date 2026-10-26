@@ -9,6 +9,9 @@ import { HeaderAccount } from "@/components/HeaderAccount";
 import { HeaderNav } from "@/components/HeaderNav";
 import { INSTAGRAM_HANDLE } from "@/lib/operator";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { KeepAppLogin } from "@/components/KeepAppLogin";
+import { PushAsk } from "@/components/PushAsk";
+import { isPushEnabled, vapidPublicKey } from "@/lib/push";
 import { HEADER } from "@/lib/tracking-shared";
 import "./globals.css";
 
@@ -22,6 +25,8 @@ const gaId = gaIdRaw && /^G-[A-Z0-9]+$/.test(gaIdRaw) ? gaIdRaw : null;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
+  // 아이폰에서 홈 화면에 추가했을 때 앱처럼 열리게(이름은 아이콘 아래 글자)
+  appleWebApp: { capable: true, title: "부엉이서재", statusBarStyle: "default" },
   title: { default: "부엉이들의 서재 · 동네책방에서 열리는 독서모임 모아보기", template: "%s · 부엉이들의 서재" },
   description: "흩어진 동네책방 독서모임을 날짜별로 모아 보고, 책방 신청 페이지로 바로 연결합니다.",
   openGraph: {
@@ -48,6 +53,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ko" className="h-full antialiased">
       <head>
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link rel="preload" as="font" type="font/woff" crossOrigin="anonymous" href="https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/Cafe24Ohsquare.woff" />
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
@@ -58,7 +65,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           {/* 높이 h-14 고정: 목록의 날짜 제목이 이 아래(top-14)에 붙는다 */}
           <div className="mx-auto flex h-14 max-w-xl items-center justify-between px-4">
             <Link href="/" className="flex min-h-11 items-center gap-1.5 whitespace-nowrap font-display text-t1 text-page focus-visible:outline-page">
-              <span aria-hidden>🦉</span> 부엉이들의 서재
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/owl-logo.png" alt="" aria-hidden className="h-7 w-auto" /> 부엉이들의 서재
             </Link>
             {/* 오른쪽: 로그인·마이페이지 아이콘, 맨 끝에 메뉴 버튼 */}
             <div className="flex shrink-0 items-center">
@@ -116,7 +124,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
               </nav>
               {/* 개인정보처리방침은 지침상 다른 고지와 구별되게 굵게 */}
               <nav aria-label="약관과 정책" className="flex gap-x-3">
-                <Link href="/privacy" className="inline-flex min-h-11 items-center font-bold text-ink underline">
+                <Link href="/privacy" className="inline-flex min-h-11 items-center font-semibold text-ink underline">
                   개인정보처리방침
                 </Link>
                 <Link href="/terms" className="inline-flex min-h-11 items-center underline">이용약관</Link>
@@ -124,6 +132,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             </div>
           </div>
         </footer>
+        {/* 찜한 순간 알림을 한 번 권하는 카드: 로그인한 사람만(알림은 회원에게만 보낸다) */}
+        {user && isPushEnabled() && <PushAsk vapidKey={vapidPublicKey()!} />}
+        {/* 홈 화면 앱에서는 열 때마다 로그인 기간을 늘린다 */}
+        {user && <KeepAppLogin />}
         {gaId && !isInternal && <GoogleAnalytics gaId={gaId} />}
       </body>
     </html>

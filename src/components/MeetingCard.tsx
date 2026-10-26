@@ -3,7 +3,8 @@ import Link from "next/link";
 import { getBookCover } from "@/lib/books";
 import { isPast, seriesIndex, type Meeting } from "@/lib/meetings";
 import { formatKstMonthDay, meetingTime } from "@/lib/time";
-import { GenreTag, PlainTag, SeriesBadge, StatusBadge } from "@/components/Tag";
+import { count, dateRange, hashTags, joinDot } from "@/lib/format";
+import { SeriesBadge, StatusBadge } from "@/components/Tag";
 import { WishButton } from "@/components/WishButton";
 
 // 찜 하트 표시용(로그인 기능이 꺼져 있으면 넘기지 않아 하트가 숨는다)
@@ -17,6 +18,7 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
   // 지난·마감 모임: 카드 전체를 흐리게 하면 글씨가 안 읽혀서, 표지와 시각만 낮추고 배지로 알린다
   const dim = past || m.status === "closed";
   // 여러 회차 묶음: 접힌 카드는 이 회차부터 끝 회차까지의 기간과 남은 책 권수를 함께 보여 준다
+  const statusKind = past ? "past" : m.status === "closed" ? "closed" : null;
   const idx = seriesIndex(m);
   const sessions = m.series?.sessions ?? [];
   const rest = m.series?.collapsed && idx ? sessions.slice(idx - 1) : [];
@@ -25,7 +27,8 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
   // 카드 전체를 누르면 모임 상세로 간다: 제목 링크의 투명한 덮개(after)가 카드 전체를 덮는다.
   // 책방 이름 링크와 하트는 그 덮개 위(z-10)에 올려서 따로 누를 수 있다(링크 안에 링크·버튼을 넣을 수 없어서)
   return (
-    <div className="relative flex gap-3.5 rounded-md border border-border-card bg-card p-4 transition hover:border-border-strong has-[a[data-card-link]:active]:scale-[0.99]">
+    // 테두리 상자 없이 목록 한 줄로(모임 사이 선은 MeetingList 가 긋는다). 마우스를 올리면 옅은 바탕이 깔린다
+    <div className="relative -mx-2 flex gap-3.5 rounded-md px-2 py-4 transition hover:bg-sub has-[a[data-card-link]:active]:bg-fill">
       {/* 표지는 세로 가운데: 글이 길어져도 표지 아래만 비지 않게 위아래 여백을 고르게 */}
       <div className={`self-center ${dim ? "opacity-50 grayscale" : ""}`}>
         <BookCover url={cover?.url ?? null} title={m.bookTitle} />
@@ -33,9 +36,8 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
       <div className="min-w-0 flex-1">
         {/* 시각 바로 오른쪽에 묶음 → 마감(지난 모임) 순으로 배지를 붙인다. 폭이 모자라면 다음 줄로 넘긴다 */}
         <div className={`flex flex-wrap items-center gap-1.5 ${wish ? "pr-9" : ""}`}>
-          <span className={`text-l1 font-semibold ${dim ? "text-ink-3" : "text-navy"}`}>{meetingTime(m)}</span>
+          <span className={`fig text-l1 font-semibold ${dim ? "text-ink-3" : "text-navy"}`}>{meetingTime(m)}</span>
           {idx && <SeriesBadge index={idx} total={sessions.length} collapsed={Boolean(m.series?.collapsed)} />}
-          {past ? <StatusBadge kind="past" /> : m.status === "closed" ? <StatusBadge kind="closed" /> : null}
         </div>
         <h3 className="mt-1.5 text-t2 text-ink">
           <Link
@@ -45,37 +47,42 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
           >
             {m.title}
           </Link>
+          {/* 마감·지난 모임 배지는 제목이 끝나는 곳 바로 오른쪽에 */}
+          {statusKind && (
+            <span className="ml-1.5 align-middle">
+              <StatusBadge kind={statusKind} />
+            </span>
+          )}
         </h3>
         {rest.length > 1 && (
           <p className="mt-1 text-b2 text-ink-2">
-            {formatKstMonthDay(rest[0].startsAt)} ~ {formatKstMonthDay(rest[rest.length - 1].startsAt)}, {rest.length}회
+            {joinDot(dateRange(formatKstMonthDay(rest[0].startsAt), formatKstMonthDay(rest[rest.length - 1].startsAt)), count(rest.length, "회"))}
           </p>
         )}
         {m.bookTitle && (
           <p className="mt-1 text-b2 text-ink-2">
-            『{m.bookTitle}』{otherBooks > 0 ? ` 외 ${otherBooks}권` : m.bookAuthor && ` ${m.bookAuthor}`}
+            『{m.bookTitle}』{otherBooks > 0 ? ` 외 ${count(otherBooks, "권")}` : m.bookAuthor && ` ${m.bookAuthor}`}
           </p>
         )}
         {!hideStore && (
           <p className="mt-0.5 text-b2 text-ink-3">
             {/* 책방 이름을 누르면 책방 화면으로. 위아래로 누르는 영역을 넓혀 손가락으로도 누르기 쉽게 */}
-            <Link
-              href={`/s/${m.store.id}`}
-              className="relative z-10 -my-1.5 inline-block py-1.5 underline decoration-border underline-offset-4 hover:text-navy hover:decoration-navy"
-            >
-              {m.store.name}
-            </Link>{" "}
-            · {m.store.region}
+            {joinDot(
+              <Link
+                href={`/s/${m.store.id}`}
+                className="relative z-10 -my-1.5 inline-block py-1.5 underline decoration-border underline-offset-4 hover:text-navy hover:decoration-navy"
+              >
+                {m.store.name}
+              </Link>,
+              m.store.region,
+            )}
           </p>
         )}
-        <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <GenreTag genre={m.tagGenre} />
-          <PlainTag>{m.tagFormat}</PlainTag>
-          <PlainTag>{m.tagCadence}</PlainTag>
-        </div>
+        {/* 태그는 상자 없이 한 줄 글자로 모두 같은 굵기. '기타'는 알려 주는 게 없어 뺀다 */}
+        <p className="mt-2 text-l2 font-normal text-ink-3">{hashTags([m.tagGenre, m.tagFormat, m.tagCadence].filter((t) => t !== "기타"))}</p>
       </div>
       {wish && (
-        <div className="absolute right-2 top-2 z-10">
+        <div className="absolute right-0 top-2 z-10">
           <WishButton kind="meeting" id={m.id} wished={wish.wished} loggedIn={wish.loggedIn} label={m.title} size="sm" />
         </div>
       )}
@@ -88,7 +95,7 @@ function BookCover({ url, title }: { url: string | null; title: string | null })
   const box = "relative h-[108px] w-[72px] shrink-0 overflow-hidden rounded-xs";
   if (url) {
     return (
-      <div className={`${box} bg-fill shadow-[0_1px_3px_rgba(22,24,28,0.16)] ring-1 ring-border`}>
+      <div className={`${box} bg-fill ring-1 ring-border`}>
         <Image src={url} alt={title ? `『${title}』 표지` : "책 표지"} fill sizes="72px" unoptimized className="object-cover" />
       </div>
     );

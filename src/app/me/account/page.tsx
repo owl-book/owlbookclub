@@ -47,7 +47,7 @@ export default async function AccountPage() {
           <p className="mt-1.5 text-l2 font-normal leading-normal text-ink-3">
             20자까지. 비워 두고 저장하면 {providerLabel} 별명({profile.nickname ?? "없음"})을 써요. 별명은 나에게만 보여요.
           </p>
-          <SubmitButton pendingText="저장하는 중…" className="mt-3 min-h-12 w-full rounded-sm bg-navy py-3 text-t2 text-white hover:bg-navy-hover active:bg-navy-active">
+          <SubmitButton pendingText="저장하는 중…" className="mt-3 min-h-12 w-full rounded-sm bg-navy py-3 text-t2 text-page hover:bg-navy-hover active:bg-navy-active">
             저장
           </SubmitButton>
         </form>

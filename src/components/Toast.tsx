@@ -34,14 +34,14 @@ export function Toast({ message, clearParam, focusId }: Props) {
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
       <div
         role="status"
-        className="owl-toast pointer-events-auto flex w-full max-w-sm items-center gap-2.5 rounded-sm bg-ink py-1.5 pl-4 pr-1.5 text-b2 text-white shadow-lg"
+        className="owl-toast pointer-events-auto flex w-full max-w-sm items-center gap-2.5 rounded-sm bg-ink py-1.5 pl-4 pr-1.5 text-b2 text-page shadow-lg"
       >
         <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-success-dark">
           <circle cx="12" cy="12" r="9" />
           <path d="M8 12.5l2.5 2.5L16 9.5" />
         </svg>
         <span className="flex-1">{message}</span>
-        <button type="button" onClick={() => setOpen(false)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xs text-white/70 hover:text-white">
+        <button type="button" onClick={() => setOpen(false)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xs text-page/70 hover:text-page">
           <span className="sr-only">알림 닫기</span>
           <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" aria-hidden>
             <path d="M6 6l12 12M18 6L6 18" />

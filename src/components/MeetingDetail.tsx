@@ -205,7 +205,7 @@ export function MeetingDetail({
             <Link
               href={loggedIn ? recordHref : `/login?next=${encodeURIComponent(recordHref)}`}
               aria-describedby={hasRecord ? undefined : "record-private"}
-              className="flex min-h-12 flex-1 flex-col items-center justify-center rounded-sm bg-navy px-3 text-center text-white hover:bg-navy-hover active:bg-navy-active"
+              className="flex min-h-12 flex-1 flex-col items-center justify-center rounded-sm bg-navy px-3 text-center text-page hover:bg-navy-hover active:bg-navy-active"
             >
               <span className="text-t2">{hasRecord ? "내 기록 보기" : "다녀왔어요 · 기록하기"}</span>
               {!hasRecord && (

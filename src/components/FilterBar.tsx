@@ -5,9 +5,10 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { DATE_FILTERS, dayKey, dayKeys, dayParts, formatDayNum, formatDays, sundayOf, type DateFilter } from "@/lib/time";
 import { markListVisited } from "@/lib/nav-memory";
 import type { Choices } from "@/lib/meetings";
-import { REGIONS, SIDOS } from "@/lib/regions";
+import type { RegionChoice } from "@/lib/regions";
 import { FORMATS, GENRES } from "@/lib/tags";
 import { track } from "@/lib/track-client";
+import { count } from "@/lib/format";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -28,6 +29,7 @@ function buildHref(date: DateFilter, q: string, days: number[], c: Choices) {
 }
 
 type Props = {
+  regions: RegionChoice[]; // 필터의 지역: 등록된 책방이 있는 지역만(가나다순)
   date: DateFilter;
   q: string;
   days: number[]; // 달력에서 고른 날짜 번호들(작은 순)
@@ -41,7 +43,7 @@ type Props = {
   searching: boolean; // 검색어나 필터가 있음 → 달력을 한 줄로 접어 결과를 위로 올린다
 };
 
-export function FilterBar({ date, q, days, choices, today, counts, lastDay, earliestDay, resultCount, summary, searching }: Props) {
+export function FilterBar({ regions, date, q, days, choices, today, counts, lastDay, earliestDay, resultCount, summary, searching }: Props) {
   const router = useRouter();
   const [text, setText] = useState(q);
   const [pending, startTransition] = useTransition();
@@ -119,7 +121,7 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, earl
   // 날짜 버튼(전체·이번 주말·평일 저녁). 결과 보기 모드에서는 날짜 판 안으로 들어간다
   const dateChips = (
     <div
-      className={searching ? "flex flex-wrap gap-2 px-1 pt-2" : "-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]"}
+      className={searching ? "flex flex-wrap gap-2 px-1 pt-2" : "-ml-4 flex min-w-0 flex-1 gap-2 overflow-x-auto pl-4 pr-1 [scrollbar-width:none]"}
       role="group"
       aria-label="날짜 필터"
     >
@@ -135,8 +137,8 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, earl
               if (f.key !== "all") track("filter", { props: { date: f.key, q: text.trim() } });
               go(buildHref(f.key, text, [], choices));
             }}
-            className={`min-h-11 shrink-0 rounded-full border px-4 text-l1 ${
-              active ? "border-navy bg-navy text-white" : "border-border bg-card text-ink-2 hover:border-border-strong"
+            className={`min-h-11 shrink-0 rounded-xs px-4 text-l1 ${
+              active ? "bg-navy font-semibold text-page" : searching ? "border border-border bg-card text-ink-2 hover:border-border-strong" : "bg-fill text-ink-2 hover:text-ink"
             }`}
           >
             {f.label}
@@ -152,22 +154,33 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, earl
       type="button"
       onClick={() => sheetRef.current?.showModal()}
       aria-haspopup="dialog"
-      aria-label={pickedCount ? `지역·장르·모임방식 필터, ${pickedCount}개 선택됨` : "지역·장르·모임방식 필터"}
-      className={`flex min-h-11 items-center gap-1.5 border text-l1 ${
-        searching ? "min-w-0 flex-[2] rounded-sm px-3" : "shrink-0 rounded-full px-3"
-      } ${
-        pickedCount ? "border-navy font-semibold text-navy" : "border-border-control bg-card text-ink-2 hover:border-border-strong"
+      aria-label={pickedCount ? `지역·장르·모임방식 필터, ${count(pickedCount, "개")} 선택됨` : "지역·장르·모임방식 필터"}
+      className={`flex min-h-11 items-center gap-1.5 text-l1 ${
+        searching
+          ? `min-w-0 flex-[2] rounded-sm border px-3 ${pickedCount ? "border-navy font-semibold text-navy" : "border-border-control bg-card text-ink-2 hover:border-border-strong"}`
+          : `shrink-0 rounded-xs px-3.5 ${pickedCount ? "bg-navy font-semibold text-page" : "bg-fill text-ink-2 hover:text-ink"}`
       }`}
     >
       <FilterIcon />
       필터
       {pickedCount > 0 && (
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-navy px-1 text-l2 text-white" aria-hidden>
+        <span
+          className={`flex h-5 min-w-5 items-center justify-center rounded-xs px-1 text-l2 ${searching ? "bg-navy text-page" : "bg-page text-navy"}`}
+          aria-hidden
+        >
           {pickedCount}
         </span>
       )}
     </button>
   );
+
+  // 달력 제목('이번 주 ⌄')을 누르면 한 달 달력으로 펼치고 접는다.
+  // 펼칠 때는 보고 있던 주의 달을, 접을 때는 고른 날(없으면 오늘)의 주를 보여준다
+  const toggleMonth = () => {
+    if (expanded) setWeekStart(sundayOf(firstDay ?? today));
+    else setMonth(monthOf(weekStart < sundayOf(today) ? weekStart + 6 : Math.max(weekStart, today)));
+    setExpanded(!expanded);
+  };
 
   // 결과 보기 모드의 날짜 버튼·꼬리표에 보일 지금 고른 날짜(고르지 않았으면 null)
   const dateClearLabel = days.length ? formatDays(days) : date !== "all" ? (DATE_FILTERS.find((f) => f.key === date)?.label ?? null) : null;
@@ -194,15 +207,22 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, earl
           enterKeyHint="search"
           className="min-h-11 min-w-0 flex-1 rounded-xs border border-border-control bg-card px-3 py-2.5 text-b1 text-ink placeholder:text-ink-3 focus:border-navy"
         />
-        <button type="submit" className="min-h-11 shrink-0 rounded-sm bg-navy px-4 text-l1 font-semibold text-white hover:bg-navy-hover active:bg-navy-active">
+        <button type="submit" className="min-h-11 shrink-0 rounded-sm bg-navy px-4 text-l1 font-semibold text-page hover:bg-navy-hover active:bg-navy-active">
           검색
         </button>
       </form>
 
-      {!searching && dateChips}
+      {/* 날짜 버튼 줄 오른쪽 끝에 필터 버튼을 붙여 한 줄로(날짜 버튼만 옆으로 밀린다) */}
+      {!searching && (
+        <div className="flex items-center gap-2">
+          {dateChips}
+          {filterButton}
+        </div>
+      )}
 
       <FilterSheet
         sheetRef={sheetRef}
+        regions={regions}
         choices={choices}
         pick={pick}
         pickedCount={pickedCount}
@@ -232,7 +252,7 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, earl
       )}
 
       {(!searching || calOpen) && (
-        <div id="date-panel" className="rounded-md border border-border-card bg-card px-2 pb-2 pt-1">
+        <div id="date-panel" className="rounded-md bg-sub px-2 pb-2 pt-1">
           {searching && dateChips}
           {expanded ? (
             <>
@@ -244,6 +264,8 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, earl
                 nextDisabled={monthIndex(month) >= monthIndex(monthOf(maxDay))}
                 prevLabel="이전 달"
                 nextLabel="다음 달"
+                expanded
+                onToggle={toggleMonth}
               />
               <WeekHeader />
               <div className="grid grid-cols-7 gap-y-1">{monthDays(month).map((d) => cell(d, dayParts(d).month !== month.month))}</div>
@@ -258,34 +280,19 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, earl
                 nextDisabled={weekStart >= sundayOf(maxDay)}
                 prevLabel="이전 주"
                 nextLabel="다음 주"
+                expanded={false}
+                onToggle={toggleMonth}
               />
               <WeekHeader />
               <div className="grid grid-cols-7">{Array.from({ length: 7 }, (_, i) => cell(weekStart + i))}</div>
             </>
           )}
-          <button
-            type="button"
-            onClick={() => {
-              // 펼칠 때는 보고 있던 주의 달을, 접을 때는 고른 날(없으면 오늘)의 주를 보여준다
-              if (expanded) setWeekStart(sundayOf(firstDay ?? today));
-              else setMonth(monthOf(weekStart < sundayOf(today) ? weekStart + 6 : Math.max(weekStart, today)));
-              setExpanded(!expanded);
-            }}
-            aria-expanded={expanded}
-            className="mt-1 flex min-h-11 w-full items-center justify-center gap-1 rounded-sm bg-sub text-l1 text-ink-2"
-          >
-            {expanded ? "달력 접기" : "한 달 달력 보기"}
-            <Chevron dir={expanded ? "up" : "down"} size={20} />
-          </button>
         </div>
       )}
 
       {/* 목록 바로 위: 지금 조건의 모임 수와 필터. 조건이 결과 바로 위에 있어야 왜 이 모임들만 보이는지 알 수 있다 */}
       <div ref={summaryRef} className="scroll-mt-16">
-        <div className="flex items-center justify-between gap-3">
-          <p className="min-w-0 text-l2 text-ink-3">{summary}</p>
-          {!searching && filterButton}
-        </div>
+        <p className="min-w-0 text-l2 text-ink-3">{summary}</p>
         {/* 고른 조건을 꼬리표로 보여주고, 누르면 그 조건만 지운다 */}
         {(pickedCount > 0 || (searching && dateClearLabel)) && (
           <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="선택한 필터">
@@ -313,6 +320,7 @@ export function FilterBar({ date, q, days, choices, today, counts, lastDay, earl
 // 아래에서 올라오는 필터 판. 고르는 즉시 목록에 반영하고, 아래 버튼에 맞는 모임 수를 보여준다.
 function FilterSheet({
   sheetRef,
+  regions,
   choices,
   pick,
   pickedCount,
@@ -320,6 +328,7 @@ function FilterSheet({
   pending,
 }: {
   sheetRef: React.RefObject<HTMLDialogElement | null>;
+  regions: RegionChoice[];
   choices: Choices;
   pick: (change: Partial<Choices>) => void;
   pickedCount: number;
@@ -347,31 +356,17 @@ function FilterSheet({
         </div>
 
         <div className="space-y-6 overflow-y-auto px-4 py-5">
+          {/* 시·도를 따로 고르지 않고 책방이 있는 지역을 바로 보여준다('경기 구리시' → '구리시') */}
           <ChoiceGroup title="지역">
             <Choice selected={!sido} onClick={() => pick({ sido: null, gu: null })}>
               전체
             </Choice>
-            {SIDOS.map((s) => (
-              // 시·도를 바꾸면 구·시·군은 다시 고르게 비운다
-              <Choice key={s} selected={sido === s} onClick={() => pick({ sido: s, gu: null })}>
-                {s}
+            {regionOptions(regions, sido, gu).map((r) => (
+              <Choice key={`${r.sido} ${r.label}`} selected={sido === r.sido && gu === r.gu} onClick={() => pick({ sido: r.sido, gu: r.gu })}>
+                {r.label}
               </Choice>
             ))}
           </ChoiceGroup>
-
-          {/* 구·시·군은 시·도를 고른 뒤에만 보여준다 */}
-          {sido && (
-            <ChoiceGroup title={`${sido} 지역`}>
-              <Choice selected={!gu} onClick={() => pick({ gu: null })}>
-                {sido} 전체
-              </Choice>
-              {REGIONS[sido].map((g) => (
-                <Choice key={g} selected={gu === g} onClick={() => pick({ gu: g })}>
-                  {g}
-                </Choice>
-              ))}
-            </ChoiceGroup>
-          )}
 
           <ChoiceGroup title="장르">
             <Choice selected={!genre} onClick={() => pick({ genre: null })}>
@@ -408,14 +403,20 @@ function FilterSheet({
           <button
             type="button"
             onClick={close}
-            className="min-h-11 flex-1 rounded-sm bg-navy px-4 text-l1 font-semibold text-white hover:bg-navy-hover active:bg-navy-active"
+            className="min-h-11 flex-1 rounded-sm bg-navy px-4 text-l1 font-semibold text-page hover:bg-navy-hover active:bg-navy-active"
           >
-            {pending ? "찾는 중…" : `모임 ${resultCount}개 보기`}
+            {pending ? "찾는 중…" : `모임 ${count(resultCount, "개")} 보기`}
           </button>
         </div>
       </div>
     </dialog>
   );
+}
+
+// 지금 고른 지역이 목록에 없으면(예전 링크 등) 맨 앞에 붙여, 골라진 걸 보고 풀 수 있게 한다
+function regionOptions(regions: RegionChoice[], sido: Choices["sido"], gu: string | null): RegionChoice[] {
+  if (!sido || regions.some((r) => r.sido === sido && r.gu === gu)) return regions;
+  return [{ sido, gu, label: gu ?? sido }, ...regions];
 }
 
 function ChoiceGroup({ title, children }: { title: string; children: React.ReactNode }) {
@@ -435,8 +436,8 @@ function Choice({ selected, onClick, children }: { selected: boolean; onClick: (
       type="button"
       aria-pressed={selected}
       onClick={selected ? undefined : onClick}
-      className={`min-h-11 rounded-full border px-4 text-l1 ${
-        selected ? "border-navy bg-navy font-semibold text-white" : "border-border bg-card text-ink-2 hover:border-border-strong"
+      className={`min-h-11 rounded-xs border px-4 text-l1 ${
+        selected ? "border-navy bg-navy font-semibold text-page" : "border-border bg-card text-ink-2 hover:border-border-strong"
       }`}
     >
       {children}
@@ -450,7 +451,7 @@ function RemoveTag({ label, onRemove }: { label: string; onRemove: () => void })
       type="button"
       onClick={onRemove}
       aria-label={`${label} 필터 지우기`}
-      className="flex min-h-11 items-center gap-1 rounded-full border border-navy bg-card pl-3.5 pr-2.5 text-l1 font-semibold text-navy"
+      className="flex min-h-11 items-center gap-1 rounded-xs border border-navy bg-card pl-3.5 pr-2.5 text-l1 font-semibold text-navy"
     >
       {label}
       <CloseIcon size={18} />
@@ -507,9 +508,9 @@ function DayCell({
       aria-pressed={selected}
       aria-label={label}
       onClick={() => onPick(day)}
-      className={`mx-auto flex h-12 w-11 flex-col items-center justify-center gap-1 rounded-sm text-[15px] ${
+      className={`mx-auto flex h-12 w-11 flex-col items-center justify-center gap-1 rounded-sm text-b2 ${
         selected
-          ? "bg-navy font-semibold text-white"
+          ? "bg-navy font-semibold text-page"
           : disabled
             ? "text-ink-3/50"
             : count > 0
@@ -519,11 +520,11 @@ function DayCell({
               : "text-ink-2"
       } ${isToday && !selected ? "ring-1 ring-border-strong" : ""} ${outside && !selected ? "opacity-50" : ""}`}
     >
-      <span className="leading-none">{dayParts(day).date}</span>
+      <span className="fig leading-none">{dayParts(day).date}</span>
       {/* 모임 수만큼 점(최대 3개) */}
       <span className="flex h-1.5 items-center gap-0.5" aria-hidden>
         {Array.from({ length: Math.min(count, 3) }, (_, i) => (
-          <span key={i} className={`h-1.5 w-1.5 rounded-full ${selected ? "bg-white" : past ? "bg-border-card" : "bg-navy"}`} />
+          <span key={i} className={`h-1.5 w-1.5 rounded-full ${selected ? "bg-page" : past ? "bg-border-card" : "bg-navy"}`} />
         ))}
       </span>
     </button>
@@ -553,6 +554,8 @@ function CalendarNav(props: {
   nextDisabled: boolean;
   prevLabel: string;
   nextLabel: string;
+  expanded: boolean;
+  onToggle: () => void;
 }) {
   const arrow = "flex h-11 w-11 items-center justify-center rounded-sm text-ink-2 hover:text-navy disabled:text-ink-3/40";
   return (
@@ -560,9 +563,17 @@ function CalendarNav(props: {
       <button type="button" className={arrow} onClick={props.onPrev} disabled={props.prevDisabled} aria-label={props.prevLabel}>
         <Chevron dir="left" />
       </button>
-      <p className="text-l1 font-semibold text-ink" aria-live="polite">
-        {props.title}
-      </p>
+      {/* 제목이 곧 '한 달 달력 보기' 버튼(따로 한 줄을 두지 않는다) */}
+      <button
+        type="button"
+        onClick={props.onToggle}
+        aria-expanded={props.expanded}
+        aria-label={`${props.title}, ${props.expanded ? "달력 접기" : "한 달 달력 보기"}`}
+        className="flex min-h-11 items-center gap-0.5 rounded-sm px-2 text-l1 font-semibold text-ink hover:text-navy"
+      >
+        <span aria-live="polite">{props.title}</span>
+        <Chevron dir={props.expanded ? "up" : "down"} size={18} />
+      </button>
       <button type="button" className={arrow} onClick={props.onNext} disabled={props.nextDisabled} aria-label={props.nextLabel}>
         <Chevron dir="right" />
       </button>
@@ -623,5 +634,5 @@ function weekTitle(weekStart: number, today: number): string {
   if (diff === 1) return "다음 주";
   const a = dayParts(weekStart);
   const b = dayParts(weekStart + 6);
-  return `${a.month}월 ${a.date}일 – ${b.month === a.month ? "" : `${b.month}월 `}${b.date}일`;
+  return `${a.month}월 ${a.date}일 ~ ${b.month === a.month ? "" : `${b.month}월 `}${b.date}일`;
 }

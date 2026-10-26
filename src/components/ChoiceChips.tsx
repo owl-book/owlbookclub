@@ -18,7 +18,7 @@ export function ChoiceChips<K extends string>({ name, legend, legendHidden, opti
         {options.map((o) => (
           <label
             key={o.key}
-            className="inline-flex min-h-11 cursor-pointer items-center rounded-xs border border-border-card bg-card px-4 text-l1 text-ink-2 hover:bg-sub has-[:checked]:border-navy has-[:checked]:bg-navy has-[:checked]:text-white has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-navy"
+            className="inline-flex min-h-11 cursor-pointer items-center rounded-xs border border-border-card bg-card px-4 text-l1 text-ink-2 hover:bg-sub has-[:checked]:border-navy has-[:checked]:bg-navy has-[:checked]:text-page has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-navy"
           >
             <input type="radio" name={name} value={o.key} checked={value === o.key} onChange={() => onChange(o.key)} className="sr-only" />
             {o.label}

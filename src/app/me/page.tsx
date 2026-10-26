@@ -188,6 +188,21 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
         </Link>
       </section>
 
+      {/* 환경설정(지금은 알림만). 찜과 짝을 이루는 기능이라 기본정보 바로 아래에 둔다 */}
+      <Link
+        href="/me/settings"
+        className="mt-2 flex min-h-12 items-center gap-3 rounded-md border border-border-card bg-card px-4 py-2.5 hover:bg-sub"
+      >
+        <BellIcon />
+        <span className="min-w-0 flex-1">
+          <span className="block text-l1 text-ink">환경설정</span>
+          <span className="mt-0.5 block text-l2 font-normal text-ink-3">찜한 모임·책방·전시 알림 받기</span>
+        </span>
+        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-ink-3">
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      </Link>
+
       {/* 다녀오셨나요? */}
       {toAsk.length > 0 && (
         <section aria-label="다녀왔는지 확인" className="mt-4 rounded-md border border-info-border bg-info-surface p-4">
@@ -215,7 +230,7 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
                     name="attended"
                     value="yes"
                     pendingText="저장하는 중…"
-                    className="min-h-11 flex-[1.4] rounded-sm bg-navy text-l1 font-semibold text-white hover:bg-navy-hover"
+                    className="min-h-11 flex-[1.4] rounded-sm bg-navy text-l1 font-semibold text-page hover:bg-navy-hover"
                   >
                     다녀왔어요
                   </SubmitButton>
@@ -573,5 +588,14 @@ function UndoAttended({ meetingId, label }: { meetingId: number; label: string }
         {label}
       </SubmitButton>
     </form>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-navy">
+      <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15L6 16.5Z" />
+      <path d="M10 20.5a2 2 0 0 0 4 0" />
+    </svg>
   );
 }

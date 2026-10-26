@@ -31,7 +31,7 @@ export function OpenExternalBrowser({ kakaotalk }: { kakaotalk: boolean }) {
       <button
         type="button"
         onClick={open}
-        className="mt-2.5 inline-flex min-h-11 items-center rounded-sm border border-border-strong bg-white px-3 text-l1 text-navy hover:bg-fill"
+        className="mt-2.5 inline-flex min-h-11 items-center rounded-sm border border-border-strong bg-page px-3 text-l1 text-navy hover:bg-fill"
       >
         다른 브라우저로 열기
       </button>

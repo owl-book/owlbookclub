@@ -7,7 +7,7 @@ export default function ExhibitionNotFound() {
       <p className="text-4xl" aria-hidden>🦉</p>
       <h1 className="mt-3 font-display text-h2 text-ink">전시를 찾을 수 없어요</h1>
       <p className="mt-1 text-b2 text-ink-2">책방 요청으로 내려갔거나 주소가 바뀌었을 수 있어요.</p>
-      <Link href="/exhibitions" className="mt-5 inline-flex min-h-11 items-center rounded-sm bg-navy px-4 text-l1 font-semibold text-white hover:bg-navy-hover">
+      <Link href="/exhibitions" className="mt-5 inline-flex min-h-11 items-center rounded-sm bg-navy px-4 text-l1 font-semibold text-page hover:bg-navy-hover">
         다른 전시 둘러보기
       </Link>
     </div>

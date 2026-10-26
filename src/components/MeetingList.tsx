@@ -1,6 +1,7 @@
 import { MeetingCard } from "@/components/MeetingCard";
 import type { Meeting } from "@/lib/meetings";
 import type { WishContext } from "@/lib/me";
+import { count, joinDot, joinDotText } from "@/lib/format";
 import { formatDayNum, kstDayNumber } from "@/lib/time";
 
 const RELATIVE: Record<number, string> = { [-1]: "어제", 0: "오늘", 1: "내일", 2: "모레" };
@@ -36,7 +37,7 @@ export function MeetingList({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {groups.map((g) => {
         const rel = RELATIVE[g.day - today];
         if (g.items.length === 0) {
@@ -44,8 +45,7 @@ export function MeetingList({
           return (
             <p key={g.day} className="flex flex-wrap items-baseline gap-x-1.5 border-b border-dashed border-border-card py-2.5 text-l2 text-ink-3">
               <span className="text-l1 font-medium text-ink-2">
-                {rel && `${rel} · `}
-                {formatDayNum(g.day)}
+                {joinDotText(rel, formatDayNum(g.day))}
               </span>
               {emptyLabel}
             </p>
@@ -55,11 +55,11 @@ export function MeetingList({
           <section key={g.day} aria-label={formatDayNum(g.day)}>
             {/* 머리글(h-14) 바로 아래에 붙어서, 스크롤해도 지금 보는 날짜가 보인다 */}
             <h2 className="sticky top-14 z-10 -mx-4 bg-page/95 px-4 py-2 text-l1 font-semibold text-ink backdrop-blur">
-              {rel && <span className="text-navy">{rel} · </span>}
-              {formatDayNum(g.day)}
-              <span className="ml-1.5 font-medium text-ink-3">{g.items.length}개</span>
+              {joinDot(rel && <span className="text-navy">{rel}</span>, formatDayNum(g.day))}
+              <span className="fig ml-1.5 font-medium text-ink-3">{count(g.items.length, "개")}</span>
             </h2>
-            <ul className="mt-1 space-y-3">
+            {/* 카드마다 테두리 상자를 두지 않고, 모임 사이에 옅은 선 하나만 긋는다 */}
+            <ul className="divide-y divide-border">
               {g.items.map((m) => (
                 <li key={m.id}>
                   <MeetingCard
