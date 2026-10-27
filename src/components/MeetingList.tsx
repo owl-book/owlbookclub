@@ -119,7 +119,8 @@ export function MeetingList({
     <div className="space-y-6">
       {groups.slice(0, split).map(renderGroup)}
       {fresh.length > 0 && (
-        <div className={`owl-reveal scroll-mt-14 ${split > 0 ? "-mt-6 pt-6" : ""}`}>
+        // 누를 때마다 새 칸으로 만든다(key). 같은 칸을 다시 쓰면 화면 올리기·떠오르는 움직임이 두 번째부터 다시 돌지 않는다
+        <div key={revealFrom} className={`owl-reveal scroll-mt-14 ${split > 0 ? "-mt-6 pt-6" : ""}`}>
           <RevealScroll />
           <div className="space-y-6">{fresh.map(renderGroup)}</div>
         </div>
