@@ -600,7 +600,7 @@ function CalendarNav(props: {
   expanded: boolean;
   onToggle: () => void;
 }) {
-  const arrow = "flex h-11 w-11 items-center justify-center rounded-sm text-ink-2 hover:text-navy disabled:text-ink-3/40";
+  const arrow = "flex h-11 w-11 items-center justify-center rounded-sm text-ink-3 hover:text-navy disabled:text-ink-3/40";
   return (
     <div className="flex items-center justify-between">
       <button type="button" className={arrow} onClick={props.onPrev} disabled={props.prevDisabled} aria-label={props.prevLabel}>
