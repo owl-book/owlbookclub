@@ -1,5 +1,5 @@
 import { MeetingCard } from "@/components/MeetingCard";
-import type { Meeting } from "@/lib/meetings";
+import { isClosed, type Meeting } from "@/lib/meetings";
 import type { WishContext } from "@/lib/me";
 import { count, joinDot, joinDotText } from "@/lib/format";
 import { formatDayNum, kstDayNumber } from "@/lib/time";
@@ -31,6 +31,8 @@ export function MeetingList({
     if (last?.day === day) last.items.push(m);
     else groups.push({ day, items: [m] });
   }
+  // 하루 안에서는 신청할 수 있는 모임을 먼저, 마감된 모임은 아래로(마감끼리·열린 것끼리는 들어온 순서 그대로)
+  for (const g of groups) g.items.sort((a, b) => Number(isClosed(a, now)) - Number(isClosed(b, now)));
   if (emptyDays?.length) {
     groups.push(...emptyDays.map((day) => ({ day, items: [] })));
     groups.sort((a, b) => a.day - b.day);
@@ -51,26 +53,48 @@ export function MeetingList({
             </p>
           );
         }
+        const closed = g.items.filter((m) => isClosed(m, now)).length;
+        // 카드마다 테두리 상자를 두지 않고, 모임 사이에 옅은 선 하나만 긋는다
+        const cards = (
+          <ul className="divide-y divide-border">
+            {g.items.map((m) => (
+              <li key={m.id}>
+                <MeetingCard
+                  meeting={m}
+                  now={now}
+                  hideStore={hideStore}
+                  wish={wishes?.enabled ? { wished: wishes.meetingIds.has(m.id), loggedIn: Boolean(wishes.user) } : undefined}
+                />
+              </li>
+            ))}
+          </ul>
+        );
+        if (closed === g.items.length) {
+          // 모두 마감인 날: 모임 없는 날과 같은 회색 한 줄로 접고, '보기'를 누르면 그 자리에서 카드를 펼친다
+          return (
+            <details key={g.day} className="group">
+              <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-1.5 border-b border-dashed border-border-card py-2.5 text-l2 text-ink-2 [&::-webkit-details-marker]:hidden">
+                <span className="text-l1 font-medium text-ink-2">{joinDotText(rel, formatDayNum(g.day))}</span>
+                <span className="fig">모임 {count(g.items.length, "개")} 모두 마감</span>
+                <span className="ml-auto text-navy underline underline-offset-2">
+                  <span className="group-open:hidden">보기 ⌄</span>
+                  <span className="hidden group-open:inline">접기 ⌃</span>
+                </span>
+              </summary>
+              {cards}
+            </details>
+          );
+        }
         return (
           <section key={g.day} aria-label={formatDayNum(g.day)}>
             {/* 머리글(h-14) 바로 아래에 붙어서, 스크롤해도 지금 보는 날짜가 보인다 */}
             <h2 className="sticky top-14 z-10 -mx-4 bg-page/95 px-4 py-1 text-l1 font-semibold text-ink backdrop-blur">
               {joinDot(rel && <span className="text-navy">{rel}</span>, formatDayNum(g.day))}
-              <span className="fig ml-1.5 font-medium text-ink-3">{count(g.items.length, "개")}</span>
+              <span className="fig ml-1.5 font-medium text-ink-3">
+                {joinDotText(count(g.items.length, "개"), closed > 0 && `마감 ${closed}`)}
+              </span>
             </h2>
-            {/* 카드마다 테두리 상자를 두지 않고, 모임 사이에 옅은 선 하나만 긋는다 */}
-            <ul className="divide-y divide-border">
-              {g.items.map((m) => (
-                <li key={m.id}>
-                  <MeetingCard
-                    meeting={m}
-                    now={now}
-                    hideStore={hideStore}
-                    wish={wishes?.enabled ? { wished: wishes.meetingIds.has(m.id), loggedIn: Boolean(wishes.user) } : undefined}
-                  />
-                </li>
-              ))}
-            </ul>
+            {cards}
           </section>
         );
       })}

@@ -4,7 +4,7 @@ import { HomeSlider } from "@/components/HomeSlider";
 import { MeetingList } from "@/components/MeetingList";
 import { PendingApplies } from "@/components/PendingApplies";
 import { getWishContext } from "@/lib/me";
-import { attachSeries, collapseSeries, countByDay, filterMeetings, getRecentPastMeetings, getUpcomingMeetings, matchesChoices, matchesQuery, type Choices } from "@/lib/meetings";
+import { attachSeries, collapseSeries, countByDay, filterMeetings, getRecentPastMeetings, getUpcomingMeetings, isClosed, isPast, matchesChoices, matchesQuery, type Choices } from "@/lib/meetings";
 import { isGuOf, isSido, regionChoicesOf } from "@/lib/regions";
 import { listStoreOptions } from "@/lib/stores";
 import { activeSlides } from "@/lib/slides";
@@ -75,7 +75,14 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const dateLabel = days.length ? formatDays(days) : date !== "all" ? DATE_FILTERS.find((f) => f.key === date)?.label : "";
   const regionLabel = sido ? `${sido}${gu ? ` ${gu}` : ""}` : "";
   const condition = [regionLabel, choices.genre ?? "", choices.format ?? "", q ? `‘${q}’` : "", dateLabel].filter(Boolean).join(" ");
-  const summary = joinDotText(`${condition ? `${condition} ` : ""}모임 ${count(results.length, "개")}`, results.length > 0 && "가까운 날짜순");
+  // 마감 모임이 섞여 있으면 신청할 수 있는 수를 따로 알려 준다(지난 모임은 '마감'으로 세지 않음)
+  const closedCount = results.filter((m) => isClosed(m, now)).length;
+  const openCount = results.filter((m) => m.status === "open" && !isPast(m, now)).length;
+  const summary = joinDotText(
+    `${condition ? `${condition} ` : ""}모임 ${count(results.length, "개")}`,
+    closedCount > 0 && `신청 가능 ${count(openCount, "개")}`,
+    results.length > 0 && "가까운 날짜순",
+  );
   // 검색어나 필터가 있으면 결과 보기 모드: 소개 글을 숨기고 날짜·필터를 두 버튼으로 모아 결과를 위로 올린다
   const searching = Boolean(q || sido || choices.genre || choices.format);
   // 고른 날 중 조건에 맞는 모임이 없는 날: 결과가 있으면 목록 안에 날짜 순서대로 한 줄씩 끼워 넣는다

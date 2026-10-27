@@ -45,6 +45,11 @@ export function isPast(m: Meeting, now = new Date()): boolean {
   return m.startsAt.getTime() < now.getTime();
 }
 
+// 아직 열리지 않았는데 신청이 마감된 모임(지난 모임은 '지난 모임'으로 따로 본다)
+export function isClosed(m: Meeting, now = new Date()): boolean {
+  return m.status === "closed" && !isPast(m, now);
+}
+
 // 마이페이지(찜·기록)에서도 같은 모양으로 읽는다
 // 모임·책방 칸은 '*'로 읽는다: 저자 칸(book_author_text, 0004)·주소 칸(address, 0007)·모임 소개 칸(description, 0008)을 DB에 추가하기 전에도 화면이 깨지지 않게
 export const MEETING_SELECT =
