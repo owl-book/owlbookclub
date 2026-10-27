@@ -6,6 +6,7 @@ import { ExhibitionList } from "@/components/ExhibitionCard";
 import { MeetingList } from "@/components/MeetingList";
 import { PendingApplies } from "@/components/PendingApplies";
 import { SubmitButton } from "@/components/SubmitButton";
+import { MeetingStatusBadge, StatusBadge } from "@/components/Tag";
 import { Toast } from "@/components/Toast";
 import { WishButton } from "@/components/WishButton";
 import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
@@ -558,8 +559,8 @@ function PlanCard({ meeting: m, now }: { meeting: Meeting; now: Date }) {
           {meetingWhen(m)} · {m.store.name}
         </p>
         <p className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          <span className="rounded-xs border border-info-border bg-info-surface px-1.5 text-l2 text-navy">{dday}</span>
-          {m.status === "closed" && <span className="rounded-xs bg-fill px-1.5 text-l2 text-ink-2">신청 마감</span>}
+          <StatusBadge tone="info">{dday}</StatusBadge>
+          {m.status === "closed" && <MeetingStatusBadge kind="closed" />}
           {m.hidden ? (
             <span className="text-l2 font-normal text-ink-3">게재가 내려간 모임이에요</span>
           ) : (

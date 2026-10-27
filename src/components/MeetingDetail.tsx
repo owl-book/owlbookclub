@@ -10,7 +10,7 @@ import { PinIcon } from "@/components/PinIcon";
 import { PlanMark } from "@/components/PlanMark";
 import { RichText } from "@/components/RichText";
 import { SeriesSchedule } from "@/components/SeriesSchedule";
-import { GenreTag, PlainTag, SeriesBadge, StatusBadge } from "@/components/Tag";
+import { GenreTag, MeetingStatusBadge, PlainTag, SeriesBadge, StatusBadge } from "@/components/Tag";
 import { WishButton } from "@/components/WishButton";
 import { applyLabel, smsNumber } from "@/lib/apply";
 import type { MeetingRecord, PlanState, WishContext } from "@/lib/me";
@@ -79,8 +79,8 @@ export function MeetingDetail({
         <GenreTag genre={m.tagGenre} />
         <PlainTag>{m.tagFormat}</PlainTag>
         <PlainTag>{m.tagCadence}</PlainTag>
-        {idx && <SeriesBadge index={idx} total={seriesTotal} collapsed={false} />}
-        {past ? <StatusBadge kind="past" /> : closed ? <StatusBadge kind="closed" /> : null}
+        {idx && <SeriesBadge total={seriesTotal} />}
+        {past ? <MeetingStatusBadge kind="past" /> : closed ? <MeetingStatusBadge kind="closed" /> : null}
       </div>
 
       {/* 모임 찜은 아래 고정 띠에 있다 */}
@@ -96,7 +96,11 @@ export function MeetingDetail({
           <dt className="w-14 shrink-0 text-ink-3">일시</dt>
           <dd className="font-semibold text-ink">
             {meetingWhen(m)}
-            {rel && !past && <span className="ml-1.5 rounded-xs bg-info-surface px-1.5 py-0.5 text-l2 text-navy">{rel}</span>}
+            {rel && !past && (
+              <StatusBadge tone="info" className="ml-1.5 align-middle">
+                {rel}
+              </StatusBadge>
+            )}
           </dd>
         </div>
         <div className="flex gap-3">

@@ -88,11 +88,9 @@ export function MeetingList({
         return (
           <section key={g.day} aria-label={formatDayNum(g.day)}>
             {/* 머리글(h-14) 바로 아래에 붙어서, 스크롤해도 지금 보는 날짜가 보인다 */}
-            <h2 className="sticky top-14 z-10 -mx-4 bg-page/95 px-4 py-1 text-l1 font-semibold text-ink backdrop-blur">
-              {joinDot(rel && <span className="text-navy">{rel}</span>, formatDayNum(g.day))}
-              <span className="fig ml-1.5 font-medium text-ink-3">
-                {joinDotText(count(g.items.length, "개"), closed > 0 && `마감 ${closed}`)}
-              </span>
+            {/* 날짜(16px 검정)가 카드 시간(14px 회색)보다 먼저 눈에 들어오게. 개수는 마감 포함 전체(마감은 카드 표지 뱃지로 보인다) */}
+            <h2 className="sticky top-14 z-10 -mx-4 bg-page/95 px-4 py-1 text-b1 font-bold leading-snug text-ink backdrop-blur">
+              {joinDot(rel, formatDayNum(g.day), <span className="fig font-medium text-navy">{count(g.items.length, "개")}</span>)}
             </h2>
             {cards}
           </section>

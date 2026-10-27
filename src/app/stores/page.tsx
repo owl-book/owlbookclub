@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { RegionChips } from "@/components/RegionChips";
+import { StatusBadge } from "@/components/Tag";
 import { getStoreIdsShowingNow } from "@/lib/exhibitions";
 import { isGuOf, isSido, matchesRegion, regionChoicesOf, type Sido } from "@/lib/regions";
 import { listStoreSummaries, type StoreSummary } from "@/lib/stores";
@@ -107,7 +108,7 @@ function StoreCard({ store: s, showing }: { store: StoreSummary; showing: boolea
     >
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-l1 text-ink-2">
         {s.region}
-        {showing && <span className="rounded-xs bg-fill px-1.5 py-0.5 text-l2 font-semibold text-ink-2">전시 중</span>}
+        {showing && <StatusBadge tone="info">전시 중</StatusBadge>}
       </p>
       <h2 className="mt-0.5 font-display text-t1 text-ink">{s.name}</h2>
       {s.intro && <p className="mt-1.5 line-clamp-2 break-keep text-b2 text-ink-2">{s.intro}</p>}
