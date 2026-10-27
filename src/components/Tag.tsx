@@ -4,7 +4,8 @@ import { count } from "@/lib/format";
 // - 상태 뱃지(StatusBadge): 시간이 지나면 바뀌는 정보. 색을 채우고, 색과 함께 글자로도 뜻을 알 수 있게 한다
 //   파랑 = 다가와요·지금 해요, 주황 = 신청할 수 없어요, 회색 = 끝났어요
 // - 속성 뱃지(PlainTag): 처음부터 정해진 정보. 회색 테두리 한 가지
-const PILL = "inline-block whitespace-nowrap rounded-full px-2 py-px text-l2";
+// 줄 높이 16px 고정: 테두리 있는 뱃지가 20px이 되어 모임 제목(17px) 글자 높이 20px와 같아진다(제목 옆에서 가운데가 딱 맞음)
+const PILL = "inline-block whitespace-nowrap rounded-full px-2 py-px text-l2 leading-4";
 
 const STATUS_TONE = {
   info: "bg-info-surface font-semibold text-info",
