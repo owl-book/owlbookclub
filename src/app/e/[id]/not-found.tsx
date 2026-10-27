@@ -4,7 +4,7 @@ import Link from "next/link";
 export default function ExhibitionNotFound() {
   return (
     <div className="py-16 text-center">
-      <p className="text-4xl" aria-hidden>🦉</p>
+      <img src="/owl-reading.png" alt="" width={120} height={174} className="mx-auto" />
       <h1 className="mt-3 font-display text-h2 text-ink">전시를 찾을 수 없어요</h1>
       <p className="mt-1 text-b2 text-ink-2">책방 요청으로 내려갔거나 주소가 바뀌었을 수 있어요.</p>
       <Link href="/exhibitions" className="mt-5 inline-flex min-h-11 items-center rounded-sm bg-navy px-4 text-l1 font-semibold text-page hover:bg-navy-hover">
