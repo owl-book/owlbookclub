@@ -34,7 +34,7 @@ export function Toast({ message, clearParam, focusId }: Props) {
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
       <div
         role="status"
-        className="owl-toast pointer-events-auto flex w-full max-w-sm items-center gap-2.5 rounded-sm bg-ink py-1.5 pl-4 pr-1.5 text-b2 text-page shadow-lg"
+        className="owl-toast pointer-events-auto flex w-full max-w-sm items-center gap-2.5 rounded-sm border border-dk-border bg-ink py-1.5 pl-4 pr-1.5 text-b2 text-page"
       >
         <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-success-dark">
           <circle cx="12" cy="12" r="9" />

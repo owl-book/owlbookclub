@@ -102,7 +102,7 @@ function PosterThumb({ exhibition: e }: { exhibition: Exhibition }) {
   const box = "relative h-[128px] w-[96px] shrink-0 overflow-hidden rounded-xs";
   if (e.poster) {
     return (
-      <div className={`${box} bg-fill shadow-[0_1px_3px_rgba(22,24,28,0.16)] ring-1 ring-border`}>
+      <div className={`${box} bg-fill ring-1 ring-border`}>
         <Image src={e.poster.url} alt={`${e.title} 포스터`} fill sizes="96px" unoptimized className="object-cover" />
       </div>
     );

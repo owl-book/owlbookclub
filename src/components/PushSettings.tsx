@@ -182,7 +182,7 @@ function PrefSwitches({ initial }: { initial: PushPrefs }) {
               <span className="mt-0.5 block text-l2 font-normal text-ink-3">{failed === item.key ? "저장하지 못했어요. 다시 눌러 주세요." : item.hint}</span>
             </span>
             <span aria-hidden className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${prefs[item.key] ? "bg-navy" : "bg-border-control"}`}>
-              <span className={`absolute top-0.5 size-6 rounded-full bg-page shadow transition-transform ${prefs[item.key] ? "translate-x-[22px]" : "translate-x-0.5"}`} />
+              <span className={`absolute top-0.5 size-6 rounded-full border border-border bg-page transition-transform ${prefs[item.key] ? "translate-x-[22px]" : "translate-x-0.5"}`} />
             </span>
           </button>
         </li>

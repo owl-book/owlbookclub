@@ -238,10 +238,9 @@ input:focus-visible {
   width: calc(100% - 2rem);
   max-width: 22rem;
   padding: 0;
-  border: 0;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-card);
-  box-shadow: 0 12px 32px rgb(18 26 46 / 0.22);
 }
 .owl-confirm::backdrop {
   background: rgb(18 26 46 / 0.45);

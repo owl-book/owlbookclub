@@ -203,7 +203,7 @@ function PosterLarge({ exhibition: e, dim }: { exhibition: Exhibition; dim: bool
   const ratio = poster.width && poster.height ? poster.width / poster.height : 3 / 4;
   return (
     <div className={`mt-2 flex justify-center rounded-lg bg-fill p-4 ${dim ? "opacity-60 grayscale" : ""}`}>
-      <div className="relative w-full max-w-[22rem] overflow-hidden rounded-xs shadow-[0_2px_8px_rgba(22,24,28,0.18)]" style={{ aspectRatio: ratio }}>
+      <div className="relative w-full max-w-[22rem] overflow-hidden rounded-xs border border-border" style={{ aspectRatio: ratio }}>
         <Image src={poster.url} alt={`${e.title} 포스터`} fill priority sizes="(max-width: 640px) 100vw, 352px" unoptimized className="object-contain" />
       </div>
     </div>

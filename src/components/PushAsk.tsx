@@ -69,7 +69,7 @@ export function PushAsk({ vapidKey }: { vapidKey: string }) {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4" style={{ paddingBottom: lift ? lift + 12 : "calc(1rem + env(safe-area-inset-bottom))" }}>
-      <div role={view.step === "ask" ? "dialog" : "status"} aria-label="알림 받기" className="owl-toast pointer-events-auto w-full max-w-sm rounded-md bg-ink p-4 text-page shadow-lg">
+      <div role={view.step === "ask" ? "dialog" : "status"} aria-label="알림 받기" className="owl-toast pointer-events-auto w-full max-w-sm rounded-md border border-dk-border bg-ink p-4 text-page">
         {view.step === "ask" ? (
           <>
             <p className="text-t2">{QUESTION[view.kind]}</p>
