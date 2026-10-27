@@ -55,6 +55,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
   const [calOpen, setCalOpen] = useState(false); // 결과 보기 모드에서 접힌 달력을 펼쳤는지
   const sheetRef = useRef<HTMLDialogElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
   const scrollAfterSearch = useRef(false);
   // 사용자가 검색·필터·날짜를 바꿨을 때만 결과 0건을 기록한다(처음 열거나 뒤로 가기로 온 화면은 세지 않음)
   const checkEmpty = useRef(false);
@@ -214,7 +215,8 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
         role="search"
         onSubmit={(e) => {
           e.preventDefault();
-          (document.activeElement as HTMLElement | null)?.blur(); // 모바일 키보드 닫기
+          // 모바일 키보드 닫기: 칸에서 포커스를 빼되 돋보기 버튼으로 옮겨, 키보드 사용자는 제자리에서 이어 가게 한다
+          submitRef.current?.focus();
           if (text.trim()) track("search", { props: { q: maskQuery(text), date } });
           if (text.trim()) gaEvent("search", { q: maskQuery(text), date });
           scrollAfterSearch.current = true;
@@ -234,6 +236,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
           className="min-h-11 w-full rounded-xs border border-border-control bg-card py-2.5 pl-3 pr-11 text-b1 text-ink placeholder:text-ink-3 focus:border-navy [&::-webkit-search-cancel-button]:appearance-none"
         />
         <button
+          ref={submitRef}
           type="submit"
           aria-label="검색"
           className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-xs text-ink-2 hover:text-navy active:text-navy-active"
