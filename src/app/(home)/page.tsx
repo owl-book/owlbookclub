@@ -98,6 +98,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const pastShown = takeWholeDays(past, PAGE_SIZE * pastMore);
   const pastRemaining = past.length - pastShown.length;
   const pastMoreHref = hrefWith("pmore", String(pastMore + 1));
+  // 방금 '더 보기'로 붙은 모임은 몇 번째부터인지(그 앞까지는 이미 보던 모임이라 그대로 두고, 뒤만 펼치며 보여 준다)
+  const revealFrom = more > 1 ? takeWholeDays(results, PAGE_SIZE * (more - 1)).length : undefined;
+  const pastRevealFrom = pastMore > 1 ? takeWholeDays(past, PAGE_SIZE * (pastMore - 1)).length : undefined;
   const dateLabel = days.length ? formatDays(days) : date !== "all" ? DATE_FILTERS.find((f) => f.key === date)?.label : "";
   const regionLabel = sido ? `${sido}${gu ? ` ${gu}` : ""}` : "";
   const condition = [regionLabel, choices.genre ?? "", choices.format ?? "", q ? `‘${q}’` : "", dateLabel].filter(Boolean).join(" ");
@@ -147,8 +150,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               wishes={wishes}
               emptyDays={emptyDays}
               emptyLabel={searching ? "조건에 맞는 모임 없음" : "모임 없음"}
+              revealFrom={revealFrom}
             />
-            {remaining > 0 && <LoadMoreLink href={moreHref} remaining={remaining} />}
+            {remaining > 0 && <LoadMoreLink href={moreHref} />}
           </>
         ) : (
           <div>
@@ -174,8 +178,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               <p className="text-b2 text-ink-2">{searching ? "조건에 맞는 지난 모임이 없습니다." : "지난 모임이 없습니다."}</p>
             ) : (
               <>
-                <MeetingList meetings={pastShown} now={now} wishes={wishes} />
-                {pastRemaining > 0 && <LoadMoreLink href={pastMoreHref} remaining={pastRemaining} />}
+                <MeetingList meetings={pastShown} now={now} wishes={wishes} revealFrom={pastRevealFrom} />
+                {pastRemaining > 0 && <LoadMoreLink href={pastMoreHref} />}
               </>
             )}
           </>

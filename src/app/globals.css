@@ -294,6 +294,25 @@ html:has(.owl-confirm[open]) {
   from { transform: translateY(0.75rem); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
+/* '더 보기'로 붙은 모임: 높이가 0에서 펼쳐지며 아래 버튼을 부드럽게 밀어내고, 카드는 살짝 내려오며 나타난다.
+   펼치는 동안만 칸 밖으로 삐져나온 카드를 가린다(좌우는 날짜 제목·카드 배경이 본문 밖으로 넓게 그려져서 여유를 둔다) */
+.owl-reveal {
+  display: grid;
+  /* 천천히 출발해야 화면에 보이는 첫 부분이 한 번에 튀어나오지 않는다 */
+  animation: owl-reveal 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.owl-reveal > * {
+  min-height: 0;
+  animation: owl-reveal-in 0.6s ease-out;
+}
+@keyframes owl-reveal {
+  from { grid-template-rows: 0fr; clip-path: inset(0 -1rem); }
+  to { grid-template-rows: 1fr; clip-path: inset(0 -1rem); }
+}
+@keyframes owl-reveal-in {
+  from { opacity: 0; transform: translateY(-0.75rem); }
+  to { opacity: 1; transform: none; }
+}
 /* 방금 저장한 기록 카드를 잠깐 강조한다 */
 .owl-just-saved {
   animation: owl-just-saved 2.4s ease-out;
@@ -314,6 +333,8 @@ html:has(.owl-confirm[open]) {
   .owl-card-in,
   .owl-toast,
   .owl-back-to-top,
+  .owl-reveal,
+  .owl-reveal > *,
   .owl-just-saved {
     animation: none;
   }
