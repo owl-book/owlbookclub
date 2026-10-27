@@ -1,3 +1,4 @@
+import { RevealScroll } from "@/components/LoadMoreLink";
 import { MeetingCard } from "@/components/MeetingCard";
 import { isClosed, type Meeting } from "@/lib/meetings";
 import type { WishContext } from "@/lib/me";
@@ -8,7 +9,7 @@ const RELATIVE: Record<number, string> = { [-1]: "어제", 0: "오늘", 1: "내�
 
 // 모임을 날짜별로 묶어 "오늘 · 10월 3일 (토)" 제목 아래에 보여준다. 들어온 순서(가까운 날짜순 또는 최근순)를 그대로 따른다.
 // emptyDays: 달력에서 골랐지만 모임이 없는 날. 가까운 날짜순 목록 사이에 날짜 순서대로 한 줄씩 끼워 넣는다.
-// revealFrom: '더 보기'로 방금 붙은 모임이 몇 번째부터인지. 그 뒤 날짜 묶음은 높이가 0에서 펼쳐지며 아래 버튼을 부드럽게 밀어낸다.
+// revealFrom: '더 보기'로 방금 붙은 모임이 몇 번째부터인지. 그 뒤 날짜 묶음은 아래에서 떠오르고, 화면이 그 자리까지 부드럽게 밀려 올라간다.
 export function MeetingList({
   meetings,
   now,
@@ -112,14 +113,15 @@ export function MeetingList({
   };
 
   // 날짜 묶음 사이는 넓게(24px), 날짜 제목과 그날 첫 카드 사이는 좁게(제목 아래 여백 0) 해서 제목이 아래 카드들과 한 묶음으로 보이게
-  // 펼쳐지는 칸에서는 그 24px 간격을 칸 안쪽(pt-6)에 넣어, 펼치는 순간 한 번에 벌어지지 않게 한다
+  // 새로 붙은 칸에서는 그 24px 간격을 칸 안쪽(pt-6)에 넣어, 화면을 올렸을 때 머리글(h-14)과 첫 날짜 사이가 띄워지게 한다
   const fresh = groups.slice(split);
   return (
     <div className="space-y-6">
       {groups.slice(0, split).map(renderGroup)}
       {fresh.length > 0 && (
-        <div className={split > 0 ? "owl-reveal -mt-6" : "owl-reveal"}>
-          <div className={split > 0 ? "space-y-6 pt-6" : "space-y-6"}>{fresh.map(renderGroup)}</div>
+        <div className={`owl-reveal scroll-mt-14 ${split > 0 ? "-mt-6 pt-6" : ""}`}>
+          <RevealScroll />
+          <div className="space-y-6">{fresh.map(renderGroup)}</div>
         </div>
       )}
     </div>
