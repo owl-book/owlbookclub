@@ -70,6 +70,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <Link href="/" className="flex min-h-11 items-center gap-1.5 whitespace-nowrap font-display text-t1 text-navy">
               {/* 로고 그림(흰색 PNG)의 모양만 따서 글자와 같은 네이비로 칠한다 */}
               <span aria-hidden className="h-7 w-6 shrink-0 bg-navy [mask:url(/owl-logo.png)_center/contain_no-repeat]" /> 부엉이들의 서재
+              {/* 시험 운영 표시: 로고보다 튀지 않게 테두리만. 제목 글꼴 대신 본문 글꼴(영문 대문자가 또렷함) */}
+              <span className="ml-0.5 rounded-full border border-navy px-1.5 font-sans text-[10px] font-bold leading-[14px] tracking-[0.06em]">BETA</span>
             </Link>
             {/* 오른쪽: 로그인·마이페이지 아이콘, 맨 끝에 메뉴 버튼 */}
             <div className="flex shrink-0 items-center">
