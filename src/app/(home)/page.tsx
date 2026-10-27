@@ -21,6 +21,11 @@ const PAGE_SIZE = 10;
 // 주소를 직접 고쳐 너무 큰 수를 넣어도 이 이상은 펼치지 않는다
 const MAX_MORE = 50;
 
+// 주소의 '더 보기' 횟수를 읽는다(없거나 이상한 값이면 1)
+function pageCount(v: string | string[] | undefined): number {
+  return Math.min(MAX_MORE, Math.max(1, Number.parseInt(typeof v === "string" ? v : "", 10) || 1));
+}
+
 export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
   const now = new Date();
@@ -34,7 +39,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const choices: Choices = { sido, gu, genre: isGenre(sp.genre) ? sp.genre : null, format: isFormat(sp.format) ? sp.format : null };
   const showPast = sp.past === "1";
   // '더 보기'를 몇 번 눌렀는지(1이면 처음 10개). 검색·필터를 바꾸면 주소에서 빠져 처음으로 돌아간다
-  const more = Math.min(MAX_MORE, Math.max(1, Number.parseInt(typeof sp.more === "string" ? sp.more : "", 10) || 1));
+  const more = pageCount(sp.more);
+  // 아래 '지난 모임' 목록의 '더 보기' 횟수(위 목록과 따로 센다)
+  const pastMore = pageCount(sp.pmore);
 
   // 여러 회차를 한 번에 신청하는 모임은 날짜 조건 없는 목록에서만 가장 가까운 회차 한 장으로 접는다.
   // 달력 점·날짜를 고른 목록에는 모든 회차가 그 날짜에 보인다(지난 모임도 접지 않음)
@@ -87,6 +94,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const shown = takeWholeDays(results, PAGE_SIZE * more);
   const remaining = results.length - shown.length;
   const moreHref = hrefWith("more", String(more + 1));
+  // 지난 모임도 최근 날짜부터 10개씩
+  const pastShown = takeWholeDays(past, PAGE_SIZE * pastMore);
+  const pastRemaining = past.length - pastShown.length;
+  const pastMoreHref = hrefWith("pmore", String(pastMore + 1));
   const dateLabel = days.length ? formatDays(days) : date !== "all" ? DATE_FILTERS.find((f) => f.key === date)?.label : "";
   const regionLabel = sido ? `${sido}${gu ? ` ${gu}` : ""}` : "";
   const condition = [regionLabel, choices.genre ?? "", choices.format ?? "", q ? `‘${q}’` : "", dateLabel].filter(Boolean).join(" ");
@@ -162,7 +173,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             {past.length === 0 ? (
               <p className="text-b2 text-ink-2">{searching ? "조건에 맞는 지난 모임이 없습니다." : "지난 모임이 없습니다."}</p>
             ) : (
-              <MeetingList meetings={past} now={now} wishes={wishes} />
+              <>
+                <MeetingList meetings={pastShown} now={now} wishes={wishes} />
+                {pastRemaining > 0 && <LoadMoreLink href={pastMoreHref} remaining={pastRemaining} />}
+              </>
             )}
           </>
         ) : (
