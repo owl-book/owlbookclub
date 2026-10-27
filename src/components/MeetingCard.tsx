@@ -99,11 +99,13 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
   );
 }
 
-// 책 없는 모임의 표지 그림: 글쓰기는 모임 방식으로, 보드게임은 따로 방식이 없어(기타) 모임 이름으로 고른다
+// 책 없는 모임의 표지 그림: 글쓰기는 모임 방식으로, 보드게임은 따로 방식이 없어(기타) 모임 이름으로 고른다.
+// 나머지는 책 읽는 부엉이 기본 그림. 플리마켓은 독서 모임이 아니라 그림 없이 둔다
 function meetingArt(m: Meeting): string | null {
   if (m.tagFormat === "글쓰기") return "/meeting-art/writing.webp";
   if (m.title.includes("보드게임")) return "/meeting-art/boardgame.webp";
-  return null;
+  if (m.title.includes("플리마켓")) return null;
+  return "/meeting-art/default.webp";
 }
 
 // 책 표지(2:3). 표지를 못 찾으면 같은 크기의 종이 질감 칸에 책 제목을 세로로 얹어 목록 정렬을 유지한다.
@@ -116,7 +118,7 @@ function BookCover({ url, title, art }: { url: string | null; title: string | nu
       </div>
     );
   }
-  // 책이 없는 글쓰기·보드게임 모임: 모임 종류에 맞춘 부엉이 그림(public/meeting-art, 2:3)
+  // 책이 없는 모임: 모임 종류에 맞춘 부엉이 그림(public/meeting-art, 2:3)
   if (!title && art) {
     return (
       <div aria-hidden className={`${box} bg-cream ring-1 ring-border`}>
@@ -124,7 +126,7 @@ function BookCover({ url, title, art }: { url: string | null; title: string | nu
       </div>
     );
   }
-  // 책이 없는 모임(보드게임·글쓰기 등): 같은 크기 칸에 부엉이만 가운데 둔다(목록 정렬 유지, 모임 이름은 바로 옆에 있음)
+  // 그림도 없는 모임(플리마켓): 같은 크기 칸에 부엉이만 가운데 둔다(목록 정렬 유지, 모임 이름은 바로 옆에 있음)
   if (!title) {
     return (
       <div aria-hidden className={`${box} flex items-center justify-center bg-cream ring-1 ring-border`}>
