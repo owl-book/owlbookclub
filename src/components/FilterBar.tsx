@@ -626,7 +626,7 @@ function CalendarNav(props: {
 
 function WeekHeader() {
   return (
-    <div className="grid grid-cols-7 text-center text-l2 text-ink-3" aria-hidden>
+    <div className="grid grid-cols-7 text-center text-l2 text-ink-2" aria-hidden>
       {WEEK_LABELS.map((w) => (
         <span key={w}>{w}</span>
       ))}
