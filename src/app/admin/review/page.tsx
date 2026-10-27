@@ -8,6 +8,7 @@ import { ExhibitionCard } from "@/components/ExhibitionCard";
 import { MeetingCard } from "@/components/MeetingCard";
 import { PosterUploadForm } from "@/components/PosterUploadForm";
 import { SubmitButton } from "@/components/SubmitButton";
+import { StatusBadge } from "@/components/Tag";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
 import { smsNumber } from "@/lib/apply";
 import { getCoverBooks } from "@/lib/book-covers";
@@ -176,7 +177,7 @@ function StoreGroup({ group: g, now }: { group: ReviewGroup; now: Date }) {
       <div className="flex flex-wrap items-end justify-between gap-2 border-b border-border pb-2">
         <h2 id={headingId} className="text-t1 text-ink">
           {g.storeName} <span className="text-l1 font-normal text-ink-3">· {g.region}</span>
-          {g.store && <span className="ml-1.5 rounded-xs bg-info-surface px-1.5 py-0.5 align-middle text-l2 text-navy">새 책방</span>}
+          {g.store && <StatusBadge tone="info" className="ml-1.5 align-middle">새 책방</StatusBadge>}
         </h2>
         {g.meetings.length > 1 && (
           <div className="flex items-center gap-3">

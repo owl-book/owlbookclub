@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { AdminLogin } from "@/components/AdminLogin";
 import { AdminNav } from "@/components/AdminNav";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
+import { MeetingStatusBadge, StatusBadge } from "@/components/Tag";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
 import { editMeeting, resolveInquiry, resolveReport } from "@/lib/admin-actions";
 import { getCoverBooks } from "@/lib/book-covers";
@@ -170,11 +171,13 @@ function ReportCard({ item, now }: { item: InboxItem; now: Date }) {
 
   return (
     <li aria-labelledby={titleId} className="rounded-md border border-border-card bg-card p-4">
-      <div className="flex flex-wrap items-center gap-1.5">
-        {m.hidden && <Badge>숨김</Badge>}
-        {closed && <Badge>마감됨</Badge>}
-        {past && <Badge>지난 모임</Badge>}
-      </div>
+      {/* 비공개(주황) + 모임 상태 하나(지난 모임 > 마감된 모임, 둘 다 회색). 관리자에겐 마감·지난 모임이 다를 게 없어 같은 색 */}
+      {(m.hidden || past || closed) && (
+        <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
+          {m.hidden && <StatusBadge tone="warning">비공개</StatusBadge>}
+          {past ? <MeetingStatusBadge kind="past" /> : closed && <StatusBadge tone="neutral">마감된 모임</StatusBadge>}
+        </div>
+      )}
       <h3 id={titleId} className="text-t2 text-ink">
         {m.hidden ? (
           m.title
@@ -285,10 +288,6 @@ function Field({ label, htmlFor, hint, children }: { label: string; htmlFor: str
       {hint && <p className="mt-1 text-l2 font-normal text-ink-3">{hint}</p>}
     </div>
   );
-}
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="mb-1.5 rounded-xs bg-fill px-1.5 py-0.5 text-l2 text-ink-2">{children}</span>;
 }
 
 // <input type="datetime-local"> 에 넣을 한국 시간 '2026-10-08T19:30'
