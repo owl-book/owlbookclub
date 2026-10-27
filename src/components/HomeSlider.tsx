@@ -17,8 +17,8 @@ const AUTO_MS = 4000;
 // 오른쪽으로 갈수록 투명해져 주인공은 그대로 보인다. box 의 바탕색은 그림을 불러오기 전 잠깐만 보인다
 const TONE: Record<SlideTone, { box: string; scrim: string; body: string; cta: string }> = {
   navy: { box: "bg-navy text-page", scrim: "from-navy-900/80 via-navy-900/45 via-45% to-transparent to-75%", body: "text-dk-ink", cta: "text-page" },
-  cream: { box: "bg-[var(--illustration-cream)] text-ink", scrim: "from-page/80 via-page/45 via-45% to-transparent to-75%", body: "text-ink-2", cta: "text-navy" },
-  sky: { box: "bg-info-surface text-ink", scrim: "from-(--illustration-leaf)/95 via-(--illustration-leaf)/75 via-50% to-transparent to-85%", body: "text-ink-2", cta: "text-navy" },
+  cream: { box: "bg-cream text-ink", scrim: "from-page/80 via-page/45 via-45% to-transparent to-75%", body: "text-ink-2", cta: "text-navy" },
+  sky: { box: "bg-info-surface text-ink", scrim: "from-leaf/95 via-leaf/75 via-50% to-transparent to-85%", body: "text-ink-2", cta: "text-navy" },
 };
 
 const noop = () => () => {};

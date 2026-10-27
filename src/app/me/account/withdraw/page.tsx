@@ -50,7 +50,7 @@ export default async function WithdrawPage({ searchParams }: PageProps<"/me/acco
           </p>
         )}
         <label className="flex min-h-11 items-center gap-2 text-b2 text-ink">
-          <input type="checkbox" name="confirm" value="yes" required className="h-5 w-5 accent-[var(--color-navy)]" />
+          <input type="checkbox" name="confirm" value="yes" required className="h-5 w-5 accent-navy" />
           찜과 기록이 모두 지워지는 것을 확인했어요
         </label>
         <SubmitButton

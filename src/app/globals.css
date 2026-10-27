@@ -73,6 +73,10 @@
   --color-info-border: #bfd2ed;
   --color-info-dark: #92bcf0;
 
+  /* 07. 일러스트 표면 — 그림과 맞춘 바탕에만(글자·버튼·테두리 색으로는 쓰지 않음). 값은 아래 :root 의 일러스트 색 */
+  --color-cream: var(--illustration-cream);
+  --color-leaf: var(--illustration-leaf);
+
   /* 08. 라운드 — 기능 영역(입력·버튼)은 lg를 넘기지 않음 */
   --radius-xs: 4px; /* 입력, 태그 */
   --radius-sm: 4px; /* 버튼 */

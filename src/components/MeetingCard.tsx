@@ -112,14 +112,14 @@ function BookCover({ url, title }: { url: string | null; title: string | null })
   // 책이 없는 모임(보드게임·글쓰기 등): 같은 크기 칸에 부엉이만 가운데 둔다(목록 정렬 유지, 모임 이름은 바로 옆에 있음)
   if (!title) {
     return (
-      <div aria-hidden className={`${box} flex items-center justify-center bg-[var(--illustration-cream)] ring-1 ring-border`}>
+      <div aria-hidden className={`${box} flex items-center justify-center bg-cream ring-1 ring-border`}>
         <span className="text-2xl opacity-60">🦉</span>
       </div>
     );
   }
   // 표지 대신 책 페이지 느낌: 일러스트 전용 크림색 표면(글자는 ink 계열)
   return (
-    <div aria-hidden className={`${box} flex flex-col justify-between bg-[var(--illustration-cream)] p-2 ring-1 ring-border`}>
+    <div aria-hidden className={`${box} flex flex-col justify-between bg-cream p-2 ring-1 ring-border`}>
       <span className="line-clamp-4 text-l2 font-semibold text-ink-2">{title}</span>
       <span className="self-end text-sm opacity-60">🦉</span>
     </div>

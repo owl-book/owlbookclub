@@ -175,7 +175,7 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
 
       {/* 기본정보 */}
       <section aria-label="기본정보" className="flex items-center gap-3.5 rounded-md border border-border-card bg-card p-4">
-        <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[var(--illustration-cream)] text-2xl">
+        <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-full bg-cream text-2xl">
           🦉
         </span>
         <div className="min-w-0 flex-1">

@@ -112,7 +112,7 @@ function PosterThumb({ exhibition: e }: { exhibition: Exhibition }) {
 
 export function PosterPlaceholder({ kind, className }: { kind: ExhibitionKind; className: string }) {
   return (
-    <div aria-hidden className={`${className} flex flex-col justify-between bg-[var(--illustration-cream)] p-2.5 ring-1 ring-border`}>
+    <div aria-hidden className={`${className} flex flex-col justify-between bg-cream p-2.5 ring-1 ring-border`}>
       <span className="text-l2 font-semibold text-ink-2">{KIND_LABEL[kind]}</span>
       <span className="self-end text-sm opacity-60">🦉</span>
     </div>

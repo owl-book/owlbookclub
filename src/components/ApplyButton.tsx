@@ -136,7 +136,7 @@ export function ApplyButton({
             </div>
 
             <label className="mt-4 flex min-h-11 items-center gap-2 text-b2 text-ink-2">
-              <input type="checkbox" checked={dontShow} onChange={(e) => setDontShow(e.target.checked)} className="h-5 w-5 accent-[var(--color-navy)]" />
+              <input type="checkbox" checked={dontShow} onChange={(e) => setDontShow(e.target.checked)} className="h-5 w-5 accent-navy" />
               다시 보지 않기
             </label>
 
