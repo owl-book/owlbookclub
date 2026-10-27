@@ -89,8 +89,9 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
         {/* 태그는 상자 없이 한 줄 글자로 모두 같은 굵기. '기타'는 알려 주는 게 없어 뺀다 */}
         <p className="mt-2 text-l2 font-normal text-ink-3">{hashTags([m.tagGenre, m.tagFormat, m.tagCadence].filter((t) => t !== "기타"))}</p>
       </div>
+      {/* 하트 그림(24px)의 오른쪽·위 끝을 카드 안쪽 여백 선(오른쪽 8px·위 16px)에 맞춘다: 36px 원 안에서 그림은 6px 안쪽이라 원을 오른쪽 2px·위 10px에 둔다 */}
       {wish && (
-        <div className="absolute right-0 top-2 z-10">
+        <div className="absolute right-0.5 top-2.5 z-10">
           <WishButton kind="meeting" id={m.id} wished={wish.wished} loggedIn={wish.loggedIn} label={m.title} size="sm" />
         </div>
       )}

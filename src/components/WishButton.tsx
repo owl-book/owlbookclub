@@ -56,35 +56,42 @@ export function WishButton({ kind, id, wished, loggedIn, label, size = "md" }: P
     );
   }
 
+  // 이름은 고정하고 찜 여부는 aria-pressed(눌림/안 눌림)로만 알린다. 이름까지 바꾸면 "찜 취소, 눌림"처럼 겹쳐 읽힌다
   return (
-    <button
-      type="button"
-      aria-pressed={on}
-      aria-label={`${label} ${what} 찜${on ? " 취소" : "하기"}`}
-      title={failed ? "저장하지 못했어요. 다시 눌러 주세요." : undefined}
-      disabled={pending}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const nextOn = !on;
-        gaEvent("wish", { kind, on: nextOn, login_required: false });
-        setOn(nextOn);
-        setFailed(false);
-        startTransition(async () => {
-          try {
-            await setWish(kind, id, nextOn);
-            // 찜했을 때 알림을 한 번 권한다(PushAsk 가 듣고, 물을 때가 아니면 아무것도 안 함)
-            if (nextOn) window.dispatchEvent(new CustomEvent<WishedDetail>(WISHED_EVENT, { detail: { kind } }));
-          } catch {
-            setOn(!nextOn);
-            setFailed(true);
-          }
-        });
-      }}
-      className={className}
-    >
-      <Heart filled={on} />
-    </button>
+    <>
+      <button
+        type="button"
+        aria-pressed={on}
+        aria-label={`${label} ${what} 찜`}
+        title={failed ? "저장하지 못했어요. 다시 눌러 주세요." : undefined}
+        disabled={pending}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const nextOn = !on;
+          gaEvent("wish", { kind, on: nextOn, login_required: false });
+          setOn(nextOn);
+          setFailed(false);
+          startTransition(async () => {
+            try {
+              await setWish(kind, id, nextOn);
+              // 찜했을 때 알림을 한 번 권한다(PushAsk 가 듣고, 물을 때가 아니면 아무것도 안 함)
+              if (nextOn) window.dispatchEvent(new CustomEvent<WishedDetail>(WISHED_EVENT, { detail: { kind } }));
+            } catch {
+              setOn(!nextOn);
+              setFailed(true);
+            }
+          });
+        }}
+        className={className}
+      >
+        <Heart filled={on} />
+      </button>
+      {/* 저장에 실패하면 화면 읽기 프로그램도 알려 준다(눈에는 마우스를 올렸을 때 title로 보임) */}
+      <span role="status" className="sr-only">
+        {failed ? "저장하지 못했어요. 다시 눌러 주세요." : ""}
+      </span>
+    </>
   );
 }
 
