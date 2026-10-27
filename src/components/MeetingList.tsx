@@ -75,7 +75,8 @@ export function MeetingList({
             <details key={g.day} className="group">
               <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-1.5 border-b border-dashed border-border-card py-2.5 text-l2 text-ink-2 [&::-webkit-details-marker]:hidden">
                 <span className="text-l1 font-medium text-ink-2">{joinDotText(rel, formatDayNum(g.day))}</span>
-                <span>모두 마감</span>
+                {/* 앞 날짜와 같은 크기, 표지의 '신청마감' 뱃지와 같은 경고색 */}
+                <span className="text-l1 font-medium text-warning">모두 마감</span>
                 <span className="ml-auto text-navy underline underline-offset-2">
                   <span className="group-open:hidden">보기 ⌄</span>
                   <span className="hidden group-open:inline">접기 ⌃</span>
