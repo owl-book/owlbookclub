@@ -15,6 +15,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 // 날짜 버튼은 달력으로 한 번에 못 고르는 것만 둔다. '이번 주·다음 주'는 달력 화살표와 같아서 뺐다(예전 링크로 들어오면 그 버튼만 보인다).
 const DATE_CHIPS: DateFilter[] = ["all", "this-weekend", "weekday-evening"];
+// 고른 칩·필터 버튼(날짜 칩, 필터 버튼, 필터 판 선택칩)은 모두 같은 모양: 짙은 네이비 채움은 무거워서 연한 파랑 바탕 + 네이비 테두리·글자.
+// 선택 안 된 칩도 같은 1px 테두리 자리를 둬서(투명) 고를 때 크기가 바뀌지 않는다. 달력의 고른 날짜는 따로(네이비 채움 그대로)
+const ACTIVE_CHIP = "border-navy bg-info-surface font-semibold text-navy";
 
 function buildHref(date: DateFilter, q: string, days: number[], c: Choices) {
   const p = new URLSearchParams();
@@ -156,8 +159,8 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
               if (f.key !== "all") track("filter", { props: { date: f.key, q: maskQuery(text) } });
               go(buildHref(f.key, text, [], choices));
             }}
-            className={`min-h-11 shrink-0 rounded-xs px-3 text-l1 ${
-              active ? "bg-navy font-semibold text-page" : searching ? "border border-border bg-card text-ink-2 hover:border-border-strong" : "bg-fill text-ink-2 hover:text-ink"
+            className={`min-h-11 shrink-0 rounded-xs border px-3 text-l1 ${
+              active ? ACTIVE_CHIP : searching ? "border-border bg-card text-ink-2 hover:border-border-strong" : "border-transparent bg-fill text-ink-2 hover:text-ink"
             }`}
           >
             {f.label}
@@ -176,15 +179,15 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
       aria-label={pickedCount ? `지역·장르·모임방식 필터, ${count(pickedCount, "개")} 선택됨` : "지역·장르·모임방식 필터"}
       className={`flex min-h-11 items-center gap-1.5 text-l1 ${
         searching
-          ? `min-w-0 flex-[2] rounded-sm border px-3 ${pickedCount ? "border-navy font-semibold text-navy" : "border-border-control bg-card text-ink-2 hover:border-border-strong"}`
-          : `shrink-0 rounded-xs px-3 ${pickedCount ? "bg-navy font-semibold text-page" : "bg-fill text-ink-2 hover:text-ink"}`
+          ? `min-w-0 flex-[2] rounded-sm border px-3 ${pickedCount ? ACTIVE_CHIP : "border-border-control bg-card text-ink-2 hover:border-border-strong"}`
+          : `shrink-0 rounded-xs border px-3 ${pickedCount ? ACTIVE_CHIP : "border-transparent bg-fill text-ink-2 hover:text-ink"}`
       }`}
     >
       <FilterIcon />
       필터
       {pickedCount > 0 && (
         <span
-          className={`flex h-5 min-w-5 items-center justify-center rounded-xs px-1 text-l2 ${searching ? "bg-navy text-page" : "bg-page text-navy"}`}
+          className="flex h-5 min-w-5 items-center justify-center rounded-xs bg-navy px-1 text-l2 text-page"
           aria-hidden
         >
           {pickedCount}
@@ -268,7 +271,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
             aria-expanded={calOpen}
             aria-controls="date-panel"
             className={`flex min-h-11 min-w-0 flex-[3] items-center gap-1.5 rounded-sm border px-3 text-l1 ${
-              dateClearLabel ? "border-navy font-semibold text-navy" : "border-border-control bg-card text-ink-2 hover:border-border-strong"
+              dateClearLabel ? ACTIVE_CHIP : "border-border-control bg-card text-ink-2 hover:border-border-strong"
             }`}
           >
             <CalendarIcon />
@@ -469,7 +472,7 @@ function Choice({ selected, onClick, children }: { selected: boolean; onClick: (
       aria-pressed={selected}
       onClick={selected ? undefined : onClick}
       className={`min-h-11 rounded-xs border px-4 text-l1 ${
-        selected ? "border-navy bg-navy font-semibold text-page" : "border-border bg-card text-ink-2 hover:border-border-strong"
+        selected ? ACTIVE_CHIP : "border-border bg-card text-ink-2 hover:border-border-strong"
       }`}
     >
       {children}
