@@ -63,13 +63,13 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
           )}
         </h3>
         {rest.length > 1 && (
-          <p className="mt-1 text-b2 text-ink-2">
+          <p className="fig mt-1 text-b2 text-ink-2">
             {joinDot(dateRange(formatKstMonthDay(rest[0].startsAt), formatKstMonthDay(rest[rest.length - 1].startsAt)), count(rest.length, "회"))}
           </p>
         )}
         {m.bookTitle && (
           <p className="mt-1 text-b2 text-ink-2">
-            『{m.bookTitle}』{otherBooks > 0 ? ` 외 ${count(otherBooks, "권")}` : m.bookAuthor && ` ${m.bookAuthor}`}
+            『{m.bookTitle}』{otherBooks > 0 ? <span className="fig"> 외 {count(otherBooks, "권")}</span> : m.bookAuthor && ` ${m.bookAuthor}`}
           </p>
         )}
         {!hideStore && (

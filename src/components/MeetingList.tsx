@@ -47,7 +47,7 @@ export function MeetingList({
           // 모임 없는 날: 카드 없이 회색 한 줄. 화면 위에 붙지 않게 해서 모임 있는 날 제목을 가리지 않는다
           return (
             <p key={g.day} className="flex flex-wrap items-baseline gap-x-1.5 border-b border-dashed border-border-card py-2.5 text-l2 text-ink-3">
-              <span className="text-l1 font-medium text-ink-2">
+              <span className="fig text-l1 font-medium text-ink-2">
                 {joinDotText(rel, formatDayNum(g.day))}
               </span>
               {emptyLabel}
@@ -75,7 +75,7 @@ export function MeetingList({
           return (
             <details key={g.day} className="group">
               <summary className="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-1.5 border-b border-dashed border-border-card py-2.5 text-l2 text-ink-2 [&::-webkit-details-marker]:hidden">
-                <span className="text-l1 font-medium text-ink-2">{joinDotText(rel, formatDayNum(g.day))}</span>
+                <span className="fig text-l1 font-medium text-ink-2">{joinDotText(rel, formatDayNum(g.day))}</span>
                 {/* 앞 날짜와 같은 크기, 표지의 '신청마감' 뱃지와 같은 경고색 */}
                 <span className="text-l1 font-medium text-warning">모두 마감</span>
                 <span className="ml-auto text-navy underline underline-offset-2">
@@ -91,8 +91,8 @@ export function MeetingList({
           <section key={g.day} aria-label={formatDayNum(g.day)}>
             {/* 머리글(h-14) 바로 아래에 붙어서, 스크롤해도 지금 보는 날짜가 보인다 */}
             {/* 날짜(16px 검정)가 카드 시간(14px 회색)보다 먼저 눈에 들어오게. 개수는 마감 포함 전체(마감은 카드 표지 뱃지로 보인다) */}
-            <h2 className="sticky top-14 z-10 -mx-4 bg-page/95 px-4 pb-0 pt-1 text-b1 font-semibold leading-snug text-ink backdrop-blur">
-              {joinDot(rel, formatDayNum(g.day), <span className="fig font-medium text-navy">{count(g.items.length, "개")}</span>)}
+            <h2 className="sticky top-14 z-10 -mx-4 bg-page/95 px-4 pb-0 pt-1 text-b1 font-semibold leading-snug text-ink backdrop-blur fig">
+              {joinDot(rel, formatDayNum(g.day), <span className="font-medium text-navy">{count(g.items.length, "개")}</span>)}
             </h2>
             {cards}
           </section>

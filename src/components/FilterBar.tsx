@@ -188,7 +188,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
       필터
       {pickedCount > 0 && (
         <span
-          className="flex h-5 min-w-5 items-center justify-center rounded-xs bg-navy px-1 text-l2 text-page"
+          className="fig flex h-5 min-w-5 items-center justify-center rounded-xs bg-navy px-1 text-l2 text-page"
           aria-hidden
         >
           {pickedCount}
@@ -278,7 +278,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
             }`}
           >
             <CalendarIcon />
-            <span className="min-w-0 truncate">{dateClearLabel ?? "날짜"}</span>
+            <span className="fig min-w-0 truncate">{dateClearLabel ?? "날짜"}</span>
             <span className="ml-auto shrink-0">
               <Chevron dir={calOpen ? "up" : "down"} size={20} />
             </span>
@@ -328,7 +328,7 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
 
       {/* 목록 바로 위: 지금 조건의 모임 수와 필터. 조건이 결과 바로 위에 있어야 왜 이 모임들만 보이는지 알 수 있다 */}
       <div ref={summaryRef} className="scroll-mt-16">
-        <p className="min-w-0 text-l2 text-ink-3">{summary}</p>
+        <p className="fig min-w-0 text-l2 text-ink-3">{summary}</p>
         {/* 고른 조건을 꼬리표로 보여주고, 누르면 그 조건만 지운다 */}
         {(pickedCount > 0 || (searching && dateClearLabel)) && (
           <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="선택한 필터">
@@ -441,7 +441,7 @@ function FilterSheet({
           <button
             type="button"
             onClick={close}
-            className="min-h-11 flex-1 rounded-sm bg-navy px-4 text-l1 font-semibold text-page hover:bg-navy-hover active:bg-navy-active"
+            className="fig min-h-11 flex-1 rounded-sm bg-navy px-4 text-l1 font-semibold text-page hover:bg-navy-hover active:bg-navy-active"
           >
             {pending ? "찾는 중…" : `모임 ${count(resultCount, "개")} 보기`}
           </button>
@@ -489,7 +489,7 @@ function RemoveTag({ label, onRemove }: { label: string; onRemove: () => void })
       type="button"
       onClick={onRemove}
       aria-label={`${label} 필터 지우기`}
-      className="flex min-h-11 items-center gap-1 rounded-xs border border-navy bg-card pl-3.5 pr-2.5 text-l1 font-semibold text-navy"
+      className="fig flex min-h-11 items-center gap-1 rounded-xs border border-navy bg-card pl-3.5 pr-2.5 text-l1 font-semibold text-navy"
     >
       {label}
       <CloseIcon size={18} />
@@ -614,7 +614,7 @@ function CalendarNav(props: {
         aria-label={`${props.title}, ${props.expanded ? "달력 접기" : "한 달 달력 보기"}`}
         className="flex min-h-11 items-center gap-0.5 rounded-sm px-2 text-l1 font-semibold text-ink hover:text-navy"
       >
-        <span aria-live="polite">{props.title}</span>
+        <span aria-live="polite" className="fig">{props.title}</span>
         <Chevron dir={props.expanded ? "up" : "down"} size={18} />
       </button>
       <button type="button" className={arrow} onClick={props.onNext} disabled={props.nextDisabled} aria-label={props.nextLabel}>
