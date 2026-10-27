@@ -62,12 +62,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full flex flex-col">
-        <header className="sticky top-0 z-20 border-b border-navy bg-navy">
+        <header className="sticky top-0 z-20 bg-page">
           {/* 높이 h-14 고정: 목록의 날짜 제목이 이 아래(top-14)에 붙는다 */}
           <div className="mx-auto flex h-14 max-w-xl items-center justify-between px-4">
-            <Link href="/" className="flex min-h-11 items-center gap-1.5 whitespace-nowrap font-display text-t1 text-page focus-visible:outline-page">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/owl-logo.png" alt="" aria-hidden className="h-7 w-auto" /> 부엉이들의 서재
+            <Link href="/" className="flex min-h-11 items-center gap-1.5 whitespace-nowrap font-display text-t1 text-navy">
+              {/* 로고 그림(흰색 PNG)의 모양만 따서 글자와 같은 네이비로 칠한다 */}
+              <span aria-hidden className="h-7 w-6 shrink-0 bg-navy [mask:url(/owl-logo.png)_center/contain_no-repeat]" /> 부엉이들의 서재
             </Link>
             {/* 오른쪽: 로그인·마이페이지 아이콘, 맨 끝에 메뉴 버튼 */}
             <div className="flex shrink-0 items-center">

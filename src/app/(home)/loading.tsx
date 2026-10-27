@@ -2,10 +2,11 @@ import { Suspense } from "react";
 import { SearchModeSwitch } from "@/components/SearchModeSwitch";
 import { Bone, LoadingNote, MeetingListSkeleton } from "@/components/Skeleton";
 
-// 광고 슬라이더(HomeSlider)와 같은 크기(멈춤·넘김 버튼은 장 안에 얹혀 따로 줄이 없다)
+// 광고 슬라이더(HomeSlider)와 같은 크기(멈춤·넘김 버튼은 장 안에 얹혀 따로 줄이 없다).
+// 슬라이더처럼 헤더 바로 밑(위 여백 pt-5 를 되돌림)에 붙고 양옆 끝까지 채운다
 const intro = (
-  <div className="mb-4">
-    <Bone className="h-[181px] rounded-md" />
+  <div className="-mx-4 -mt-5 mb-4">
+    <Bone className="h-[181px] rounded-none!" />
   </div>
 );
 // 날짜 버튼·필터 버튼 한 줄, 달력, 모임 수

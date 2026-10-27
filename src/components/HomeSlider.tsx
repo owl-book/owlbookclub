@@ -105,7 +105,8 @@ export function HomeSlider({ slides: all }: { slides: Slide[] }) {
       ref={root}
       aria-roledescription="carousel"
       aria-label="부엉이들의 서재 안내"
-      className="relative mb-3"
+      // 본문 양옆 여백(px-4)만큼 바깥으로 넓혀 휴대폰 화면 끝까지 채운다. 넓은 화면에서는 본문 칸(max-w-xl) 폭까지만
+      className="relative -mx-4 mb-3"
       onPointerEnter={(e) => e.pointerType === "mouse" && setHover(true)}
       onPointerLeave={(e) => e.pointerType === "mouse" && setHover(false)}
     >
@@ -118,7 +119,7 @@ export function HomeSlider({ slides: all }: { slides: Slide[] }) {
         onPointerCancel={() => setTouching(false)}
         // 저절로 넘어가는 동안에는 장마다 읽지 않고, 멈췄을 때만 바뀐 장을 읽어 준다
         aria-live={playing ? "off" : "polite"}
-        className="owl-slider relative flex snap-x snap-mandatory gap-2 overflow-x-auto"
+        className="owl-slider relative flex snap-x snap-mandatory overflow-x-auto"
       >
         {slides.map((s, i) => (
           <div
@@ -185,8 +186,8 @@ function SlideCard({ slide: s, position }: { slide: Slide; position: number }) {
           src={s.image}
           alt=""
           fill
-          // 장 폭: 휴대폰은 화면 폭에서 양옆 여백을 뺀 만큼, 넓은 화면은 본문 폭(최대 544px)
-          sizes="(max-width: 576px) 100vw, 544px"
+          // 장 폭: 휴대폰은 화면 폭 그대로, 넓은 화면은 본문 칸 폭(최대 576px)
+          sizes="(max-width: 576px) 100vw, 576px"
           // 첫 장은 홈에서 가장 먼저 보이는 그림이라 바로 불러온다
           priority={position === 1}
           className="object-cover object-right"
@@ -225,7 +226,7 @@ function SlideCard({ slide: s, position }: { slide: Slide; position: number }) {
       </span>
     </>
   );
-  const box = `@container relative flex w-full flex-col overflow-hidden rounded-md px-5 pb-2.5 pt-3 ${tone.box}`;
+  const box = `@container relative flex w-full flex-col overflow-hidden px-5 pb-2.5 pt-3 ${tone.box}`;
   if (!s.href) return <div className={box}>{inner}</div>;
   return (
     <Link

@@ -89,9 +89,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const emptyDays = days.filter((d) => !counts[d]);
 
   return (
-    <div className="pt-3">
+    // 슬라이더는 헤더 바로 밑에 붙인다(위 여백은 슬라이더가 없는 검색 화면에만)
+    <div className={searching ? "pt-3" : ""}>
       {sp.bye === "1" && (
-        <p role="status" className="mb-4 rounded-xs border border-info-border bg-info-surface px-3 py-2.5 text-b2 text-info">
+        <p role="status" className={`mb-4 rounded-xs border border-info-border bg-info-surface px-3 py-2.5 text-b2 text-info ${searching ? "" : "mt-3"}`}>
           탈퇴가 끝났어요. 찜과 기록을 모두 지웠습니다. 그동안 고마웠어요.
         </p>
       )}

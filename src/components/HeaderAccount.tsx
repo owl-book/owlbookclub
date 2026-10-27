@@ -18,7 +18,7 @@ export function HeaderAccount({ user }: { user: SessionUser | null }) {
         onClick={(e) => {
           e.currentTarget.href = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
         }}
-        className={ICON_BUTTON + " text-page/80"}
+        className={ICON_BUTTON}
       >
         <PersonIcon filled={false} />
       </a>
@@ -31,7 +31,7 @@ export function HeaderAccount({ user }: { user: SessionUser | null }) {
       href="/me"
       aria-label={`마이페이지 (${user.name}님)`}
       aria-current={active ? "page" : undefined}
-      className={`${ICON_BUTTON} ${active ? "text-page" : "text-page/80"}`}
+      className={ICON_BUTTON}
     >
       {/* 마이페이지 안에선 머리·몸 모두 채운다 */}
       <PersonIcon filled={active} />
@@ -39,7 +39,7 @@ export function HeaderAccount({ user }: { user: SessionUser | null }) {
   );
 }
 
-const ICON_BUTTON = "inline-flex size-11 items-center justify-center rounded-full hover:bg-navy-hover hover:text-page focus-visible:outline-page";
+const ICON_BUTTON = "inline-flex size-11 items-center justify-center rounded-full text-navy hover:bg-sub";
 
 // 로그인 전·후 같은 사람 모양(로그인 전엔 눌러서 로그인, 로그인 후엔 마이페이지)
 function PersonIcon({ filled }: { filled: boolean }) {

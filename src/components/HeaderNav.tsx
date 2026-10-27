@@ -46,7 +46,7 @@ export function HeaderNav() {
           if (!open) gaEvent("menu_open");
           setOpen((v) => !v);
         }}
-        className="-mr-2 inline-flex size-11 items-center justify-center rounded-full text-page/80 hover:bg-navy-hover hover:text-page focus-visible:outline-page"
+        className="-mr-2 inline-flex size-11 items-center justify-center rounded-full text-navy hover:bg-sub"
       >
         <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round">
           {open ? <path d="M6 6l12 12M18 6 6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
