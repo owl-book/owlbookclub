@@ -35,7 +35,7 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
           상태 뱃지는 표지 왼쪽 위에 얹는다(표지만 흐리게 하고 뱃지 글자는 그대로 읽히게) */}
       <div className="relative self-center">
         <div className={dim ? "opacity-50 grayscale" : ""}>
-          <BookCover url={cover?.url ?? null} title={m.bookTitle} />
+          <BookCover url={cover?.url ?? null} title={m.bookTitle} art={meetingArt(m)} />
         </div>
         {statusKind && <MeetingStatusBadge kind={statusKind} className="absolute left-1 top-1" />}
       </div>
@@ -99,13 +99,28 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
   );
 }
 
+// 책 없는 모임의 표지 그림: 글쓰기는 모임 방식으로, 보드게임은 따로 방식이 없어(기타) 모임 이름으로 고른다
+function meetingArt(m: Meeting): string | null {
+  if (m.tagFormat === "글쓰기") return "/meeting-art/writing.webp";
+  if (m.title.includes("보드게임")) return "/meeting-art/boardgame.webp";
+  return null;
+}
+
 // 책 표지(2:3). 표지를 못 찾으면 같은 크기의 종이 질감 칸에 책 제목을 세로로 얹어 목록 정렬을 유지한다.
-function BookCover({ url, title }: { url: string | null; title: string | null }) {
+function BookCover({ url, title, art }: { url: string | null; title: string | null; art: string | null }) {
   const box = "relative h-[108px] w-[72px] shrink-0 overflow-hidden rounded-xs";
   if (url) {
     return (
       <div className={`${box} bg-fill ring-1 ring-border`}>
         <Image src={url} alt={title ? `『${title}』 표지` : "책 표지"} fill sizes="72px" unoptimized className="object-cover" />
+      </div>
+    );
+  }
+  // 책이 없는 글쓰기·보드게임 모임: 모임 종류에 맞춘 부엉이 그림(public/meeting-art, 2:3)
+  if (!title && art) {
+    return (
+      <div aria-hidden className={`${box} bg-cream ring-1 ring-border`}>
+        <Image src={art} alt="" fill sizes="72px" className="object-cover" />
       </div>
     );
   }
