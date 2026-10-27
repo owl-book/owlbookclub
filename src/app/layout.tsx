@@ -10,6 +10,7 @@ import { HeaderNav } from "@/components/HeaderNav";
 import { INSTAGRAM_HANDLE } from "@/lib/operator";
 import { ClickTracker } from "@/components/ClickTracker";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
+import { SkipLink } from "@/components/SkipLink";
 import { KeepAppLogin } from "@/components/KeepAppLogin";
 import { PushAsk } from "@/components/PushAsk";
 import { isPushEnabled, vapidPublicKey } from "@/lib/push";
@@ -62,6 +63,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full flex flex-col">
+        <SkipLink />
         <header className="sticky top-0 z-20 bg-page">
           {/* 높이 h-14 고정: 목록의 날짜 제목이 이 아래(top-14)에 붙는다 */}
           <div className="mx-auto flex h-14 max-w-xl items-center justify-between px-4">
@@ -79,7 +81,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <NavProgress />
           </Suspense>
         </header>
-        <main className="mx-auto w-full max-w-xl flex-1 px-4 pb-16">{children}</main>
+        <main id="content" className="mx-auto w-full max-w-xl flex-1 px-4 pb-16">{children}</main>
         {/* 글씨는 12px(l2)·본문 회색(ink-2): 작은 글씨라 ink-3 는 sub 바탕에서 대비가 4.5:1 에 못 미친다 */}
         <footer className="border-t border-border bg-sub py-6 text-l2 font-normal leading-normal text-ink-2">
           <div className="mx-auto flex max-w-xl flex-col gap-4 px-4">

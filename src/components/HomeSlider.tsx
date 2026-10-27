@@ -129,7 +129,7 @@ export function HomeSlider({ slides: all }: { slides: Slide[] }) {
             aria-label={`${count}장 중 ${i + 1}번째`}
             className="flex w-full shrink-0 snap-start"
           >
-            <SlideCard slide={s} position={i + 1} />
+            <SlideCard slide={s} position={i + 1} active={i === index} />
           </div>
         ))}
       </div>
@@ -174,7 +174,8 @@ export function HomeSlider({ slides: all }: { slides: Slide[] }) {
   );
 }
 
-function SlideCard({ slide: s, position }: { slide: Slide; position: number }) {
+// active: 지금 보이는 장만 Tab 으로 들어간다(안 보이는 장의 링크를 키보드가 거치지 않게. 다른 장은 점 버튼으로 간다)
+function SlideCard({ slide: s, position, active }: { slide: Slide; position: number; active: boolean }) {
   const tone = TONE[s.tone];
   const Title = s.pageTitle ? "h1" : "p";
   const inner = (
@@ -231,6 +232,7 @@ function SlideCard({ slide: s, position }: { slide: Slide; position: number }) {
   return (
     <Link
       href={s.href}
+      tabIndex={active ? undefined : -1}
       onClick={() => window.gtag?.("event", "banner_click", { slide: s.id, position: String(position) })}
       className={`${box} focus-visible:outline-offset-[-4px] ${s.tone === "navy" ? "focus-visible:outline-page" : ""}`}
     >
