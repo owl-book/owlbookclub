@@ -38,8 +38,9 @@ export function MeetingList({
     groups.sort((a, b) => a.day - b.day);
   }
 
+  // 날짜 묶음 사이는 넓게(24px), 날짜 제목과 그날 첫 카드 사이는 좁게(제목 아래 여백 0) 해서 제목이 아래 카드들과 한 묶음으로 보이게
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {groups.map((g) => {
         const rel = RELATIVE[g.day - today];
         if (g.items.length === 0) {
@@ -90,7 +91,7 @@ export function MeetingList({
           <section key={g.day} aria-label={formatDayNum(g.day)}>
             {/* 머리글(h-14) 바로 아래에 붙어서, 스크롤해도 지금 보는 날짜가 보인다 */}
             {/* 날짜(16px 검정)가 카드 시간(14px 회색)보다 먼저 눈에 들어오게. 개수는 마감 포함 전체(마감은 카드 표지 뱃지로 보인다) */}
-            <h2 className="sticky top-14 z-10 -mx-4 bg-page/95 px-4 py-1 text-b1 font-bold leading-snug text-ink backdrop-blur">
+            <h2 className="sticky top-14 z-10 -mx-4 bg-page/95 px-4 pb-0 pt-1 text-b1 font-bold leading-snug text-ink backdrop-blur">
               {joinDot(rel, formatDayNum(g.day), <span className="fig font-medium text-navy">{count(g.items.length, "개")}</span>)}
             </h2>
             {cards}
