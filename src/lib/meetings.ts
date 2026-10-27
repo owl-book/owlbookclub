@@ -266,6 +266,15 @@ export function countByDay(meetings: Meeting[]): Record<number, number> {
   return counts;
 }
 
+// 목록 '더 보기'용: 앞에서 limit개를 자르되, 같은 날 모임이 두 번에 나뉘지 않게 그날 모임까지 함께 넣는다
+export function takeWholeDays(meetings: Meeting[], limit: number): Meeting[] {
+  if (meetings.length <= limit) return meetings;
+  const lastDay = kstDayNumber(meetings[limit - 1].startsAt);
+  let end = limit;
+  while (end < meetings.length && kstDayNumber(meetings[end].startsAt) === lastDay) end++;
+  return meetings.slice(0, end);
+}
+
 // ── DB 연결 전 로컬 미리보기용 예시 데이터 ──
 export function demoMeetings(now: Date): Meeting[] {
   const at = (days: number, hour: number, min = 0) => {

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { FilterBar } from "@/components/FilterBar";
+import { BackToTop } from "@/components/BackToTop";
 import { HomeSlider } from "@/components/HomeSlider";
+import { LoadMoreLink } from "@/components/LoadMoreLink";
 import { MeetingList } from "@/components/MeetingList";
 import { PendingApplies } from "@/components/PendingApplies";
 import { getWishContext } from "@/lib/me";
-import { attachSeries, collapseSeries, countByDay, filterMeetings, getRecentPastMeetings, getUpcomingMeetings, isClosed, isPast, matchesChoices, matchesQuery, type Choices } from "@/lib/meetings";
+import { attachSeries, collapseSeries, countByDay, filterMeetings, getRecentPastMeetings, getUpcomingMeetings, isClosed, isPast, matchesChoices, matchesQuery, takeWholeDays, type Choices } from "@/lib/meetings";
 import { isGuOf, isSido, regionChoicesOf } from "@/lib/regions";
 import { listStoreOptions } from "@/lib/stores";
 import { activeSlides } from "@/lib/slides";
@@ -14,6 +16,10 @@ import { DATE_FILTERS, formatDays, isDateFilter, kstDayNumber, parseDayKeys } fr
 
 // 달력에서 뒤로 넘겨 볼 수 있는 지난 기간(일)
 const PAST_CALENDAR_DAYS = 180;
+// 목록을 한 번에 보여 주는 모임 수(폰 한 화면에 카드 4개쯤이라 2~3화면). '더 보기'를 누를 때마다 이만큼 더
+const PAGE_SIZE = 10;
+// 주소를 직접 고쳐 너무 큰 수를 넣어도 이 이상은 펼치지 않는다
+const MAX_MORE = 50;
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
@@ -27,6 +33,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const gu = sido && isGuOf(sido, sp.gu) ? sp.gu : null;
   const choices: Choices = { sido, gu, genre: isGenre(sp.genre) ? sp.genre : null, format: isFormat(sp.format) ? sp.format : null };
   const showPast = sp.past === "1";
+  // '더 보기'를 몇 번 눌렀는지(1이면 처음 10개). 검색·필터를 바꾸면 주소에서 빠져 처음으로 돌아간다
+  const more = Math.min(MAX_MORE, Math.max(1, Number.parseInt(typeof sp.more === "string" ? sp.more : "", 10) || 1));
 
   // 여러 회차를 한 번에 신청하는 모임은 날짜 조건 없는 목록에서만 가장 가까운 회차 한 장으로 접는다.
   // 달력 점·날짜를 고른 목록에는 모든 회차가 그 날짜에 보인다(지난 모임도 접지 않음)
@@ -64,14 +72,21 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const past = showPast
     ? pastAll.filter((m) => m.startsAt.getTime() >= now.getTime() - 30 * 86400000 && matchesQuery(m, q) && matchesChoices(m, choices)).slice(0, 100)
     : [];
-  // '지난 모임 보기'는 지금 검색어·필터·날짜를 그대로 두고 past=1 만 더한다
-  const pastParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(sp)) {
-    if (key === "past" || key === "bye" || value === undefined) continue;
-    for (const v of Array.isArray(value) ? value : [value]) pastParams.append(key, v);
-  }
-  pastParams.set("past", "1");
-  const pastHref = `/?${pastParams.toString()}`;
+  // '지난 모임 보기'·'더 보기'는 지금 검색어·필터·날짜를 그대로 두고 값 하나만 바꾼다
+  const hrefWith = (name: string, value: string) => {
+    const params = new URLSearchParams();
+    for (const [key, v] of Object.entries(sp)) {
+      if (key === name || key === "bye" || v === undefined) continue;
+      for (const one of Array.isArray(v) ? v : [v]) params.append(key, one);
+    }
+    params.set(name, value);
+    return `/?${params.toString()}`;
+  };
+  const pastHref = hrefWith("past", "1");
+  // 목록은 앞에서 10개씩(같은 날 모임은 나누지 않음). 위 안내 문구·달력 점은 전체 기준 그대로
+  const shown = takeWholeDays(results, PAGE_SIZE * more);
+  const remaining = results.length - shown.length;
+  const moreHref = hrefWith("more", String(more + 1));
   const dateLabel = days.length ? formatDays(days) : date !== "all" ? DATE_FILTERS.find((f) => f.key === date)?.label : "";
   const regionLabel = sido ? `${sido}${gu ? ` ${gu}` : ""}` : "";
   const condition = [regionLabel, choices.genre ?? "", choices.format ?? "", q ? `‘${q}’` : "", dateLabel].filter(Boolean).join(" ");
@@ -86,7 +101,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   // 검색어나 필터가 있으면 결과 보기 모드: 소개 글을 숨기고 날짜·필터를 두 버튼으로 모아 결과를 위로 올린다
   const searching = Boolean(q || sido || choices.genre || choices.format);
   // 고른 날 중 조건에 맞는 모임이 없는 날: 결과가 있으면 목록 안에 날짜 순서대로 한 줄씩 끼워 넣는다
-  const emptyDays = days.filter((d) => !counts[d]);
+  // 아직 펼치지 않은 뒤쪽 날짜의 빈 줄은 '더 보기'를 눌러 그 날짜까지 왔을 때 보여 준다
+  const shownLastDay = shown.length ? kstDayNumber(shown[shown.length - 1].startsAt) : null;
+  const emptyDays = days.filter((d) => !counts[d] && (remaining === 0 || shownLastDay === null || d <= shownLastDay));
 
   return (
     // 슬라이더는 헤더 바로 밑에 붙인다(위 여백은 슬라이더가 없는 검색 화면에만)
@@ -114,12 +131,13 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         {results.length > 0 ? (
           <>
             <MeetingList
-              meetings={results}
+              meetings={shown}
               now={now}
               wishes={wishes}
               emptyDays={emptyDays}
               emptyLabel={searching ? "조건에 맞는 모임 없음" : "모임 없음"}
             />
+            {remaining > 0 && <LoadMoreLink href={moreHref} remaining={remaining} />}
           </>
         ) : (
           <div>
@@ -153,6 +171,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           </Link>
         )}
       </section>
+
+      <BackToTop />
     </div>
   );
 }

@@ -286,6 +286,10 @@ html:has(.owl-confirm[open]) {
 .owl-toast {
   animation: owl-toast-in 0.24s ease-out;
 }
+/* 홈 '맨 위로' 버튼도 같은 움직임으로 나타난다 */
+.owl-back-to-top {
+  animation: owl-toast-in 0.24s ease-out;
+}
 @keyframes owl-toast-in {
   from { transform: translateY(0.75rem); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
@@ -309,6 +313,7 @@ html:has(.owl-confirm[open]) {
 @media (prefers-reduced-motion: reduce) {
   .owl-card-in,
   .owl-toast,
+  .owl-back-to-top,
   .owl-just-saved {
     animation: none;
   }
