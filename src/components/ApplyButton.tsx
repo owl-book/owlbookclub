@@ -40,13 +40,35 @@ export function ApplyButton({
   const [copied, setCopied] = useState(false);
   const [dontShow, setDontShow] = useState(false);
   const wordRef = useRef<HTMLSpanElement>(null);
+  const triggerRef = useRef<HTMLAnchorElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const href = `/go/${meetingId}`;
 
+  // 키보드 사용자를 위해: 창이 열리면 창으로 포커스를 옮기고, Tab 은 창 안에서만 돌고, 닫히면 신청 버튼으로 돌려놓는다
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const trigger = triggerRef.current;
+    dialogRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") return setOpen(false);
+      if (e.key !== "Tab" || !dialogRef.current) return;
+      const items = dialogRef.current.querySelectorAll<HTMLElement>("button, input");
+      const first = items[0];
+      const last = items[items.length - 1];
+      const at = document.activeElement;
+      if (e.shiftKey && (at === first || at === dialogRef.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && at === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      trigger?.focus();
+    };
   }, [open]);
 
   const proceed = () => {
@@ -81,6 +103,7 @@ export function ApplyButton({
   return (
     <>
       <a
+        ref={triggerRef}
         href={href}
         data-no-progress // 누르면 먼저 안내 창이 열려서, 화면 이동 막대를 띄우지 않는다
         onClick={(e) => {
@@ -100,10 +123,12 @@ export function ApplyButton({
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-navy-900/60 sm:items-center" onClick={() => setOpen(false)}>
           <div
+            ref={dialogRef}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
             aria-labelledby="owl-notice-title"
-            className="w-full max-w-md rounded-t-lg bg-card p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-lg"
+            className="w-full outline-none max-w-md rounded-t-lg bg-card p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-lg"
             onClick={(e) => e.stopPropagation()}
           >
             <p id="owl-notice-title" className="text-t1 text-ink">
