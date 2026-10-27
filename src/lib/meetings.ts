@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { db, hasDb } from "@/lib/db";
 import { matchesRegion, type Sido } from "@/lib/regions";
+import { isMeetingArt, type MeetingArt } from "@/lib/meeting-art";
 import type { Format, Genre } from "@/lib/tags";
 import { kstDayNumber, matchesDateFilter, type DateFilter } from "@/lib/time";
 
@@ -33,6 +34,8 @@ export type Meeting = {
   seriesKey: string | null;
   // 신청 방식(0020): form 신청서·예약 페이지 / dm 인스타 DM / none 신청 없이 자유 방문
   applyMethod: ApplyMethod;
+  // 표지 그림(0029): 승인 화면에서 직접 고른 부엉이 그림. 책 표지보다 먼저 보인다. 없으면 자동(책 표지 → 모임 종류별 그림)
+  coverArt: MeetingArt | null;
   // 같은 묶음의 회차 목록(attachSeries 로 채운다). collapsed: 목록에서 남은 회차를 이 카드 한 장으로 접었는지
   series?: { sessions: SeriesSession[]; collapsed: boolean };
 };
@@ -76,6 +79,7 @@ export type MeetingRow = {
   is_hidden?: boolean; // 0010 실행 전에는 없음
   series_key?: string | null; // 0019 실행 전에는 없음
   apply_method?: string | null; // 0020 실행 전에는 없음
+  cover_art?: string | null; // 0029 실행 전에는 없음
   store: { id: number; name: string; region: string; address?: string | null; is_blocked: boolean }; // address: 0007 실행 전에는 없음
   book: { author: string | null } | null; // book_isbn 으로 연결된 책(없으면 null)
 };
@@ -103,6 +107,7 @@ export function meetingFromRow(r: MeetingRow): Meeting {
     hidden: Boolean(r.is_hidden || r.store.is_blocked),
     seriesKey: r.series_key?.trim() || null,
     applyMethod: r.apply_method === "dm" || r.apply_method === "none" ? r.apply_method : "form",
+    coverArt: isMeetingArt(r.cover_art) ? r.cover_art : null,
   };
 }
 
@@ -270,7 +275,7 @@ export function demoMeetings(now: Date): Meeting[] {
     return new Date(Date.UTC(kst.getUTCFullYear(), kst.getUTCMonth(), kst.getUTCDate(), hour - 9, min));
   };
   const today = new Date(now.getTime() + 9 * 3600000).toISOString().slice(0, 10); // KST 날짜
-  const base = { timeNote: null, endsAt: null, postUrl: "https://www.instagram.com/", description: null, place: null, feeText: "1만5천원", lastCheckedAt: today, status: "open" as const, seriesKey: null, applyMethod: "form" as const };
+  const base = { timeNote: null, endsAt: null, postUrl: "https://www.instagram.com/", description: null, place: null, feeText: "1만5천원", lastCheckedAt: today, status: "open" as const, seriesKey: null, applyMethod: "form" as const, coverArt: null };
   return [
     { ...base, id: 1, startsAt: at(1, 19, 30), description: "한 달에 한 권, 소설 속 마음에 남은 장면을 함께 이야기해요. 처음 오셔도 편하게 들으실 수 있어요.\n\n진행 순서\n1. 간단한 자기소개\n2. 인상 깊은 문장 나누기\n3. 발제 질문으로 자유 토론\n\n- 책은 미리 읽어 와 주세요\n- 음료 1잔이 포함돼요\n- 끝나고 다음 달 책을 함께 골라요\n\n모임은 2시간 정도 걸리고, 마치면 책방 둘러보기 시간이 있어요. 늦게 오셔도 괜찮으니 편하게 들어와 주세요.", title: "[예시] 목요 소설 읽기", tagGenre: "문학", tagFormat: "토론", tagCadence: "정기", applyUrl: "https://example.com/apply/1", bookTitle: "작별하지 않는다", bookAuthor: "한강", store: { id: 1, name: "부엉이책방", region: "경기 고양시", address: "경기 고양시 일산동구 정발산로 24 2층" } },
     { ...base, id: 2, startsAt: at(3, 14), title: "[예시] 주말 과학책 한 권", tagGenre: "과학", tagFormat: "토론", tagCadence: "일일", applyUrl: "https://example.com/apply/2", bookTitle: "코스모스", bookAuthor: "칼 세이건", store: { id: 2, name: "골목서점", region: "서울 마포구", address: null } },

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
+import { isMeetingArt } from "@/lib/meeting-art";
 import { isGuOf, isSido } from "@/lib/regions";
 import { isFormat, isGenre } from "@/lib/tags";
 
@@ -197,6 +198,10 @@ export async function editPendingMeeting(formData: FormData) {
   const postUrl = text(formData, "postUrl", 500);
   if (postUrl && !URL_RE.test(postUrl)) fail(anchor, "post");
 
+  // 표지 그림: 'auto' 면 자동(비움), 아니면 그림 이름(0029)
+  const art = formData.get("coverArt");
+  if (art !== "auto" && !isMeetingArt(art)) throw new Error("잘못된 요청입니다.");
+
   const changes = {
     title: title.replace(/·/g, "~"), // 제목 글꼴에 가운뎃점이 없어 빈칸으로 보인다
     starts_at: startsAt.toISOString(),
@@ -215,6 +220,7 @@ export async function editPendingMeeting(formData: FormData) {
     place: text(formData, "place", 200),
     description: text(formData, "description", 1000),
     review_note: text(formData, "note", 1000),
+    cover_art: art === "auto" ? null : art,
   };
   const { error } = await db().from("meetings").update(changes).eq("id", before.id).eq("pending_review", true);
   if (error) throw new Error(error.message);

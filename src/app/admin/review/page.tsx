@@ -15,6 +15,7 @@ import { getCoverBooks } from "@/lib/book-covers";
 import { getInquiryInbox, getReportInbox } from "@/lib/reports";
 import { approveExhibition, rejectExhibition } from "@/lib/exhibition-actions";
 import { KIND_LABEL } from "@/lib/exhibitions";
+import { autoMeetingArt, MEETING_ARTS, meetingArtSrc } from "@/lib/meeting-art";
 import { getPendingExhibitions, getReviewQueue, type PendingExhibition, type PendingMeeting, type PendingStore, type ReviewGroup } from "@/lib/review";
 import { approveMeeting, approveStore, approveStoreAll, editPendingMeeting, editPendingStore, rejectMeeting, rejectStoreAll } from "@/lib/review-actions";
 import { REGIONS, SIDOS } from "@/lib/regions";
@@ -348,6 +349,7 @@ function MeetingEdit({ m, label }: { m: PendingMeeting; label: string }) {
             <input id={f("author")} name="bookAuthor" maxLength={100} defaultValue={m.bookAuthor ?? ""} className={inputClass} />
           </Field>
         </div>
+        <ArtPicker m={m} />
         <div className="grid grid-cols-2 gap-2">
           <Field label="장르" htmlFor={f("genre")}>
             <Select id={f("genre")} name="genre" value={m.tagGenre} options={GENRES} />
@@ -395,6 +397,33 @@ function MeetingEdit({ m, label }: { m: PendingMeeting; label: string }) {
         </SubmitButton>
       </form>
     </EditBox>
+  );
+}
+
+// 표지 그림 고르기: 그림을 눌러 고른다(라디오 버튼). '자동'은 책 표지, 없으면 모임 종류에 맞춘 그림.
+// 그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나온다
+function ArtPicker({ m }: { m: PendingMeeting }) {
+  const options = [["auto", m.bookTitle ? "자동(책 표지)" : "자동", m.bookTitle ? null : autoMeetingArt(m)] as const, ...MEETING_ARTS.map(([k, t]) => [k, t, k] as const)];
+  return (
+    <fieldset>
+      <legend className="text-l2 font-semibold text-ink">표지 그림</legend>
+      <div className="mt-1 grid grid-cols-5 gap-1.5">
+        {options.map(([value, label, art]) => (
+          <label key={value} className="cursor-pointer text-center">
+            <input type="radio" name="coverArt" value={value} defaultChecked={(m.coverArt ?? "auto") === value} className="peer sr-only" />
+            <span className="relative block aspect-[2/3] overflow-hidden rounded-xs bg-cream ring-1 ring-border peer-checked:ring-2 peer-checked:ring-navy peer-focus-visible:outline-2 peer-focus-visible:outline-navy">
+              {art ? (
+                <img src={meetingArtSrc(art)} alt="" className="size-full object-cover" />
+              ) : (
+                <span className="flex size-full items-center justify-center text-l2 font-normal text-ink-3">책 표지</span>
+              )}
+            </span>
+            <span className="mt-1 block text-l2 font-normal leading-tight text-ink-2 peer-checked:font-semibold peer-checked:text-navy">{label}</span>
+          </label>
+        ))}
+      </div>
+      <p className="mt-1 text-l2 font-normal text-ink-3">그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나와요</p>
+    </fieldset>
   );
 }
 

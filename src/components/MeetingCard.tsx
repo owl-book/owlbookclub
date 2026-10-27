@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getBookCover } from "@/lib/books";
+import { autoMeetingArt, meetingArtSrc } from "@/lib/meeting-art";
 import { isPast, seriesIndex, type Meeting } from "@/lib/meetings";
 import { formatKstMonthDay, meetingTime } from "@/lib/time";
 import { count, dateRange, hashTags, joinDot } from "@/lib/format";
@@ -14,7 +15,9 @@ export type CardWish = { wished: boolean; loggedIn: boolean };
 // href: 카드를 눌렀을 때 갈 곳(기본은 모임 상세). 운영자 승인 미리보기는 미리보기 화면으로 보낸다
 export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { meeting: Meeting; now: Date; wish?: CardWish; hideStore?: boolean; href?: string }) {
   const past = isPast(m, now);
-  const cover = await getBookCover(m.bookTitle);
+  // 승인 화면에서 표지 그림을 직접 골랐으면 책 표지 대신 그 그림을 쓴다(책 표지는 찾지 않는다)
+  const bookTitle = m.coverArt ? null : m.bookTitle;
+  const cover = await getBookCover(bookTitle);
   // 지난·마감 모임: 카드 전체를 흐리게 하면 글씨가 안 읽혀서, 표지와 시각만 낮추고 배지로 알린다
   const dim = past || m.status === "closed";
   // 여러 회차 묶음: 접힌 카드는 이 회차부터 끝 회차까지의 기간과 남은 책 권수를 함께 보여 준다
@@ -35,7 +38,7 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
           상태 뱃지는 표지 왼쪽 위에 얹는다(표지만 흐리게 하고 뱃지 글자는 그대로 읽히게) */}
       <div className="relative self-center">
         <div className={dim ? "opacity-50 grayscale" : ""}>
-          <BookCover url={cover?.url ?? null} title={m.bookTitle} art={meetingArt(m)} />
+          <BookCover url={cover?.url ?? null} title={bookTitle} art={meetingArtSrc(m.coverArt ?? autoMeetingArt(m))} />
         </div>
         {statusKind && <MeetingStatusBadge kind={statusKind} className="absolute left-1 top-1" />}
       </div>
@@ -99,15 +102,6 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
   );
 }
 
-// 책 없는 모임의 표지 그림: 글쓰기는 모임 방식으로, 보드게임은 따로 방식이 없어(기타) 모임 이름으로 고른다.
-// 플리마켓도 이름으로 고르고, 나머지는 책 읽는 부엉이 기본 그림
-function meetingArt(m: Meeting): string {
-  if (m.tagFormat === "글쓰기") return "/meeting-art/writing.webp";
-  if (m.title.includes("보드게임")) return "/meeting-art/boardgame.webp";
-  if (m.title.includes("플리마켓")) return "/meeting-art/fleamarket.webp";
-  return "/meeting-art/default.webp";
-}
-
 // 책 표지(2:3). 표지를 못 찾으면 같은 크기의 종이 질감 칸에 책 제목을 세로로 얹어 목록 정렬을 유지한다.
 function BookCover({ url, title, art }: { url: string | null; title: string | null; art: string }) {
   const box = "relative h-[108px] w-[72px] shrink-0 overflow-hidden rounded-xs";
@@ -118,7 +112,7 @@ function BookCover({ url, title, art }: { url: string | null; title: string | nu
       </div>
     );
   }
-  // 책이 없는 모임: 모임 종류에 맞춘 부엉이 그림(public/meeting-art, 2:3)
+  // 책이 없거나 그림을 고른 모임: 부엉이 그림(public/meeting-art, 2:3)
   if (!title) {
     return (
       <div aria-hidden className={`${box} bg-cream ring-1 ring-border`}>
