@@ -21,7 +21,7 @@ export const metadata: Metadata = { title: "신고함", robots: { index: false, 
 
 const ACTION_LABEL: Record<string, string> = {
   close: "마감으로 표시",
-  hide: "숨김",
+  hide: "비공개",
   edit: "내용 고침",
   ok: "문제없음",
 };
