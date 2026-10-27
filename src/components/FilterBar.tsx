@@ -217,8 +217,10 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
           scrollAfterSearch.current = true;
           go(buildHref(date, text, days, choices));
         }}
-        className="flex gap-2"
+        className="relative"
       >
+        {/* 따로 떨어진 '검색' 버튼 대신 칸 안 오른쪽 돋보기가 검색 버튼(엔터·폰 키보드의 '검색' 키도 그대로).
+            브라우저 기본 지우기(×)는 돋보기와 붙어 헷갈려서 숨긴다 */}
         <input
           type="search"
           value={text}
@@ -226,10 +228,14 @@ export function FilterBar({ regions, date, q, days, choices, today, counts, last
           placeholder="지역, 책방 이름, 책 제목"
           aria-label="모임 검색"
           enterKeyHint="search"
-          className="min-h-11 min-w-0 flex-1 rounded-xs border border-border-control bg-card px-3 py-2.5 text-b1 text-ink placeholder:text-ink-3 focus:border-navy"
+          className="min-h-11 w-full rounded-xs border border-border-control bg-card py-2.5 pl-3 pr-11 text-b1 text-ink placeholder:text-ink-3 focus:border-navy [&::-webkit-search-cancel-button]:appearance-none"
         />
-        <button type="submit" className="min-h-11 shrink-0 rounded-sm bg-navy px-4 text-l1 font-semibold text-page hover:bg-navy-hover active:bg-navy-active">
-          검색
+        <button
+          type="submit"
+          aria-label="검색"
+          className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-xs text-ink-2 hover:text-navy active:text-navy-active"
+        >
+          <SearchIcon />
         </button>
       </form>
 
@@ -496,6 +502,14 @@ function FilterIcon() {
         strokeWidth="1.75"
         strokeLinecap="round"
       />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden>
+      <path d="M10.75 17.5a6.75 6.75 0 1 0 0-13.5 6.75 6.75 0 0 0 0 13.5ZM15.75 15.75 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
     </svg>
   );
 }
