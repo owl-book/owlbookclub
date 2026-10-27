@@ -17,17 +17,17 @@ export function LoadingNote({ children }: { children: ReactNode }) {
   );
 }
 
-// MeetingCard 와 같은 모양: 책 표지(72×108) + 시각·제목·책·책방 줄 + 태그
+// MeetingCard 와 같은 모양: 책 표지(72×108) + 시각·제목·책·책방 줄 + 태그(글 칸 높이 약 122px, 실제 카드와 같게)
 export function MeetingCardSkeleton({ hideStore }: { hideStore?: boolean }) {
   return (
     <div aria-hidden className="flex gap-3.5 py-4">
       <Bone className="h-[108px] w-[72px] shrink-0" />
       <div className="min-w-0 flex-1">
-        <Bone className="h-4 w-16" />
+        <Bone className="h-4 w-24" />
         <Bone className="mt-2.5 h-5 w-4/5" />
         <Bone className="mt-2 h-4 w-3/5" />
-        {!hideStore && <Bone className="mt-1.5 h-4 w-2/5" />}
-        <Bone className="mt-2.5 h-3 w-28" />
+        {!hideStore && <Bone className="mt-2.5 h-4 w-2/5" />}
+        <Bone className="mt-3 h-3.5 w-28" />
       </div>
     </div>
   );
@@ -37,8 +37,9 @@ export function MeetingCardSkeleton({ hideStore }: { hideStore?: boolean }) {
 export function MeetingListSkeleton({ count = 3, hideStore }: { count?: number; hideStore?: boolean }) {
   return (
     <div aria-hidden>
-      <div className="py-2">
-        <Bone className="h-4 w-36" />
+      {/* 날짜 제목(16px, 높이 30px)과 같은 높이 */}
+      <div className="py-1">
+        <Bone className="h-5.5 w-48" />
       </div>
       <ul className="divide-y divide-border">
         {Array.from({ length: count }, (_, i) => (

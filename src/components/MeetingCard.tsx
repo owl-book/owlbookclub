@@ -52,8 +52,15 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
           >
             {m.title}
           </Link>
-          {/* 묶음 모임은 제목이 끝나는 곳 바로 오른쪽에 '총 N회'. 한 줄에 안 들어가면 뱃지만 다음 줄로 내려간다(제목은 나뉘지 않음) */}
-          {idx && <SeriesBadge total={sessions.length} className="ml-1.5 align-middle" />}
+          {/* 묶음 모임은 제목이 끝나는 곳 바로 오른쪽에 '총 N회'. 한 줄에 안 들어가면 뱃지만 다음 줄로 내려간다(제목은 나뉘지 않음).
+              앞의 빈칸은 화면 읽기 프로그램이 제목과 붙여 읽지 않게 하는 것(눈에 보이는 간격은 빈칸 + ml-0.5).
+              align-middle 만으로는 한글 제목 가운데보다 1.5px 낮아서 2px 올린다 */}
+          {idx && (
+            <>
+              {" "}
+              <SeriesBadge total={sessions.length} className="relative -top-0.5 ml-0.5 align-middle" />
+            </>
+          )}
         </h3>
         {rest.length > 1 && (
           <p className="mt-1 text-b2 text-ink-2">
