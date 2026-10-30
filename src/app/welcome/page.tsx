@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -6,7 +7,7 @@ import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
 import { safeNext } from "@/lib/auth-shared";
 import { getMeetingForRecord, getPlan, getProfile, hasWish } from "@/lib/me";
 import { updateDisplayName } from "@/lib/me-actions";
-import { PROVIDERS, isProviderId } from "@/lib/oauth";
+import { PROVIDERS, PROVIDER_ORDER, isProviderId, isProviderReady, isProviderShownOn } from "@/lib/oauth";
 import { getStore } from "@/lib/stores";
 import { formatKstDateOnly } from "@/lib/time";
 
@@ -64,6 +65,12 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
   const [profile, saved] = await Promise.all([getProfile(user.id).catch(() => null), getSaved(user.id, sp.done, sp.id)]);
   if (!profile) redirect(next);
   const providerLabel = isProviderId(profile.provider) ? PROVIDERS[profile.provider].label : profile.provider;
+  // 로그인 방법마다 따로 회원이 된다. 예전에 다른 방법으로 가입했던 사람이 실수로 새로 가입했을 수 있어,
+  // 지금 이 사이트에서 쓸 수 있는 다른 로그인 방법을 알려 준다(방금 가입한 방법·숨긴 버튼은 뺀다)
+  const host = (await headers()).get("host") ?? "";
+  const otherProviders = PROVIDER_ORDER.filter((id) => id !== profile.provider && isProviderReady(id) && isProviderShownOn(id, host)).map(
+    (id) => PROVIDERS[id].label,
+  );
 
   return (
     <div className="pt-8">
@@ -130,6 +137,11 @@ export default async function WelcomePage({ searchParams }: PageProps<"/welcome"
       <a href={next} className="mt-1 flex min-h-11 w-full items-center justify-center text-l1 text-ink-2 hover:text-navy">
         {saved ? "별명은 그대로 둘게요" : "나중에 정할게요"}
       </a>
+      {otherProviders.length > 0 && (
+        <p className="mt-6 text-center text-l2 font-normal leading-normal text-ink-3">
+          {otherProviders.join("·")}로 가입한 적이 있다면, 그 방법으로 로그인해야 예전 찜과 기록이 보여요.
+        </p>
+      )}
     </div>
   );
 }
