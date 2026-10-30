@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { AUTH_COOKIE, safeNext, signValue, verifyValue } from "@/lib/auth-shared";
-import { LOGIN_COOKIE_OPTIONS, getCurrentUser, isAuthEnabled } from "@/lib/auth";
+import { LOGIN_COOKIE_OPTIONS, getCurrentUser, isAuthEnabled, signOutIfGone } from "@/lib/auth";
 import { getMeetingForRecord, isWishKind, savePlan, saveWish, type WishKind } from "@/lib/me";
 import { isPast } from "@/lib/meetings";
 import { logEvent } from "@/lib/tracking";
@@ -17,6 +17,7 @@ async function requireUser() {
   if (!isAuthEnabled()) throw new Error("로그인 기능이 꺼져 있습니다.");
   const user = await getCurrentUser();
   if (!user) throw new Error("로그인이 필요합니다.");
+  await signOutIfGone(user.id);
   return user;
 }
 

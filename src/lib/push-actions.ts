@@ -1,6 +1,6 @@
 "use server";
 
-import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
+import { getCurrentUser, isAuthEnabled, signOutIfGone } from "@/lib/auth";
 import { getPushPrefs, getSubscriptionsFor, isPushEnabled, removeSubscription, savePushPrefs, saveSubscription, sendToUser } from "@/lib/push";
 import { isPushPlatform, isPushPrefKey, type PushPlatform, type PushPrefKey, type PushSubscriptionInput } from "@/lib/push-shared";
 import { getTrackContext } from "@/lib/tracking";
@@ -11,6 +11,7 @@ async function requireUser() {
   if (!isAuthEnabled() || !isPushEnabled()) throw new Error("알림 기능이 꺼져 있습니다.");
   const user = await getCurrentUser();
   if (!user) throw new Error("로그인이 필요합니다.");
+  await signOutIfGone(user.id);
   return user;
 }
 

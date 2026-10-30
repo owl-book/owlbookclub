@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { safeNext } from "@/lib/auth-shared";
-import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
+import { AUTH_COOKIE, safeNext } from "@/lib/auth-shared";
+import { getCurrentUser, goneLoginPath, isAuthEnabled, isKnownUser } from "@/lib/auth";
 import { getMeetingForRecord, savePlan } from "@/lib/me";
 import { isPast } from "@/lib/meetings";
 
@@ -17,9 +17,15 @@ export async function GET(request: NextRequest) {
   if (!isAuthEnabled() || !Number.isSafeInteger(id) || id <= 0) return back;
 
   const user = await getCurrentUser();
+  const self = `/plan?id=${id}&next=${encodeURIComponent(next)}`;
   if (!user) {
-    const self = `/plan?id=${id}&next=${encodeURIComponent(next)}`;
     return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(self)}&reason=plan`, request.url), 303);
+  }
+  // 회원 명단에 없는 쿠키(다른 기기에서 탈퇴 등): 쿠키를 지우고 다시 로그인한 뒤 이 주소로 돌아와 표시한다
+  if (!(await isKnownUser(user.id))) {
+    const res = NextResponse.redirect(new URL(goneLoginPath(self), request.url), 303);
+    res.cookies.set(AUTH_COOKIE.user, "", { path: "/", maxAge: 0 });
+    return res;
   }
 
   try {
