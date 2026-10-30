@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 // 마감된 모임의 아래 버튼. 누르면 '그래도 책방 페이지로 갈까요?'를 묻는다(추가 모집·대기 신청 소식을 놓치지 않게 막지는 않음).
-// 열린 모임의 신청 버튼(앰버)과 헷갈리지 않게 테두리 버튼으로 두고, 이동 버튼도 남색으로 한다.
+// 열린 모임의 신청 버튼(앰버)과 헷갈리지 않게 예전 마감 표시처럼 회색 바탕으로 두고, 이동 버튼도 남색으로 한다.
 // autoOpen: 예전 화면에서 신청 버튼을 눌렀는데 그사이 마감돼 /go 가 돌려보낸 경우(?closed=1). 들어오자마자 묻는다
 // JS 가 없어도 <a href="/go/{id}?ok=1"> 로 바로 책방 페이지에 간다.
 export function ClosedApplyButton({ meetingId, storeName, autoOpen = false }: { meetingId: number; storeName: string; autoOpen?: boolean }) {
@@ -59,7 +59,7 @@ export function ClosedApplyButton({ meetingId, storeName, autoOpen = false }: { 
           e.preventDefault();
           setOpen(true);
         }}
-        className="flex min-h-12 flex-1 flex-col items-center justify-center rounded-sm border border-border-strong bg-card px-3 py-1 text-center hover:bg-sub"
+        className="flex min-h-12 flex-1 flex-col items-center justify-center rounded-sm bg-fill px-3 py-1 text-center hover:bg-border"
       >
         <span className="text-l1 font-semibold text-ink-2">신청이 마감된 모임이에요</span>
         <span className="text-l2 font-normal text-navy underline underline-offset-2">책방 페이지 보기 ↗</span>
@@ -83,7 +83,7 @@ export function ClosedApplyButton({ meetingId, storeName, autoOpen = false }: { 
               그래도 책방 페이지로 갈까요?
             </p>
             <p id="owl-closed-desc" className="mt-3 text-b2 text-ink-2">
-              추가 모집, 대기신청에 대한 정보는 책방 페이지에서 확인/문의 가능합니다.
+              추가 모집, 대기신청에 대한 정보확인 및 문의는 책방 페이지에서 가능합니다.
             </p>
             <p className="mt-4 rounded-md bg-sub px-3 py-2.5 text-b2 text-ink-2">
               <strong className="text-ink">{storeName}</strong>의 신청 페이지(외부 사이트)로 이동합니다. 신청과 결제는 책방에서 진행돼요.
