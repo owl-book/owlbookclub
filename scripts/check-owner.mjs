@@ -17,6 +17,8 @@ const ROOT = new URL("..", import.meta.url).pathname;
 const PORT = 3019;
 const BASE = `http://localhost:${PORT}`;
 const DIST = ".next/check-owner";
+const FAKE_KAKAO_ADMIN = "check-owner-kakao-admin";
+const FAKE_CRON = "check-owner-cron";
 const UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1";
 
 // ── 환경 확인 ──────────────────────────────
@@ -100,7 +102,8 @@ const select = (table, query) => rest(`${table}?${query}`);
 console.log(`\n점검용 서버를 켜는 중(포트 ${PORT}, 1분쯤 걸려요)…`);
 const server = spawn("npx", ["next", "dev", "-p", String(PORT)], {
   cwd: ROOT,
-  env: { ...process.env, NEXT_DIST_DIR: DIST, NODE_ENV: "development" },
+  // 카카오 Admin 키·매일 작업 열쇠는 점검용 가짜 값으로 바꿔 켠다(진짜 열쇠를 쓰지 않음. 카카오에 가는 요청은 거절될 뿐이다)
+  env: { ...process.env, NEXT_DIST_DIR: DIST, NODE_ENV: "development", KAKAO_ADMIN_KEY: FAKE_KAKAO_ADMIN, CRON_SECRET: FAKE_CRON },
   stdio: ["ignore", "pipe", "pipe"],
   detached: true,
 });
@@ -254,6 +257,70 @@ try {
   const afterA = await aState();
   check("기준", "A 본인은 자기 찜을 지울 수 있음", afterA.meetingWish === 0, "점검 도구가 저장 동작을 제대로 부르지 못했어요");
   check("기준", "A 본인은 자기 기록을 지울 수 있음", afterA.memo === null, "점검 도구가 저장 동작을 제대로 부르지 못했어요");
+
+  // ── 5) 카카오 연결 끊기 ──────────────────────────────
+  // 0034 설정문(unlinked_at 칸·다시 시도 목록) 실행 전이면 건너뛴다
+  const has0034 = await select("users", "select=unlinked_at&limit=1").then(() => true, () => false);
+  if (!has0034) {
+    console.log("ℹ️  0034 설정문 실행 전이라 카카오 연결 끊기 점검은 건너뛰어요");
+  } else {
+    // B의 탈퇴(위에서 함) 때 카카오 연결 끊기는 가짜 Admin 키라 실패 → 탈퇴는 끝나고, 다시 시도 목록에 남아야 한다
+    const queued = await select("provider_unlinks", `select=id&provider=eq.kakao&provider_user_id=eq.${B.provider_user_id}`);
+    check("카카오", "연결 끊기가 실패해도 탈퇴는 끝나고, 다시 시도 목록에 남음", queued.length === 1, `목록 ${queued.length}건`);
+
+    // 카카오 알림: 열쇠가 없거나 틀리면 아무것도 하지 않는다
+    const notice = (auth) =>
+      fetch(`${BASE}/api/auth/kakao-unlink`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded", "user-agent": "Java/17", ...(auth ? { Authorization: auth } : {}) },
+        body: new URLSearchParams({ app_id: "1", user_id: A.provider_user_id, referrer_type: "UNLINK_FROM_APPS" }),
+      }).catch(() => null);
+    // A의 회원번호를 카카오 숫자 형태로 바꿔 둔다(알림은 숫자 회원번호로 온다)
+    const kakaoIdA = String(tag);
+    await rest(`users?id=eq.${A.id}`, { method: "PATCH", body: JSON.stringify({ provider_user_id: kakaoIdA }) });
+    A.provider_user_id = kakaoIdA;
+    before = await aState();
+    for (const [who, auth] of [["열쇠 없음", null], ["틀린 열쇠", "KakaoAK wrong-key"]]) {
+      const res = await notice(auth);
+      const [ok, detail] = await same(`카카오 알림(${who})`);
+      const u = (await select("users", `select=unlinked_at&id=eq.${A.id}`))[0];
+      check("카카오", `가짜 연결 끊기 알림(${who}) → 거절, A 그대로`, ok && res?.status === 401 && !u?.unlinked_at, detail || `응답 ${res?.status}`);
+    }
+
+    // 진짜 열쇠의 알림 → A는 로그아웃만(버전 +1, 끊은 때 기록), 찜·알림 등 데이터는 그대로
+    const res = await notice(`KakaoAK ${FAKE_KAKAO_ADMIN}`);
+    const after = await aState();
+    const kept = after.storeWish === before.storeWish && after.push === before.push && after.applied === before.applied;
+    const u = (await select("users", `select=unlinked_at,session_version&id=eq.${A.id}`))[0];
+    check("카카오", "진짜 연결 끊기 알림 → A는 모든 기기 로그아웃(버전 +1)", res?.status === 200 && u?.session_version === before.user.session_version + 1, `응답 ${res?.status}, 버전 ${u?.session_version}`);
+    check("카카오", "진짜 연결 끊기 알림 → 끊은 때 기록, 찜·신청 표시·알림은 그대로", Boolean(u?.unlinked_at) && kept, `끊은 때 ${u?.unlinked_at ?? "없음"}`);
+    const staleA = await (await fetch(`${BASE}/me`, { redirect: "manual", headers: { "user-agent": UA, Cookie: cookieA } })).text();
+    check("카카오", "A의 예전 로그인 쿠키는 더 이상 통하지 않음", staleA.includes("/auth/expired"), "마이페이지가 로그인 풀림으로 보내지 않음");
+
+    // 매일 정리: 열쇠가 틀리면 거절, 맞으면 1년 지난 연결 끊김 회원을 지운다
+    const cron = (key) => fetch(`${BASE}/api/cron/cleanup`, { headers: { "user-agent": "vercel-cron/1.0", Authorization: `Bearer ${key}` } }).catch(() => null);
+    check("매일 정리", "틀린 열쇠 → 거절", (await cron("wrong"))?.status === 401);
+    await cron(FAKE_CRON);
+    check("매일 정리", "끊은 지 1년이 안 된 A는 지우지 않음", (await select("users", `select=id&id=eq.${A.id}`)).length === 1);
+    const retried = (await select("provider_unlinks", `select=attempts&provider=eq.kakao&provider_user_id=eq.${B.provider_user_id}`))[0];
+    check("매일 정리", "실패한 카카오 연결 끊기를 다시 시도함(시도 횟수 +1)", retried?.attempts === 1, `시도 ${retried?.attempts ?? "목록 없음"}`);
+    const twoYearsAgo = new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000).toISOString();
+    await rest(`users?id=eq.${A.id}`, { method: "PATCH", body: JSON.stringify({ unlinked_at: twoYearsAgo }) });
+    await cron(FAKE_CRON);
+    check("매일 정리", "끊은 지 1년이 지난 A는 찜·기록과 함께 지움", (await select("users", `select=id&id=eq.${A.id}`)).length === 0 && (await select("store_wishes", `select=user_id&user_id=eq.${A.id}`)).length === 0);
+    await rest(`provider_unlinks?provider=eq.kakao&provider_user_id=eq.${B.provider_user_id}`, { method: "DELETE" });
+
+    // 카카오계정 자체를 탈퇴했다는 알림 → 돌아올 수 없으니 바로 지운다
+    const [C] = await insert("users", { provider: "kakao", provider_user_id: String(tag + 1), nickname: "점검회원C" });
+    users.push(C.id);
+    await insert("store_wishes", { user_id: C.id, store_id: upcoming.store_id });
+    await fetch(`${BASE}/api/auth/kakao-unlink`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "user-agent": "Java/17", Authorization: `KakaoAK ${FAKE_KAKAO_ADMIN}` },
+      body: new URLSearchParams({ app_id: "1", user_id: C.provider_user_id, referrer_type: "ACCOUNT_DELETE" }),
+    }).catch(() => null);
+    check("카카오", "카카오계정 탈퇴 알림 → 그 회원은 찜과 함께 바로 지움", (await select("users", `select=id&id=eq.${C.id}`)).length === 0 && (await select("store_wishes", `select=user_id&user_id=eq.${C.id}`)).length === 0);
+  }
 } catch (e) {
   check("점검 도구", "점검을 끝까지 진행", false, e.message);
 } finally {

@@ -42,6 +42,8 @@ export async function upsertUser(
   const isNew = Date.now() - new Date(data.created_at).getTime() < 10_000;
   // display_name·session_version 칸이 아직 없어도(설정문 실행 전) 로그인은 되도록 따로 읽고 오류는 무시
   const extra = await db().from("users").select("*").eq("id", data.id).maybeSingle();
+  // 카카오 설정에서 연결을 끊었다가 다시 로그인했으면 '끊김' 표시를 지운다(1년 뒤 정리 대상에서 빠짐). 칸이 없으면(0034 전) 건너뜀
+  if (extra.data?.unlinked_at) await db().from("users").update({ unlinked_at: null }).eq("id", data.id);
   return { id: data.id, isNew, displayName: extra.data?.display_name ?? null, sessionVersion: versionOf(extra.data) };
 }
 

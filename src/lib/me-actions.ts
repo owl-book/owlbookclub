@@ -9,6 +9,7 @@ import { LOGIN_COOKIE_OPTIONS, getCurrentUser, isAuthEnabled, signOutIfGone } fr
 import { getMeetingForRecord, isWishKind, savePlan, saveWish, type WishKind } from "@/lib/me";
 import { isPast } from "@/lib/meetings";
 import { logEvent } from "@/lib/tracking";
+import { kakaoAdminKey, unlinkKakaoOrQueue } from "@/lib/kakao-unlink";
 
 // 마이페이지 저장 동작. 화면 밖에서 직접 호출될 수도 있으므로 매번 로그인 본인인지 확인하고,
 // 쓰기·지우기는 항상 user_id = 본인 조건을 붙인다.
@@ -174,14 +175,19 @@ export async function signOutOtherDevices() {
 
 // 회원 탈퇴: 회원 정보를 지우면 찜·기록도 함께 지워진다(설정문의 on delete cascade).
 // 이용 기록(events)의 회원 번호는 이제 누구인지 알 수 없는 값이 되어 1년 보관 후 파기한다.
+// 카카오 회원은 카카오와의 연결도 끊는다(실패해도 탈퇴는 끝내고 매일 정리에서 다시 시도).
+// 네이버·구글은 끊으려면 그 회원의 로그인 증표가 필요한데 저장하지 않으므로, 탈퇴 뒤 화면에서 직접 끊는 방법을 안내한다.
 export async function withdraw(formData: FormData) {
   const user = await requireUser();
   if (formData.get("confirm") !== "yes") redirect("/me/account/withdraw?error=confirm");
-  const { error } = await db().from("users").delete().eq("id", user.id);
+  const { data: removed, error } = await db().from("users").delete().eq("id", user.id).select("provider, provider_user_id").maybeSingle();
   if (error) throw new Error(`탈퇴 처리 실패: ${error.message}`);
+  if (removed?.provider === "kakao") await unlinkKakaoOrQueue(removed.provider_user_id);
   const store = await cookies();
   store.set(AUTH_COOKIE.user, "", { path: "/", maxAge: 0 });
   store.set(AUTH_COOKIE.lastProvider, "", { path: "/", maxAge: 0 });
   revalidatePath("/", "layout");
-  redirect("/?bye=1");
+  // 탈퇴 뒤 홈 안내: 카카오는 연결도 끊었다고(Admin 키가 있을 때만), 네이버·구글은 직접 끊는 방법을 알려 준다
+  const bye = removed?.provider === "kakao" ? (kakaoAdminKey() ? "kakao" : "1") : (removed?.provider ?? "1");
+  redirect(`/?bye=${bye}`);
 }

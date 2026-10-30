@@ -17,6 +17,9 @@ import {
 import { supabaseKey, supabaseUrl } from "@/lib/env";
 import { AUTH_COOKIE, readSessionUser } from "@/lib/auth-shared";
 
+// 다른 회사 서버가 부르는 주소: 수집 프로그램 차단에서 뺀다
+const MACHINE_PATHS = new Set(["/api/auth/kakao-unlink"]);
+
 // 모든 페이지 요청에서 방문자·세션·첫 유입 UTM 쿠키를 '서버에서' 설정한다.
 // (iOS Safari·인앱 브라우저의 JS 쿠키 수명 제한을 피하기 위해)
 // 새 세션이 시작되면 visit 이벤트를 1건 남긴다 → 재방문율의 원천.
@@ -24,8 +27,9 @@ export function proxy(request: NextRequest, event: NextFetchEvent) {
   const { searchParams, pathname } = request.nextUrl;
   const ua = request.headers.get("user-agent");
 
-  // 수집 프로그램은 페이지를 주지 않는다(경쟁 서비스의 모임·책방 정보 통째 수집 방지)
-  if (isScraperUserAgent(ua)) {
+  // 수집 프로그램은 페이지를 주지 않는다(경쟁 서비스의 모임·책방 정보 통째 수집 방지).
+  // 단, 다른 회사 서버가 부르는 주소(카카오 연결 끊기 알림)는 브라우저가 아니라서 빼 준다. 그 주소는 스스로 열쇠로 진짜인지 확인한다
+  if (isScraperUserAgent(ua) && !MACHINE_PATHS.has(pathname)) {
     return new NextResponse("Forbidden", { status: 403 });
   }
   const isPrefetch =
