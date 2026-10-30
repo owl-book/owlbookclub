@@ -24,6 +24,7 @@
 - 답변과 설명은 한국어, 비전공자도 이해할 수 있는 쉬운 말로
 - 지역·장르·모임 방식 목록은 앱 파일(`src/lib/regions.ts`, `src/lib/tags.ts`)과 DB 표를 함께 수정한다. 고친 뒤 `npm run check:lists`(시험용 DB)와 `npm run check:lists -- --real`(실제 DB)로 두 곳이 똑같은지 확인한다
 - 비밀 열쇠는 `.env.local`에만 두고 커밋하지 않는다. 새 열쇠는 `.env.example`에 이름만 추가한다
+- 로그인·회원 저장 동작(`src/lib/*-actions.ts`, `src/app/auth/`, `src/lib/auth*.ts`)을 고치면 `npm run check:owner`로 남의 데이터 보호를 점검한다(시험용 DB 전용, 1~2분)
 - 수정 후 `npm run build`가 통과하는지 확인하고, 화면은 모바일 폭에서 직접 확인한다
 - 반복되는 UI는 `src/components/`에 재사용 부품으로 만든다
 - 파일을 고칠 때마다 묻지 말고 바로 커밋한다. 한 가지 작업이 끝날 때마다 그 작업의 변경만 묶어, 무엇을 바꿨는지 한국어 한 줄 메시지로 남긴다. `.env.local` 같은 비밀 파일은 넣지 않는다. 깃허브에 올리기(push)는 은희님이 직접 한다

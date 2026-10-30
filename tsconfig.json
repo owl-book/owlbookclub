@@ -54,7 +54,9 @@
     ".next/preview-ga/types/**/*.ts",
     ".next/preview-ga/dev/types/**/*.ts",
     ".next/buildcheck-region/types/**/*.ts",
-    ".next/buildcheck-region/dev/types/**/*.ts"
+    ".next/buildcheck-region/dev/types/**/*.ts",
+    ".next/check-owner/types/**/*.ts",
+    ".next/check-owner/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
