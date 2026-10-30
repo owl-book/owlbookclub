@@ -164,7 +164,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               {condition && (
                 <Link
                   href="/#meetings"
-                  className="mt-2.5 inline-flex min-h-11 items-center rounded-sm border border-border-card bg-card px-4 text-l1 font-semibold text-ink hover:bg-page"
+                  className="mt-1.5 inline-flex min-h-11 items-center rounded-sm border border-border-card bg-card px-4 text-l1 font-semibold text-ink hover:bg-page"
                 >
                   조건 지우고 전체 보기
                 </Link>
