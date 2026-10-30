@@ -8,6 +8,7 @@ import { PendingApplies } from "@/components/PendingApplies";
 import { SubmitButton } from "@/components/SubmitButton";
 import { MeetingStatusBadge, StatusBadge } from "@/components/Tag";
 import { Toast } from "@/components/Toast";
+import { ClearRecordDraft } from "@/components/RecordDraft";
 import { WishButton } from "@/components/WishButton";
 import { getLiveUser, isAuthEnabled } from "@/lib/auth";
 import {
@@ -361,7 +362,10 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
             {typeof sp.saved === "string" && (
               <Toast message="기록을 저장했어요" clearParam="saved" focusId={went.some((w) => String(w.meeting.id) === sp.saved) ? `record-${sp.saved}` : undefined} />
             )}
-            {sp.deleted === "1" && <Toast message="기록을 지웠어요" clearParam="deleted" />}
+            {typeof sp.deleted === "string" && <Toast message="기록을 지웠어요" clearParam="deleted" />}
+            {/* 저장·삭제에 성공했으니 그 모임의 기록 화면에 보관해 둔 글을 지운다 */}
+            {typeof sp.saved === "string" && <ClearRecordDraft userId={user.id} meetingId={sp.saved} />}
+            {typeof sp.deleted === "string" && <ClearRecordDraft userId={user.id} meetingId={sp.deleted} />}
             {attendedMeeting && (
               <Notice>
                 ‘{attendedMeeting.title}’을(를) 다녀온 모임에 담았어요.{" "}

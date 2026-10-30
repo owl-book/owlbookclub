@@ -71,10 +71,19 @@ function clean(v: FormDataEntryValue | null, max: number): string | null {
   return s || null;
 }
 
+// 기록 저장·삭제는 글을 오래 쓴 뒤 누르는 경우가 많다. 그사이 로그인이 풀렸으면 오류 화면 대신
+// 로그인 화면으로 보낸다(쓰던 글은 기록 화면이 이 기기에 보관해 두어 다시 로그인하면 되살아난다)
+async function requireUserForRecord(meetingId: number) {
+  if (isAuthEnabled() && !(await getCurrentUser())) {
+    redirect(`/login?error=record&next=${encodeURIComponent(`/me/records/${meetingId}`)}`);
+  }
+  return requireUser();
+}
+
 export async function saveRecord(formData: FormData) {
-  const user = await requireUser();
   const meetingId = toId(formData.get("meetingId"));
   if (!meetingId) throw new Error("잘못된 요청입니다.");
+  const user = await requireUserForRecord(meetingId);
   const meeting = await getMeetingForRecord(meetingId);
   // 다녀온 모임만 기록할 수 있다
   if (!meeting || !isPast(meeting)) redirect(`/me/records/${meetingId}`);
@@ -99,13 +108,13 @@ export async function saveRecord(formData: FormData) {
 }
 
 export async function deleteRecord(formData: FormData) {
-  const user = await requireUser();
   const meetingId = toId(formData.get("meetingId"));
   if (!meetingId) throw new Error("잘못된 요청입니다.");
+  const user = await requireUserForRecord(meetingId);
   const { error } = await db().from("meeting_records").delete().eq("user_id", user.id).eq("meeting_id", meetingId);
   if (error) throw new Error(`기록 삭제 실패: ${error.message}`);
   revalidatePath("/", "layout");
-  redirect("/me?tab=mine&deleted=1");
+  redirect(`/me?tab=mine&deleted=${meetingId}`);
 }
 
 export async function updateDisplayName(formData: FormData) {

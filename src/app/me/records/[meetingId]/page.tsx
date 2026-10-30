@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { SubmitButton } from "@/components/SubmitButton";
 import { RatingInput } from "@/components/RatingInput";
+import { RecordDraft } from "@/components/RecordDraft";
 import { getLiveUser, isAuthEnabled } from "@/lib/auth";
 import { getMeetingForRecord, getRecord } from "@/lib/me";
 import { deleteRecord, saveRecord } from "@/lib/me-actions";
@@ -70,8 +71,9 @@ export default async function RecordPage({ params }: PageProps<"/me/records/[mee
         <>
           <p className="mt-4 text-l2 font-normal text-ink-3">🔒 이 기록은 나만 볼 수 있어요. 책방이나 다른 사람에게 보이지 않아요. 모든 칸은 비워 둬도 돼요.</p>
 
-          <form action={saveRecord} className="mt-5 space-y-6">
+          <form id="record-form" action={saveRecord} className="mt-5 space-y-6">
             <input type="hidden" name="meetingId" value={meeting.id} />
+            <RecordDraft userId={user.id} meetingId={meeting.id} formId="record-form" />
 
             <div>
               <p className="mb-1 text-l1 font-semibold text-ink">만족도</p>
