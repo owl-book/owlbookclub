@@ -191,3 +191,12 @@ export async function cleanupReportData(): Promise<void> {
   ]);
   for (const r of results) if (r.error) console.error("[owl] report cleanup failed", r.error.message);
 }
+
+// 운영자 탭 숫자를 띄워 둔 동안 다시 읽을 때 쓰는 가벼운 개수(처리 전 신고 + 처리 전 의견·요청). 목록 본문은 읽지 않는다.
+// 신고는 모임을 지울 수 없게 묶여 있어(on delete restrict) 신고함 목록의 개수와 같다. 읽지 못하면 null: 0으로 보이면 '할 일 없음'으로 오해한다
+export async function getInboxCount(): Promise<number | null> {
+  const count = (table: "reports" | "inquiries") => db().from(table).select("id", { count: "exact", head: true }).eq("status", "open");
+  const [r, i] = await Promise.all([count("reports"), count("inquiries")]);
+  if (r.error || r.count === null) return null;
+  return r.count + (i.error ? 0 : (i.count ?? 0));
+}

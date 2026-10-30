@@ -103,11 +103,16 @@ export async function getReviewQueue(): Promise<ReviewQueue> {
 
 // 운영자 탭에 보일 남은 수(모임 + 책방 + 전시). 읽지 못하면 0. 전시 표(0024)가 없으면 전시는 0으로 센다
 export async function getReviewCount(): Promise<number> {
+  return (await readReviewCount()) ?? 0;
+}
+
+// 같은 수를 읽되, 읽지 못하면 null. 띄워 둔 화면의 숫자를 다시 읽을 때는 실패를 0('할 일 없음')으로 바꾸지 않고 이전 숫자를 둔다
+export async function readReviewCount(): Promise<number | null> {
   if (!hasDb()) return 0;
   const count = (table: "meetings" | "stores" | "exhibitions") => db().from(table).select("id", { count: "exact", head: true }).eq("pending_review", true);
   const [m, s, e] = await Promise.all([count("meetings"), count("stores"), count("exhibitions")]);
-  if (m.error || s.error) return 0;
-  return (m.count ?? 0) + (s.count ?? 0) + (e.error ? 0 : (e.count ?? 0));
+  if (m.error || s.error || m.count === null || s.count === null) return null;
+  return m.count + s.count + (e.error ? 0 : (e.count ?? 0));
 }
 
 // 승인 대기 전시(0024). 책방이 아직 대기 중(is_blocked)이어도 보여 준다: 승인할 때 책방이 공개돼 있는지 따로 확인한다
