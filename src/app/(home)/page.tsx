@@ -123,29 +123,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     // 슬라이더는 헤더 바로 밑에 붙인다(위 여백은 슬라이더가 없는 검색 화면에만)
     <div className={searching ? "pt-3" : ""}>
       {typeof sp.bye === "string" && (
-        <div role="status" className={`mb-4 rounded-xs border border-info-border bg-info-surface px-3 py-2.5 text-b2 text-info ${searching ? "" : "mt-3"}`}>
-          <p>탈퇴가 끝났어요. 찜과 기록을 모두 지웠습니다. 그동안 고마웠어요.</p>
-          {sp.bye === "kakao" && <p className="mt-1">카카오와의 연결도 함께 끊었어요.</p>}
-          {/* 네이버·구글은 우리가 대신 끊을 수 없어서(로그인 증표를 보관하지 않음) 직접 끊는 곳을 안내한다 */}
-          {sp.bye === "naver" && (
-            <p className="mt-1">
-              네이버와의 연결은{" "}
-              <a href="https://nid.naver.com/" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
-                네이버ID
-              </a>{" "}
-              &gt; 이력관리 &gt; 연결된 서비스 관리에서 끊을 수 있어요.
-            </p>
-          )}
-          {sp.bye === "google" && (
-            <p className="mt-1">
-              구글과의 연결은{" "}
-              <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
-                구글 계정 &gt; 서드 파티 연결
-              </a>
-              에서 끊을 수 있어요.
-            </p>
-          )}
-        </div>
+        <p role="status" className={`mb-4 rounded-xs border border-info-border bg-info-surface px-3 py-2.5 text-b2 text-info ${searching ? "" : "mt-3"}`}>
+          탈퇴 처리가 완료되었습니다. 그동안 부엉이들의 서재를 이용해 주셔서 감사합니다.
+        </p>
       )}
       {searching ? (
         <h1 className="sr-only">독서모임 검색 결과</h1>

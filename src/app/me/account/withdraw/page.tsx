@@ -35,13 +35,12 @@ export default async function WithdrawPage({ searchParams }: PageProps<"/me/acco
       <ul className="mt-5 space-y-2 rounded-md border border-border-card bg-sub p-4 text-b2 text-ink-2 [&_li]:ml-4 [&_li]:list-disc">
         <li>로그인 정보와 찜한 모임·책방, 남긴 기록이 모두 바로 지워지고 되살릴 수 없어요.</li>
         <li>{providerLabel} 계정 자체는 그대로예요. 다시 로그인하면 새 회원으로 시작해요.</li>
-        {/* 카카오는 우리가 대신 끊고(Admin 키가 있을 때), 네이버·구글은 직접 끊는 방법을 탈퇴 뒤 안내한다 */}
+        {/* 카카오는 우리가 대신 끊고(Admin 키가 있을 때), 네이버·구글은 직접 끊을 수 있다고만 알린다 */}
         {profile.provider === "kakao"
           ? kakaoAdminKey() && <li>카카오와의 연결(정보 제공 동의)도 함께 끊어요.</li>
           : (
             <li>
-              {providerLabel === "구글" ? "구글과" : `${providerLabel}와`}의 연결(정보 제공 동의)은 탈퇴 뒤 {providerLabel} 계정 설정에서 직접 끊을 수 있어요. 방법은 탈퇴 뒤
-              안내해 드려요.
+              {providerLabel === "구글" ? "구글과" : `${providerLabel}와`}의 연결(정보 제공 동의)은 {providerLabel} 계정 설정의 연결된 서비스 메뉴에서 직접 끊을 수 있어요.
             </li>
           )}
       </ul>
