@@ -24,6 +24,10 @@ const ACTION_LABEL: Record<string, string> = {
   hide: "비공개",
   edit: "내용 고침",
   ok: "문제없음",
+  approve: "승인",
+  reject: "넣지 않음",
+  upload: "사진 올림",
+  remove: "사진 뺌",
 };
 
 const DONE_MESSAGE: Record<string, string> = {
@@ -109,7 +113,7 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
           <ul className="mt-2 divide-y divide-border border-y border-border">
             {handled.map((h) => (
               <li key={h.id} className="flex items-baseline justify-between gap-3 py-2.5 text-b2">
-                <span className="min-w-0 truncate text-ink-2">{h.meetingTitle}</span>
+                <span className="min-w-0 truncate text-ink-2">{h.title}</span>
                 <span className="shrink-0 text-l2 text-ink-3">
                   {ACTION_LABEL[h.action] ?? h.action} · {timeAgo(h.createdAt, now)}
                 </span>

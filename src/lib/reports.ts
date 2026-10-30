@@ -19,7 +19,7 @@ export type InboxMeeting = {
 
 export type InboxItem = { meeting: InboxMeeting; reports: InboxReport[] };
 
-export type HandledItem = { id: number; meetingId: number; meetingTitle: string; action: string; createdAt: Date };
+export type HandledItem = { id: number; title: string; action: string; createdAt: Date };
 
 type ReportRow = {
   id: number;
@@ -75,20 +75,53 @@ export async function getReportInbox(): Promise<InboxItem[]> {
   return [...byMeeting.values()];
 }
 
+type HandledRow = {
+  id: number;
+  target_type: string;
+  meeting_id: number | null;
+  store_id: number | null;
+  exhibition_id: number | null;
+  cover_key: string | null;
+  action: string;
+  created_at: string;
+  after: { title?: unknown } | null;
+  before: { title?: unknown } | null;
+  meeting: { title: string } | null;
+  store: { name: string } | null;
+  exhibition: { title: string } | null;
+};
+
+// 처리 기록에 남은 대상의 이름. 책 표지는 표가 지워질 수 있어 기록에 적어 둔 제목을 쓴다
+function handledTitle(r: HandledRow): string {
+  switch (r.target_type) {
+    case "store":
+      return `[책방] ${r.store?.name ?? `책방 ${r.store_id}`}`;
+    case "exhibition":
+      return `[전시] ${r.exhibition?.title ?? `전시 ${r.exhibition_id}`}`;
+    case "book_cover": {
+      const t = r.after?.title ?? r.before?.title;
+      return `[책 표지] ${typeof t === "string" ? t : r.cover_key}`;
+    }
+    default:
+      return r.meeting?.title ?? `모임 ${r.meeting_id}`;
+  }
+}
+
 export async function getRecentHandled(limit = 10): Promise<HandledItem[]> {
   const { data, error } = await db()
     .from("admin_actions")
-    .select("id, meeting_id, action, created_at, meeting:meetings(title)")
+    .select(
+      "id, target_type, meeting_id, store_id, exhibition_id, cover_key, action, created_at, after, before," +
+        " meeting:meetings!admin_actions_meeting_id_fkey(title), store:stores!admin_actions_store_id_fkey(name), exhibition:exhibitions!admin_actions_exhibition_id_fkey(title)",
+    )
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error) throw new Error(error.message);
-  return (data as unknown as { id: number; meeting_id: number; action: string; created_at: string; meeting: { title: string } | null }[]).map((r) => ({
-    id: r.id,
-    meetingId: r.meeting_id,
-    meetingTitle: r.meeting?.title ?? `모임 ${r.meeting_id}`,
-    action: r.action,
-    createdAt: new Date(r.created_at),
-  }));
+  if (error) {
+    // 0032 실행 전이면 새 칸이 없어 실패한다. 이 목록은 참고용이라 신고함 화면은 그대로 띄운다
+    console.error("[owl] recent handled read failed", error.message);
+    return [];
+  }
+  return (data as unknown as HandledRow[]).map((r) => ({ id: r.id, title: handledTitle(r), action: r.action, createdAt: new Date(r.created_at) }));
 }
 
 export type InquiryItem = {

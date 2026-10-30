@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
+import { logAdminAction, logAdminActions } from "@/lib/admin-log";
 import { db } from "@/lib/db";
 import { isMeetingArt } from "@/lib/meeting-art";
 import { isGuOf, isSido } from "@/lib/regions";
@@ -40,10 +41,7 @@ async function withSeries(r: PendingRow): Promise<number[]> {
 }
 
 async function log(ids: number[], action: "approve" | "reject", after: Record<string, unknown>) {
-  const { error } = await db()
-    .from("admin_actions")
-    .insert(ids.map((id) => ({ meeting_id: id, action, before: { is_hidden: true, pending_review: true }, after })));
-  if (error) console.error("[owl] review action log failed", error.message);
+  await logAdminActions(ids.map((id) => ({ target: { type: "meeting", id }, action, before: { is_hidden: true, pending_review: true }, after })));
 }
 
 async function approveStoreRow(storeId: number): Promise<boolean> {
@@ -54,7 +52,9 @@ async function approveStoreRow(storeId: number): Promise<boolean> {
     .eq("pending_review", true)
     .select("id");
   if (error) throw new Error(error.message);
-  return (data ?? []).length > 0;
+  const approved = (data ?? []).length > 0;
+  if (approved) await logAdminAction({ type: "store", id: storeId }, "approve", { is_blocked: true, pending_review: true }, { is_blocked: false, pending_review: false });
+  return approved;
 }
 
 // 신청 링크가 빈 모임은 공개하지 않는다(신청 버튼이 아무 데도 안 가서). 빈 모임이 하나라도 있으면 true
@@ -224,10 +224,11 @@ export async function editPendingMeeting(formData: FormData) {
   };
   const { error } = await db().from("meetings").update(changes).eq("id", before.id).eq("pending_review", true);
   if (error) throw new Error(error.message);
-  const { error: logError } = await db().from("admin_actions").insert({ meeting_id: id, action: "edit", before: { pending_review: true }, after: changes });
-  if (logError) console.error("[owl] review edit log failed", logError.message);
+  await logAdminAction({ type: "meeting", id }, "edit", { pending_review: true }, changes);
   back(anchor, "edit");
 }
+
+const STORE_EDIT_FIELDS = "name, region, address, hours, phone, instagram_url, intro, review_note";
 
 export async function editPendingStore(formData: FormData) {
   await requireAdmin();
@@ -237,7 +238,8 @@ export async function editPendingStore(formData: FormData) {
 
   const name = text(formData, "name", 60);
   if (!name) fail(anchor, "name");
-  const cur = await db().from("stores").select("region").eq("id", id).eq("pending_review", true).maybeSingle();
+  // 바꾸기 전 값도 함께 읽어 처리 기록에 남긴다
+  const cur = await db().from("stores").select(STORE_EDIT_FIELDS).eq("id", id).eq("pending_review", true).maybeSingle();
   if (cur.error) throw new Error(cur.error.message);
   if (!cur.data) throw new Error("이미 공개된 책방이에요. 화면을 새로 고쳐 주세요.");
   const region = formData.get("region");
@@ -247,22 +249,19 @@ export async function editPendingStore(formData: FormData) {
   const instagram = text(formData, "instagramUrl", 300);
   if (instagram && !URL_RE.test(instagram)) fail(anchor, "insta");
 
-  const { data, error } = await db()
-    .from("stores")
-    .update({
-      name,
-      region,
-      address: text(formData, "address", 200),
-      hours: text(formData, "hours", 300),
-      phone: text(formData, "phone", 30),
-      instagram_url: instagram,
-      intro: text(formData, "intro", 1000),
-      review_note: text(formData, "note", 1000),
-    })
-    .eq("id", id)
-    .eq("pending_review", true)
-    .select("id");
+  const changes = {
+    name,
+    region,
+    address: text(formData, "address", 200),
+    hours: text(formData, "hours", 300),
+    phone: text(formData, "phone", 30),
+    instagram_url: instagram,
+    intro: text(formData, "intro", 1000),
+    review_note: text(formData, "note", 1000),
+  };
+  const { data, error } = await db().from("stores").update(changes).eq("id", id).eq("pending_review", true).select("id");
   if (error) throw new Error(error.message);
   if (!data?.length) throw new Error("이미 공개된 책방이에요. 화면을 새로 고쳐 주세요.");
+  await logAdminAction({ type: "store", id }, "edit", cur.data as Record<string, unknown>, changes);
   back(anchor, "store-edit");
 }

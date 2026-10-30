@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin";
+import { logAdminAction } from "@/lib/admin-log";
 import { COVER_BUCKET, titleKey } from "@/lib/book-covers";
 import { imageType } from "@/lib/image-shrink";
 
@@ -53,6 +54,7 @@ export async function uploadBookCover(_prev: CoverUploadState, formData: FormDat
   // 바꾼 경우 예전 사진 파일은 보관함에서 정리한다(실패해도 화면에는 영향 없음)
   const oldPath = (before as { image_path: string } | null)?.image_path;
   if (oldPath && oldPath !== path) await db().storage.from(COVER_BUCKET).remove([oldPath]);
+  await logAdminAction({ type: "book_cover", key }, "upload", { image_path: oldPath ?? null }, { title: title.trim(), image_path: path });
 
   revalidatePath("/", "layout");
   redirect(backTo(oldPath ? "replace" : "upload", formData));
@@ -64,10 +66,11 @@ export async function removeBookCover(formData: FormData) {
   const key = formData.get("key");
   if (typeof key !== "string" || !key) throw new Error("잘못된 요청입니다.");
 
-  const { data, error } = await db().from("book_covers").delete().eq("title_key", key).select("image_path").maybeSingle();
+  const { data, error } = await db().from("book_covers").delete().eq("title_key", key).select("title, image_path").maybeSingle();
   if (error) throw new Error(error.message);
-  const path = (data as { image_path: string } | null)?.image_path;
-  if (path) await db().storage.from(COVER_BUCKET).remove([path]);
+  const removed = data as { title: string; image_path: string } | null;
+  if (removed?.image_path) await db().storage.from(COVER_BUCKET).remove([removed.image_path]);
+  if (removed) await logAdminAction({ type: "book_cover", key }, "remove", { title: removed.title, image_path: removed.image_path }, {});
 
   revalidatePath("/", "layout");
   redirect(backTo("remove", formData));

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
+import { logAdminAction } from "@/lib/admin-log";
 import { db } from "@/lib/db";
 import { POSTER_BUCKET } from "@/lib/exhibitions";
 import { imageType } from "@/lib/image-shrink";
@@ -44,6 +45,7 @@ export async function approveExhibition(formData: FormData) {
   if (r.store.is_blocked) fail(id, "ex-store");
   const { error } = await db().from("exhibitions").update({ is_hidden: false, pending_review: false, updated_at: new Date().toISOString() }).eq("id", id).eq("pending_review", true);
   if (error) throw new Error(error.message);
+  await logAdminAction({ type: "exhibition", id }, "approve", { is_hidden: true, pending_review: true }, { is_hidden: false, pending_review: false });
   revalidatePath("/", "layout");
   redirect(`${REVIEW_PATH}?done=ex-approve`);
 }
@@ -56,6 +58,7 @@ export async function rejectExhibition(formData: FormData) {
   await readPending(id);
   const { error } = await db().from("exhibitions").update({ pending_review: false, updated_at: new Date().toISOString() }).eq("id", id).eq("pending_review", true);
   if (error) throw new Error(error.message);
+  await logAdminAction({ type: "exhibition", id }, "reject", { is_hidden: true, pending_review: true }, { is_hidden: true, pending_review: false });
   revalidatePath(REVIEW_PATH);
   redirect(`${REVIEW_PATH}?done=ex-reject`);
 }
@@ -98,6 +101,7 @@ export async function uploadExhibitionPoster(_prev: PosterUploadState, formData:
   }
   // 바꾼 경우 예전 파일은 보관함에서 정리한다(실패해도 화면에는 영향 없음)
   if (before.poster_path && before.poster_path !== path) await db().storage.from(POSTER_BUCKET).remove([before.poster_path]);
+  await logAdminAction({ type: "exhibition", id }, "upload", { poster_path: before.poster_path }, { poster_path: path, poster_width: width, poster_height: height });
 
   revalidatePath(REVIEW_PATH);
   redirect(`${REVIEW_PATH}?done=${before.poster_path ? "ex-poster-replace" : "ex-poster"}#e-${id}`);
