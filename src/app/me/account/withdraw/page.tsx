@@ -33,7 +33,7 @@ export default async function WithdrawPage({ searchParams }: PageProps<"/me/acco
 
       <ul className="mt-5 space-y-2 rounded-md border border-border-card bg-sub p-4 text-b2 text-ink-2 [&_li]:ml-4 [&_li]:list-disc">
         <li>로그인 정보와 찜한 모임·책방, 남긴 기록이 모두 바로 지워지고 되살릴 수 없어요.</li>
-        <li>{providerLabel} 계정 자체는 그대로예요. 다시 로그인하면 새 회원으로 시작해요.</li>
+        <li>다시 회원가입하면 새 회원으로 시작됩니다. {providerLabel} 계정 자체는 그대로예요.</li>
       </ul>
 
       <Link
