@@ -258,7 +258,7 @@ export function ContactForm({ stores, initialCategory, initialStoreId }: Props) 
             >
               {pending ? "보내는 중…" : "보내기"}
             </button>
-            <p className="mt-2 text-l2 font-normal text-ink-3">내용에는 다른 사람의 이름·연락처 같은 개인정보를 적지 말아 주세요.</p>
+            <p className="mt-2 text-l2 font-normal text-ink-3">내용에는 다른 사람의 이름·연락처 같은 개인정보는 적지마세요.</p>
           </div>
         </div>
       )}
@@ -280,7 +280,7 @@ function Field({ id, label, optional, hint, missing, children }: { id: string; l
   return (
     <div>
       <label htmlFor={id} className="block text-l1 font-semibold text-ink">
-        {label} {optional !== undefined && <span className="font-normal text-ink-3">{optional ? "(안 써도 돼요)" : "(꼭 적어 주세요)"}</span>}
+        {label} {optional !== undefined && <span className="font-normal text-ink-3">{optional ? "(안 써도 돼요)" : "(필수)"}</span>}
       </label>
       {children}
       {missing && (

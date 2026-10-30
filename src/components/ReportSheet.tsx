@@ -66,7 +66,7 @@ export function ReportSheet({ meetingId, storeId, closed }: Props) {
   return (
     <>
       <div className="mt-0.5 flex items-center">
-        <span className="text-ink-2">{sent ? "알려주셔서 고마워요." : "다른 점이 있나요?"}</span>
+        <span className="text-ink-2">{sent ? "알려주셔서 감사합니다." : "다른 점이 있나요?"}</span>
         <button
           ref={triggerRef}
           type="button"
@@ -111,7 +111,7 @@ export function ReportSheet({ meetingId, storeId, closed }: Props) {
                 <ChoiceChips name="kind" legend="다른 점 고르기" legendHidden options={kinds} value={kind} onChange={setKind} className="mt-4" />
 
                 <label htmlFor="report-message" className="mt-5 block text-l1 font-semibold text-ink">
-                  자세한 내용 <span className="font-normal text-ink-3">{kind === "other" ? "(꼭 적어 주세요)" : "(안 써도 돼요)"}</span>
+                  자세한 내용 <span className="font-normal text-ink-3">{kind === "other" ? "(필수)" : "(안 써도 돼요)"}</span>
                 </label>
                 <textarea
                   id="report-message"
@@ -124,7 +124,7 @@ export function ReportSheet({ meetingId, storeId, closed }: Props) {
                   className="mt-1.5 block w-full resize-none rounded-xs border border-border-control bg-card px-3 py-2.5 text-b2 text-ink placeholder:text-ink-3 focus:border-navy focus:outline-2 focus:outline-navy"
                 />
                 <p id="report-message-hint" className="mt-1 text-l2 font-normal text-ink-3">
-                  이름·연락처 같은 개인정보는 적지 말아 주세요.
+                  이름·연락처 같은 개인정보는 적지마세요.
                 </p>
 
                 {/* 사람 눈에는 보이지 않는 칸(자동 프로그램 걸러내기용) */}
