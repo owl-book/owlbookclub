@@ -22,7 +22,7 @@
 
 ## 작업 규칙
 - 답변과 설명은 한국어, 비전공자도 이해할 수 있는 쉬운 말로
-- 지역·장르·모임 방식 목록은 앱 파일(`src/lib/regions.ts`, `src/lib/tags.ts`)과 DB 표를 함께 수정한다
+- 지역·장르·모임 방식 목록은 앱 파일(`src/lib/regions.ts`, `src/lib/tags.ts`)과 DB 표를 함께 수정한다. 고친 뒤 `npm run check:lists`(시험용 DB)와 `npm run check:lists -- --real`(실제 DB)로 두 곳이 똑같은지 확인한다
 - 비밀 열쇠는 `.env.local`에만 두고 커밋하지 않는다. 새 열쇠는 `.env.example`에 이름만 추가한다
 - 수정 후 `npm run build`가 통과하는지 확인하고, 화면은 모바일 폭에서 직접 확인한다
 - 반복되는 UI는 `src/components/`에 재사용 부품으로 만든다
