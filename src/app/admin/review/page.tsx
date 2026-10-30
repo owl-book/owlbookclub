@@ -7,6 +7,7 @@ import { AdminNav } from "@/components/AdminNav";
 import { ExhibitionCard } from "@/components/ExhibitionCard";
 import { MeetingCard } from "@/components/MeetingCard";
 import { PosterUploadForm } from "@/components/PosterUploadForm";
+import { EditForm } from "@/components/EditForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { StatusBadge } from "@/components/Tag";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
@@ -146,13 +147,6 @@ function errorMessage(sp: Record<string, string | string[] | undefined>): string
   const map: Record<string, string> = {
     nolink: "신청 링크가 비어 있어서 승인하지 않았어요. [내용 고치기]에서 신청 링크를 먼저 채워 주세요.",
     "nolink-all": "신청 링크가 빈 모임이 있어서 모두 승인하지 않았어요. 빈 모임의 신청 링크를 먼저 채워 주세요.",
-    date: "날짜와 시작 시각을 확인해 주세요.",
-    ends: "끝나는 시각은 시작 시각보다 늦어야 해요(같은 날 '21:00'처럼).",
-    title: "모임 이름을 적어 주세요.",
-    apply: "신청 링크는 https:// 로 시작하는 주소나 sms:01012345678 처럼 적어 주세요.",
-    post: "게시물 링크는 https:// 로 시작하는 주소로 적어 주세요.",
-    name: "책방 이름을 적어 주세요.",
-    insta: "인스타그램은 https:// 로 시작하는 주소로 적어 주세요.",
     "ex-permission": "포스터가 있는 전시는 '책방에 포스터 사용 허가를 받았어요'에 표시해야 공개할 수 있어요.",
     "ex-store": "이 책방이 아직 공개 전이에요. 위에서 책방(또는 모임)을 먼저 승인해 주세요.",
   };
@@ -325,7 +319,7 @@ function MeetingEdit({ m, label }: { m: PendingMeeting; label: string }) {
   const f = (k: string) => `${k}-${m.id}`;
   return (
     <EditBox label={label}>
-      <form action={editPendingMeeting} className="space-y-3">
+      <EditForm action={editPendingMeeting} doneHref={`/admin/review?done=edit#m-${m.id}`}>
         <input type="hidden" name="meetingId" value={m.id} />
         <Field label="모임 이름" htmlFor={f("title")} hint="가운뎃점(·)은 ~로 바꿔서 저장해요">
           <input id={f("title")} name="title" required maxLength={100} defaultValue={m.title} className={inputClass} />
@@ -392,10 +386,7 @@ function MeetingEdit({ m, label }: { m: PendingMeeting; label: string }) {
         <Field label="확인할 점 (손님에게 안 보여요)" htmlFor={f("note")} hint="확인이 끝난 줄은 지워 주세요">
           <textarea id={f("note")} name="note" rows={3} maxLength={1000} defaultValue={m.note ?? ""} className={textareaClass} />
         </Field>
-        <SubmitButton pendingText="저장하는 중…" className="min-h-11 w-full rounded-sm bg-navy py-2.5 text-l1 font-semibold text-white hover:bg-navy-hover">
-          고친 내용 저장 (공개는 안 돼요)
-        </SubmitButton>
-      </form>
+      </EditForm>
     </EditBox>
   );
 }
@@ -433,7 +424,7 @@ function StoreEdit({ store: s }: { store: PendingStore }) {
   const f = (k: string) => `${k}-s${s.id}`;
   return (
     <EditBox label="책방 정보 고치기">
-      <form action={editPendingStore} className="space-y-3">
+      <EditForm action={editPendingStore} doneHref={`/admin/review?done=store-edit#s-${s.id}`}>
         <input type="hidden" name="storeId" value={s.id} />
         <Field label="책방 이름" htmlFor={f("name")}>
           <input id={f("name")} name="name" required maxLength={60} defaultValue={s.name} className={inputClass} />
@@ -459,10 +450,7 @@ function StoreEdit({ store: s }: { store: PendingStore }) {
         <Field label="확인할 점 (손님에게 안 보여요)" htmlFor={f("note")} hint="확인이 끝난 줄은 지워 주세요">
           <textarea id={f("note")} name="note" rows={3} maxLength={1000} defaultValue={s.note ?? ""} className={textareaClass} />
         </Field>
-        <SubmitButton pendingText="저장하는 중…" className="min-h-11 w-full rounded-sm bg-navy py-2.5 text-l1 font-semibold text-white hover:bg-navy-hover">
-          고친 내용 저장 (공개는 안 돼요)
-        </SubmitButton>
-      </form>
+      </EditForm>
     </EditBox>
   );
 }

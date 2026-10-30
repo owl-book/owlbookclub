@@ -147,38 +147,54 @@ function text(formData: FormData, key: string, max: number): string | null {
   return s || null;
 }
 
-function back(id: string, done: string): never {
-  revalidatePath(REVIEW_PATH);
-  redirect(`${REVIEW_PATH}?done=${done}#${id}`);
-}
-
 function fail(id: string, error: string): never {
   redirect(`${REVIEW_PATH}?error=${error}#${id}`);
 }
 
-export async function editPendingMeeting(formData: FormData) {
+// 고치기 결과: 실패하면 이유를 돌려주고(화면이 고치던 내용을 그대로 둔 채 폼 아래에 보여 줌), 성공하면 비워 돌려준다.
+// 성공 뒤 목록으로 돌아가는 일은 화면(EditForm)이 한다. 여기서 redirect 하면 화면 쪽에는 오류로 전해진다
+export type EditResult = { error: string } | undefined;
+
+const SAVE_FAILED = "저장하지 못했어요. 잠시 뒤 다시 눌러 주세요.";
+
+// 고치는 도중 생긴 문제(글자 수 초과·이미 공개됨·DB 오류)를 오류 화면으로 넘기지 않고 이유로 바꿔 돌려준다
+async function tryEdit(save: () => Promise<EditResult>): Promise<EditResult> {
+  try {
+    return await save();
+  } catch (e) {
+    console.error("[owl] review edit failed", e);
+    return { error: e instanceof Error && e.message ? e.message : SAVE_FAILED };
+  }
+}
+
+export async function editPendingMeeting(formData: FormData): Promise<EditResult> {
   await requireAdmin();
   const id = toId(formData.get("meetingId"));
-  if (!id) throw new Error("잘못된 요청입니다.");
-  const anchor = `m-${id}`;
+  if (!id) return { error: "잘못된 요청입니다." };
+  const result = await tryEdit(() => saveMeeting(id, formData));
+  if (!result) revalidatePath(REVIEW_PATH);
+  return result;
+}
+
+async function saveMeeting(id: number, formData: FormData): Promise<EditResult> {
   const before = await readPending(id);
 
   const startsRaw = formData.get("startsAt");
-  if (typeof startsRaw !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(startsRaw)) fail(anchor, "date");
+  if (typeof startsRaw !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(startsRaw)) return { error: "날짜와 시작 시각을 확인해 주세요." };
   const startsAt = new Date(`${startsRaw}:00+09:00`);
-  if (Number.isNaN(startsAt.getTime())) fail(anchor, "date");
+  if (Number.isNaN(startsAt.getTime())) return { error: "날짜와 시작 시각을 확인해 주세요." };
 
   // 끝나는 시각은 같은 날 '21:00'처럼 받는다. 비우면 없음
   const endsRaw = text(formData, "endsAt", 5);
   let endsAt: Date | null = null;
   if (endsRaw) {
-    if (!/^\d{2}:\d{2}$/.test(endsRaw)) fail(anchor, "ends");
+    if (!/^\d{2}:\d{2}$/.test(endsRaw)) return { error: "끝나는 시각은 시작 시각보다 늦어야 해요(같은 날 '21:00'처럼)." };
     endsAt = new Date(`${startsRaw.slice(0, 10)}T${endsRaw}:00+09:00`);
-    if (endsAt.getTime() <= startsAt.getTime()) fail(anchor, "ends");
+    if (endsAt.getTime() <= startsAt.getTime()) return { error: "끝나는 시각은 시작 시각보다 늦어야 해요(같은 날 '21:00'처럼)." };
   }
 
   const title = text(formData, "title", 100);
-  if (!title) fail(anchor, "title");
+  if (!title) return { error: "모임 이름을 적어 주세요." };
 
   const genre = formData.get("genre");
   const format = formData.get("format");
@@ -189,18 +205,18 @@ export async function editPendingMeeting(formData: FormData) {
   const genreOk = isGenre(genre) || genre === before.tag_genre;
   const formatOk = isFormat(format) || format === before.tag_format;
   if (!genreOk || !formatOk || typeof genre !== "string" || typeof format !== "string" || (cadence !== "정기" && cadence !== "일일") || (status !== "open" && status !== "closed") || (method !== "form" && method !== "dm" && method !== "none"))
-    throw new Error("잘못된 요청입니다.");
+    return { error: "잘못된 요청입니다." };
 
   // 신청 링크는 비워 둘 수 있다(승인할 때 막는다). 적으면 https:// 또는 sms:01012345678
   const applyRaw = text(formData, "applyUrl", 500);
   const applyUrl = !applyRaw ? "" : /^sms:/i.test(applyRaw) ? `sms:${applyRaw.slice(4).replace(/[^\d+]/g, "")}` : applyRaw;
-  if (applyUrl && !URL_RE.test(applyUrl) && !SMS_RE.test(applyUrl)) fail(anchor, "apply");
+  if (applyUrl && !URL_RE.test(applyUrl) && !SMS_RE.test(applyUrl)) return { error: "신청 링크는 https:// 로 시작하는 주소나 sms:01012345678 처럼 적어 주세요." };
   const postUrl = text(formData, "postUrl", 500);
-  if (postUrl && !URL_RE.test(postUrl)) fail(anchor, "post");
+  if (postUrl && !URL_RE.test(postUrl)) return { error: "게시물 링크는 https:// 로 시작하는 주소로 적어 주세요." };
 
   // 표지 그림: 'auto' 면 자동(비움), 아니면 그림 이름(0029)
   const art = formData.get("coverArt");
-  if (art !== "auto" && !isMeetingArt(art)) throw new Error("잘못된 요청입니다.");
+  if (art !== "auto" && !isMeetingArt(art)) return { error: "잘못된 요청입니다." };
 
   const changes = {
     title: title.replace(/·/g, "~"), // 제목 글꼴에 가운뎃점이 없어 빈칸으로 보인다
@@ -223,31 +239,40 @@ export async function editPendingMeeting(formData: FormData) {
     cover_art: art === "auto" ? null : art,
   };
   const { error } = await db().from("meetings").update(changes).eq("id", before.id).eq("pending_review", true);
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[owl] review edit failed", error.message);
+    return { error: SAVE_FAILED };
+  }
   await logAdminAction({ type: "meeting", id }, "edit", { pending_review: true }, changes);
-  back(anchor, "edit");
 }
 
 const STORE_EDIT_FIELDS = "name, region, address, hours, phone, instagram_url, intro, review_note";
 
-export async function editPendingStore(formData: FormData) {
+export async function editPendingStore(formData: FormData): Promise<EditResult> {
   await requireAdmin();
   const id = toId(formData.get("storeId"));
-  if (!id) throw new Error("잘못된 요청입니다.");
-  const anchor = `s-${id}`;
+  if (!id) return { error: "잘못된 요청입니다." };
+  const result = await tryEdit(() => saveStore(id, formData));
+  if (!result) revalidatePath(REVIEW_PATH);
+  return result;
+}
 
+async function saveStore(id: number, formData: FormData): Promise<EditResult> {
   const name = text(formData, "name", 60);
-  if (!name) fail(anchor, "name");
+  if (!name) return { error: "책방 이름을 적어 주세요." };
   // 바꾸기 전 값도 함께 읽어 처리 기록에 남긴다
   const cur = await db().from("stores").select(STORE_EDIT_FIELDS).eq("id", id).eq("pending_review", true).maybeSingle();
-  if (cur.error) throw new Error(cur.error.message);
-  if (!cur.data) throw new Error("이미 공개된 책방이에요. 화면을 새로 고쳐 주세요.");
+  if (cur.error) {
+    console.error("[owl] review edit failed", cur.error.message);
+    return { error: SAVE_FAILED };
+  }
+  if (!cur.data) return { error: "이미 공개된 책방이에요. 화면을 새로 고쳐 주세요." };
   const region = formData.get("region");
   const [sido, gu] = typeof region === "string" ? region.split(" ") : [];
   const regionOk = (isSido(sido) && isGuOf(sido, gu)) || region === (cur.data as { region: string }).region;
-  if (!regionOk || typeof region !== "string") throw new Error("잘못된 요청입니다.");
+  if (!regionOk || typeof region !== "string") return { error: "잘못된 요청입니다." };
   const instagram = text(formData, "instagramUrl", 300);
-  if (instagram && !URL_RE.test(instagram)) fail(anchor, "insta");
+  if (instagram && !URL_RE.test(instagram)) return { error: "인스타그램은 https:// 로 시작하는 주소로 적어 주세요." };
 
   const changes = {
     name,
@@ -260,8 +285,10 @@ export async function editPendingStore(formData: FormData) {
     review_note: text(formData, "note", 1000),
   };
   const { data, error } = await db().from("stores").update(changes).eq("id", id).eq("pending_review", true).select("id");
-  if (error) throw new Error(error.message);
-  if (!data?.length) throw new Error("이미 공개된 책방이에요. 화면을 새로 고쳐 주세요.");
+  if (error) {
+    console.error("[owl] review edit failed", error.message);
+    return { error: SAVE_FAILED };
+  }
+  if (!data?.length) return { error: "이미 공개된 책방이에요. 화면을 새로 고쳐 주세요." };
   await logAdminAction({ type: "store", id }, "edit", cur.data as Record<string, unknown>, changes);
-  back(anchor, "store-edit");
 }
