@@ -12,6 +12,7 @@ import { ClickTracker } from "@/components/ClickTracker";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { SkipLink } from "@/components/SkipLink";
 import { KeepAppLogin } from "@/components/KeepAppLogin";
+import { AuthSync } from "@/components/AuthSync";
 import { RefreshOnReturn } from "@/components/RefreshOnReturn";
 import { PushAsk } from "@/components/PushAsk";
 import { isPushEnabled, vapidPublicKey } from "@/lib/push";
@@ -143,6 +144,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         {user && isPushEnabled() && <PushAsk vapidKey={vapidPublicKey()!} />}
         {/* 홈 화면 앱에서는 열 때마다 로그인 기간을 늘린다 */}
         {user && <KeepAppLogin />}
+        {/* 다른 탭에서 로그아웃·로그인하면 이 탭도 바로 맞춘다 */}
+        {authEnabled && <AuthSync userId={user?.id ?? null} />}
         {/* 오래 떠나 있다 돌아오면 마감·찜 같은 바뀐 내용을 다시 읽는다 */}
         <RefreshOnReturn />
         <ClickTracker />

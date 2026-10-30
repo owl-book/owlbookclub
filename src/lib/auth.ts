@@ -58,9 +58,21 @@ export function versionOf(row: { session_version?: unknown } | null | undefined)
 // 그대로 두면 찜·내 모임이 '저장하지 못했어요'만 반복된다. 모든 화면에서 확인하지는 않고(매번 DB를 읽지 않게) 저장 직전과 마이페이지에서만 확인한다.
 // (칸 이름이 0033 전후로 달라질 수 있어 select("*")로 읽는다. users 는 칸이 몇 개 안 된다)
 export async function isLiveSession(user: SessionUser): Promise<boolean> {
+  return (await liveUserRow(user)) !== null;
+}
+
+// isLiveSession 과 같은 확인을 하고, 통하면 회원 행을 돌려준다(통하지 않으면 null)
+export async function liveUserRow(user: SessionUser): Promise<Record<string, unknown> | null> {
   const { data, error } = await db().from("users").select("*").eq("id", user.id).maybeSingle();
   if (error) throw new Error(`회원 확인 실패: ${error.message}`);
-  return Boolean(data) && versionOf(data) === user.v;
+  return data && versionOf(data) === user.v ? data : null;
+}
+
+// 헤더 등에 쓰는 이름: 마이페이지에서 정한 별명 → 로그인 회사의 별명 순. 둘 다 없으면 지금 이름을 그대로 둔다
+export function shownName(row: Record<string, unknown>, current: string): string {
+  const display = typeof row.display_name === "string" ? row.display_name : "";
+  const nickname = typeof row.nickname === "string" ? row.nickname.slice(0, 20) : "";
+  return display || nickname || current;
 }
 
 // 명단에 없는 회원을 로그인 화면으로 보낼 주소. 로그인 쿠키를 먼저 지워야 한다(로그인 화면은 쿠키가 있으면 바로 돌려보낸다)
