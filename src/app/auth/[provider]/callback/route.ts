@@ -55,7 +55,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/auth/[provid
     const res = NextResponse.redirect(new URL(dest, request.url), 302);
     res.headers.set("Cache-Control", "no-store");
     res.cookies.set(AUTH_COOKIE.oauth, "", { path: "/auth", maxAge: 0 });
-    res.cookies.set(AUTH_COOKIE.user, await signValue({ id: user.id, name, provider }, LOGIN_MAX_AGE), LOGIN_COOKIE_OPTIONS);
+    res.cookies.set(AUTH_COOKIE.user, await signValue({ id: user.id, name, provider, v: user.sessionVersion }, LOGIN_MAX_AGE), LOGIN_COOKIE_OPTIONS);
     res.cookies.set(AUTH_COOKIE.lastProvider, provider, { ...LOGIN_COOKIE_OPTIONS, maxAge: LAST_PROVIDER_MAX_AGE });
     return res;
   } catch (e) {

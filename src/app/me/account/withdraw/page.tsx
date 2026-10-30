@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { SubmitButton } from "@/components/SubmitButton";
-import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
+import { getLiveUser, isAuthEnabled } from "@/lib/auth";
 import { getProfile } from "@/lib/me";
 import { withdraw } from "@/lib/me-actions";
 import { PROVIDERS, isProviderId } from "@/lib/oauth";
@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "회원 탈퇴", robots: { index: fal
 export default async function WithdrawPage({ searchParams }: PageProps<"/me/account/withdraw">) {
   await connection();
   if (!isAuthEnabled()) notFound();
-  const user = await getCurrentUser();
+  const user = await getLiveUser("/me/account/withdraw");
   if (!user) redirect("/login?next=/me/account/withdraw");
   const profile = await getProfile(user.id).catch(() => null);
   if (!profile) redirect("/me");

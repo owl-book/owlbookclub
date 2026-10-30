@@ -9,7 +9,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { MeetingStatusBadge, StatusBadge } from "@/components/Tag";
 import { Toast } from "@/components/Toast";
 import { WishButton } from "@/components/WishButton";
-import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
+import { getLiveUser, isAuthEnabled } from "@/lib/auth";
 import {
   getClickedMeetingIds,
   getMeetingsByIds,
@@ -51,7 +51,7 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
   // 로그인 키 유무는 배포 환경에서 판단해야 하므로, 조립할 때 미리 만들어 두지 않고 방문할 때마다 그린다
   await connection();
   if (!isAuthEnabled()) notFound();
-  const user = await getCurrentUser();
+  const user = await getLiveUser("/me");
   if (!user) redirect("/login?next=/me");
 
   const sp = await searchParams;

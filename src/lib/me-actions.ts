@@ -17,7 +17,7 @@ async function requireUser() {
   if (!isAuthEnabled()) throw new Error("로그인 기능이 꺼져 있습니다.");
   const user = await getCurrentUser();
   if (!user) throw new Error("로그인이 필요합니다.");
-  await signOutIfGone(user.id);
+  await signOutIfGone(user);
   return user;
 }
 
@@ -127,11 +127,40 @@ export async function updateDisplayName(formData: FormData) {
   const current = await verifyValue<{ exp: number }>(store.get(AUTH_COOKIE.user)?.value);
   const left = current ? current.exp - Math.floor(Date.now() / 1000) : 0;
   if (left <= 0) redirect("/login?next=/me");
-  store.set(AUTH_COOKIE.user, await signValue({ id: user.id, name: shown, provider: user.provider }, left), { ...LOGIN_COOKIE_OPTIONS, maxAge: left });
+  store.set(AUTH_COOKIE.user, await signValue({ id: user.id, name: shown, provider: user.provider, v: user.v }, left), { ...LOGIN_COOKIE_OPTIONS, maxAge: left });
   revalidatePath("/", "layout");
   // 가입 직후 환영 화면에서 저장했으면 원래 보던 페이지로 돌려보낸다
   const next = formData.get("next");
   redirect(typeof next === "string" ? safeNext(next) : "/me?updated=1");
+}
+
+// 다른 기기 모두 로그아웃: 출입증 버전을 1 올린다 → 다른 기기의 예전 쿠키는 저장·마이페이지·앱 열기 때 풀린다.
+// 지금 이 기기는 새 버전으로 다시 서명해 로그인을 유지한다(남은 로그인 기간은 그대로)
+export async function signOutOtherDevices() {
+  const user = await requireUser();
+  const store = await cookies();
+  const current = await verifyValue<{ exp: number }>(store.get(AUTH_COOKIE.user)?.value);
+  const left = current ? current.exp - Math.floor(Date.now() / 1000) : 0;
+  if (left <= 0) redirect("/login?next=/me/account");
+
+  const next = user.v + 1;
+  // 같은 순간 다른 기기에서도 눌렀다면 둘 중 하나만 반영된다(지금 버전일 때만 올림)
+  const { data, error } = await db()
+    .from("users")
+    .update({ session_version: next })
+    .eq("id", user.id)
+    .eq("session_version", user.v)
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    // 0033 설정문 실행 전: 칸이 없어 쓸 수 없다
+    console.error("[owl] sign out others failed", error.message);
+    redirect("/me/account?others=unavailable");
+  }
+  if (!data) redirect("/me/account?others=retry");
+
+  store.set(AUTH_COOKIE.user, await signValue({ id: user.id, name: user.name, provider: user.provider, v: next }, left), { ...LOGIN_COOKIE_OPTIONS, maxAge: left });
+  redirect("/me/account?others=done");
 }
 
 // 회원 탈퇴: 회원 정보를 지우면 찜·기록도 함께 지워진다(설정문의 on delete cascade).

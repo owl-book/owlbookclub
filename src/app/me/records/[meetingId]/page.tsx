@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { SubmitButton } from "@/components/SubmitButton";
 import { RatingInput } from "@/components/RatingInput";
-import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
+import { getLiveUser, isAuthEnabled } from "@/lib/auth";
 import { getMeetingForRecord, getRecord } from "@/lib/me";
 import { deleteRecord, saveRecord } from "@/lib/me-actions";
 import { isPast } from "@/lib/meetings";
@@ -18,7 +18,7 @@ export default async function RecordPage({ params }: PageProps<"/me/records/[mee
   if (!isAuthEnabled()) notFound();
   const { meetingId } = await params;
   const id = Number(meetingId);
-  const user = await getCurrentUser();
+  const user = await getLiveUser(`/me/records/${meetingId}`);
   if (!user) redirect(`/login?next=${encodeURIComponent(`/me/records/${meetingId}`)}`);
 
   const meeting = await getMeetingForRecord(id);

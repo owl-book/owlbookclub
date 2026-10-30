@@ -11,7 +11,7 @@ async function requireUser() {
   if (!isAuthEnabled() || !isPushEnabled()) throw new Error("알림 기능이 꺼져 있습니다.");
   const user = await getCurrentUser();
   if (!user) throw new Error("로그인이 필요합니다.");
-  await signOutIfGone(user.id);
+  await signOutIfGone(user);
   return user;
 }
 

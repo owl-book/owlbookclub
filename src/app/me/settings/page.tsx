@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { ArrowLeftIcon } from "@/components/ArrowLeftIcon";
 import { PushSettings } from "@/components/PushSettings";
-import { getCurrentUser, isAuthEnabled } from "@/lib/auth";
+import { getLiveUser, isAuthEnabled } from "@/lib/auth";
 import { getPushPrefs, isPushEnabled, vapidPublicKey } from "@/lib/push";
 import { DEFAULT_PUSH_PREFS } from "@/lib/push-shared";
 
@@ -14,7 +14,7 @@ export default async function SettingsPage() {
   // 로그인·알림 열쇠 유무는 배포 환경에서 판단해야 하므로, 방문할 때마다 그린다
   await connection();
   if (!isAuthEnabled()) notFound();
-  const user = await getCurrentUser();
+  const user = await getLiveUser("/me/settings");
   if (!user) redirect("/login?next=/me/settings");
 
   const pushReady = isPushEnabled();

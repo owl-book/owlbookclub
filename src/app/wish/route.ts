@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { AUTH_COOKIE, safeNext } from "@/lib/auth-shared";
-import { getCurrentUser, goneLoginPath, isAuthEnabled, isKnownUser } from "@/lib/auth";
+import { getCurrentUser, goneLoginPath, isAuthEnabled, isLiveSession } from "@/lib/auth";
 import { isWishKind, saveWish } from "@/lib/me";
 
 // 로그인 전에 하트를 누른 경우: /wish?t=meeting&id=3&next=/m/3
@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
   if (!user) {
     return NextResponse.redirect(new URL(`/login?next=${encodeURIComponent(self)}&reason=wish`, request.url), 303);
   }
-  // 회원 명단에 없는 쿠키(다른 기기에서 탈퇴 등): 쿠키를 지우고 다시 로그인한 뒤 이 주소로 돌아와 찜한다
-  if (!(await isKnownUser(user.id))) {
+  // 더 이상 통하지 않는 쿠키(다른 기기에서 탈퇴·다른 기기 모두 로그아웃 등): 쿠키를 지우고 다시 로그인한 뒤 이 주소로 돌아와 찜한다
+  if (!(await isLiveSession(user))) {
     const res = NextResponse.redirect(new URL(goneLoginPath(self), request.url), 303);
     res.cookies.set(AUTH_COOKIE.user, "", { path: "/", maxAge: 0 });
     return res;

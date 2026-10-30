@@ -19,6 +19,7 @@ export type SessionUser = {
   id: string; // users.id
   name: string; // 화면 표시용 별명
   provider: string;
+  v: number; // 출입증 버전(users.session_version). '다른 기기 모두 로그아웃'을 누르면 DB 숫자가 올라가 예전 쿠키가 통하지 않는다
 };
 
 const enc = new TextEncoder();
@@ -73,7 +74,8 @@ export async function verifyValue<T>(value: string | undefined | null): Promise<
 
 export async function readSessionUser(value: string | undefined | null): Promise<SessionUser | null> {
   const data = await verifyValue<SessionUser>(value);
-  return data && typeof data.id === "string" ? { id: data.id, name: data.name, provider: data.provider } : null;
+  // 버전이 생기기 전에 받은 쿠키는 1로 본다(DB 기본값도 1이라 그대로 통한다)
+  return data && typeof data.id === "string" ? { id: data.id, name: data.name, provider: data.provider, v: Number.isSafeInteger(data.v) ? data.v : 1 } : null;
 }
 
 // 로그인 후 돌아갈 주소: 우리 사이트 안의 경로만 허용(외부로 튕겨 보내는 악용 방지)
