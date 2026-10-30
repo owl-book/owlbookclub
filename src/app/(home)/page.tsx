@@ -158,7 +158,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           <div>
             <div className="rounded-md border border-dashed border-border-card bg-sub px-4 py-6 text-center">
               <p className="text-t2 text-ink">{condition ? "해당 조건에 맞는" : "아직 올라온"} 모임이 없어요</p>
-              <p className="mt-1 text-b2 text-ink-2">지금은 경기 동부 책방부터 모으고 있어요. 곧 더 넓힐게요.</p>
+              {/* 검색 조건 때문에 빈 경우엔 제목과 '조건 지우기' 버튼만. 모임이 아예 없을 때만 모으는 지역을 알려 준다 */}
+              {!condition && <p className="mt-1 text-b2 text-ink-2">지금은 경기 동부 책방부터 모으고 있어요. 곧 더 넓힐게요.</p>}
               {/* 검색어·지역·장르·날짜를 모두 지우고 전체 모임 목록 자리로 */}
               {condition && (
                 <Link
