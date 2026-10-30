@@ -6,6 +6,7 @@ import { AdminLogin } from "@/components/AdminLogin";
 import { AdminNav } from "@/components/AdminNav";
 import { ExhibitionCard } from "@/components/ExhibitionCard";
 import { MeetingCard } from "@/components/MeetingCard";
+import { MeetingPhotoForm } from "@/components/MeetingPhotoForm";
 import { PosterUploadForm } from "@/components/PosterUploadForm";
 import { EditForm } from "@/components/EditForm";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -138,6 +139,9 @@ function doneMessage(sp: Record<string, string | string[] | undefined>): string 
   if (sp.done === "ex-reject") return "전시를 대기함에서 뺐어요. 숨긴 채로 남아 있어요.";
   if (sp.done === "ex-poster") return "포스터를 올렸어요. 아직 공개 전이에요.";
   if (sp.done === "ex-poster-replace") return "포스터를 바꿨어요. 아직 공개 전이에요.";
+  if (sp.done === "photo") return "대표 사진을 올렸어요. 아직 공개 전이에요.";
+  if (sp.done === "photo-replace") return "대표 사진을 바꿨어요. 아직 공개 전이에요.";
+  if (sp.done === "photo-remove") return "대표 사진을 뺐어요. 아직 공개 전이에요.";
   if (sp.done === "edit") return "모임 내용을 고쳤어요. 아직 공개 전이에요.";
   if (sp.done === "store-edit") return "책방 정보를 고쳤어요. 아직 공개 전이에요.";
   return undefined;
@@ -287,6 +291,16 @@ function MeetingItem({ m, sessions, now }: { m: PendingMeeting; sessions: Pendin
         <Link href={`/admin/review/${m.id}`} className="mt-1 inline-flex min-h-11 items-center text-l1 font-semibold text-navy underline underline-offset-2">
           상세 화면 미리보기
         </Link>
+        {/* 대표 사진(예: 영화 포스터). 묶음 모임은 회차마다 따로 올린다 */}
+        {sessions.map((x, i) => (
+          <MeetingPhotoForm
+            key={x.id}
+            meetingId={x.id}
+            cardId={m.id}
+            photoUrl={x.photoUrl}
+            label={sessions.length > 1 ? `${i + 1}회차 대표 사진 (${kstDate(x.startsAt)})` : "대표 사진 (선택)"}
+          />
+        ))}
         {sessions.map((x, i) => (
           <MeetingEdit key={x.id} m={x} label={sessions.length > 1 ? `${i + 1}회차 고치기 (${kstDate(x.startsAt)})` : "내용 고치기"} />
         ))}
@@ -413,7 +427,7 @@ function ArtPicker({ m }: { m: PendingMeeting }) {
           </label>
         ))}
       </div>
-      <p className="mt-1 text-l2 font-normal text-ink-3">그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나와요</p>
+      <p className="mt-1 text-l2 font-normal text-ink-3">그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나와요. 대표 사진을 올리면 사진이 가장 먼저 나와요</p>
     </fieldset>
   );
 }

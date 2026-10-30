@@ -16,8 +16,9 @@ export type CardWish = { wished: boolean; loggedIn: boolean };
 export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { meeting: Meeting; now: Date; wish?: CardWish; hideStore?: boolean; href?: string }) {
   const past = isPast(m, now);
   // 승인 화면에서 표지 그림을 직접 골랐으면 책 표지 대신 그 그림을 쓴다(책 표지는 찾지 않는다)
-  const bookTitle = m.coverArt ? null : m.bookTitle;
-  const cover = await getBookCover(bookTitle);
+  // 대표 사진(예: 영화 포스터)을 올렸으면 그 사진이 가장 먼저다
+  const bookTitle = m.photoUrl || m.coverArt ? null : m.bookTitle;
+  const cover = m.photoUrl ? { url: m.photoUrl } : await getBookCover(bookTitle);
   // 지난·마감 모임: 카드 전체를 흐리게 하면 글씨가 안 읽혀서, 표지와 시각만 낮추고 배지로 알린다
   const dim = past || m.status === "closed";
   // 여러 회차 묶음: 접힌 카드는 이 회차부터 끝 회차까지의 기간과 남은 책 권수를 함께 보여 준다
@@ -108,7 +109,7 @@ function BookCover({ url, title, art }: { url: string | null; title: string | nu
   if (url) {
     return (
       <div className={`${box} bg-fill ring-1 ring-border`}>
-        <Image src={url} alt={title ? `『${title}』 표지` : "책 표지"} fill sizes="72px" unoptimized className="object-cover" />
+        <Image src={url} alt={title ? `『${title}』 표지` : "모임 대표 사진"} fill sizes="72px" unoptimized className="object-cover" />
       </div>
     );
   }
