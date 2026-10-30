@@ -6,7 +6,7 @@ import { AdminLogin } from "@/components/AdminLogin";
 import { AdminNav } from "@/components/AdminNav";
 import { ExhibitionCard } from "@/components/ExhibitionCard";
 import { MeetingCard } from "@/components/MeetingCard";
-import { MeetingPhotoForm } from "@/components/MeetingPhotoForm";
+import { MeetingPhotoTile } from "@/components/MeetingPhotoTile";
 import { PosterUploadForm } from "@/components/PosterUploadForm";
 import { EditForm } from "@/components/EditForm";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -139,9 +139,6 @@ function doneMessage(sp: Record<string, string | string[] | undefined>): string 
   if (sp.done === "ex-reject") return "전시를 대기함에서 뺐어요. 숨긴 채로 남아 있어요.";
   if (sp.done === "ex-poster") return "포스터를 올렸어요. 아직 공개 전이에요.";
   if (sp.done === "ex-poster-replace") return "포스터를 바꿨어요. 아직 공개 전이에요.";
-  if (sp.done === "photo") return "대표 사진을 올렸어요. 아직 공개 전이에요.";
-  if (sp.done === "photo-replace") return "대표 사진을 바꿨어요. 아직 공개 전이에요.";
-  if (sp.done === "photo-remove") return "대표 사진을 뺐어요. 아직 공개 전이에요.";
   if (sp.done === "edit") return "모임 내용을 고쳤어요. 아직 공개 전이에요.";
   if (sp.done === "store-edit") return "책방 정보를 고쳤어요. 아직 공개 전이에요.";
   return undefined;
@@ -291,16 +288,6 @@ function MeetingItem({ m, sessions, now }: { m: PendingMeeting; sessions: Pendin
         <Link href={`/admin/review/${m.id}`} className="mt-1 inline-flex min-h-11 items-center text-l1 font-semibold text-navy underline underline-offset-2">
           상세 화면 미리보기
         </Link>
-        {/* 대표 사진(예: 영화 포스터). 묶음 모임은 회차마다 따로 올린다 */}
-        {sessions.map((x, i) => (
-          <MeetingPhotoForm
-            key={x.id}
-            meetingId={x.id}
-            cardId={m.id}
-            photoUrl={x.photoUrl}
-            label={sessions.length > 1 ? `${i + 1}회차 대표 사진 (${kstDate(x.startsAt)})` : "대표 사진 (선택)"}
-          />
-        ))}
         {sessions.map((x, i) => (
           <MeetingEdit key={x.id} m={x} label={sessions.length > 1 ? `${i + 1}회차 고치기 (${kstDate(x.startsAt)})` : "내용 고치기"} />
         ))}
@@ -406,16 +393,20 @@ function MeetingEdit({ m, label }: { m: PendingMeeting; label: string }) {
 }
 
 // 표지 그림 고르기: 그림을 눌러 고른다(라디오 버튼). '자동'은 책 표지, 없으면 모임 종류에 맞춘 그림.
-// 그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나온다
+// 그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나온다. 맨 왼쪽은 대표 사진 칸(+ 를 눌러 사진 추가, 예: 영화 포스터)
 function ArtPicker({ m }: { m: PendingMeeting }) {
   const options = [["auto", m.bookTitle ? "자동(책 표지)" : "자동", m.bookTitle ? null : autoMeetingArt(m)] as const, ...MEETING_ARTS.map(([k, t]) => [k, t, k] as const)];
+  // 사진이 있으면 사진이 가장 먼저 보이므로 사진 칸이 선택된 채로 연다
+  const current = m.photoUrl ? "photo" : (m.coverArt ?? "auto");
   return (
     <fieldset>
       <legend className="text-l2 font-semibold text-ink">표지 그림</legend>
-      <div className="mt-1 grid grid-cols-5 gap-1.5">
+      {/* 휴대폰에서는 3칸씩 두 줄, 넓은 화면에서는 한 줄 */}
+      <div className="mt-1 grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+        <MeetingPhotoTile photoUrl={m.photoUrl} checked={current === "photo"} />
         {options.map(([value, label, art]) => (
           <label key={value} className="cursor-pointer text-center">
-            <input type="radio" name="coverArt" value={value} defaultChecked={(m.coverArt ?? "auto") === value} className="peer sr-only" />
+            <input type="radio" name="coverArt" value={value} defaultChecked={current === value} className="peer sr-only" />
             <span className="relative block aspect-[2/3] overflow-hidden rounded-xs bg-cream ring-1 ring-border peer-checked:ring-2 peer-checked:ring-navy peer-focus-visible:outline-2 peer-focus-visible:outline-navy">
               {art ? (
                 <img src={meetingArtSrc(art)} alt="" className="size-full object-cover" />
@@ -427,7 +418,7 @@ function ArtPicker({ m }: { m: PendingMeeting }) {
           </label>
         ))}
       </div>
-      <p className="mt-1 text-l2 font-normal text-ink-3">그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나와요. 대표 사진을 올리면 사진이 가장 먼저 나와요</p>
+      <p className="mt-1 text-l2 font-normal text-ink-3">그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나와요. 사진은 [고친 내용 저장]을 눌러야 올라가요</p>
     </fieldset>
   );
 }

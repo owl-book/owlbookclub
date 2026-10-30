@@ -5,7 +5,9 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { logAdminAction, logAdminActions } from "@/lib/admin-log";
 import { db } from "@/lib/db";
+import { imageType } from "@/lib/image-shrink";
 import { isMeetingArt } from "@/lib/meeting-art";
+import { PHOTO_BUCKET } from "@/lib/meetings";
 import { isGuOf, isSido } from "@/lib/regions";
 import { isFormat, isGenre } from "@/lib/tags";
 
@@ -214,9 +216,11 @@ async function saveMeeting(id: number, formData: FormData): Promise<EditResult> 
   const postUrl = text(formData, "postUrl", 500);
   if (postUrl && !URL_RE.test(postUrl)) return { error: "게시물 링크는 https:// 로 시작하는 주소로 적어 주세요." };
 
-  // 표지 그림: 'auto' 면 자동(비움), 아니면 그림 이름(0029)
+  // 표지 그림: 'auto' 면 자동(비움), 'photo' 면 대표 사진(0035), 아니면 그림 이름(0029)
   const art = formData.get("coverArt");
-  if (art !== "auto" && !isMeetingArt(art)) return { error: "잘못된 요청입니다." };
+  if (art !== "auto" && art !== "photo" && !isMeetingArt(art)) return { error: "잘못된 요청입니다." };
+  const photo = await savePhoto(id, art === "photo", formData.get("photo"));
+  if ("error" in photo) return { error: photo.error };
 
   const changes = {
     title: title.replace(/·/g, "~"), // 제목 글꼴에 가운뎃점이 없어 빈칸으로 보인다
@@ -236,14 +240,44 @@ async function saveMeeting(id: number, formData: FormData): Promise<EditResult> 
     place: text(formData, "place", 200),
     description: text(formData, "description", 1000),
     review_note: text(formData, "note", 1000),
-    cover_art: art === "auto" ? null : art,
+    // 사진을 고르면 그림 고르기는 그대로 둔다(사진이 먼저 보이고, 사진을 빼면 예전 고른 그림으로 돌아간다)
+    ...(art === "photo" ? {} : { cover_art: art === "auto" ? null : art }),
+    ...photo.changes,
   };
   const { error } = await db().from("meetings").update(changes).eq("id", before.id).eq("pending_review", true);
   if (error) {
     console.error("[owl] review edit failed", error.message);
+    if (photo.uploaded) await db().storage.from(PHOTO_BUCKET).remove([photo.uploaded]);
     return { error: SAVE_FAILED };
   }
-  await logAdminAction({ type: "meeting", id }, "edit", { pending_review: true }, changes);
+  // 바꾸거나 뺀 예전 사진 파일은 보관함에서 정리한다(실패해도 화면에는 영향 없음)
+  if (photo.old) await db().storage.from(PHOTO_BUCKET).remove([photo.old]);
+  await logAdminAction({ type: "meeting", id }, "edit", { pending_review: true, ...(photo.old ? { photo_path: photo.old } : {}) }, changes);
+}
+
+const PHOTO_MAX_BYTES = 1024 * 1024; // 화면에서 가로 480px 로 줄여 보내므로 넉넉하다(보관함 제한 0035 와 같은 값)
+
+type PhotoResult = { error: string } | { changes: { photo_path?: string | null }; uploaded?: string; old?: string };
+
+// 대표 사진(0035): 사진 칸을 고르고 새 사진이 있으면 올리고, 다른 그림을 고르면 있던 사진을 뺀다.
+// 바꿀 때마다 새 이름으로 올린다: 같은 이름이면 휴대폰·CDN 에 예전 사진이 남을 수 있어서
+async function savePhoto(id: number, usePhoto: boolean, file: FormDataEntryValue | null): Promise<PhotoResult> {
+  // 0035 실행 전에는 칸이 없다: 오류를 내지 않고 사진이 없는 것으로 본다
+  const { data } = await db().from("meetings").select("photo_path").eq("id", id).maybeSingle();
+  const current = (data as { photo_path: string | null } | null)?.photo_path ?? null;
+  const picked = file instanceof File && file.size > 0 ? file : null;
+
+  if (!usePhoto) return current ? { changes: { photo_path: null }, old: current } : { changes: {} };
+  if (!picked) return current ? { changes: {} } : { error: "올릴 사진을 골라 주세요." };
+  if (picked.size > PHOTO_MAX_BYTES) return { error: "사진이 너무 커요. 다른 사진으로 다시 골라 주세요." };
+
+  const bytes = new Uint8Array(await picked.arrayBuffer());
+  const type = imageType(bytes);
+  if (!type) return { error: "JPG, PNG, WEBP 사진만 올릴 수 있어요." };
+  const path = `${id}/${crypto.randomUUID()}.${type.ext}`;
+  const uploaded = await db().storage.from(PHOTO_BUCKET).upload(path, bytes, { contentType: type.mime, cacheControl: "31536000" });
+  if (uploaded.error) return { error: `사진을 올리지 못했어요. (${uploaded.error.message})` };
+  return { changes: { photo_path: path }, uploaded: path, old: current ?? undefined };
 }
 
 const STORE_EDIT_FIELDS = "name, region, address, hours, phone, instagram_url, intro, review_note";
