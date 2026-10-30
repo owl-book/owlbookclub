@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { createPortal } from "react-dom";
+import { Toast } from "@/components/Toast";
 import { setWish } from "@/lib/me-actions";
 import { WISHED_EVENT, type WishedDetail } from "@/lib/push-client";
 import { gaEvent } from "@/lib/ga";
@@ -26,7 +28,8 @@ export function WishButton({ kind, id, wished, loggedIn, label, size = "md" }: P
   const [on, setOn] = useState(wished);
   const [synced, setSynced] = useState(wished);
   const [pending, startTransition] = useTransition();
-  const [failed, setFailed] = useState(false);
+  // 저장에 실패한 횟수. 실패할 때마다 화면 아래 알림을 새로 띄운다(같은 알림을 다시 쓰면 두 번째부터 안 뜸)
+  const [failures, setFailures] = useState(0);
 
   // 다른 화면에서 바뀐 찜 상태가 새로 내려오면 따라간다
   if (wished !== synced) {
@@ -63,7 +66,6 @@ export function WishButton({ kind, id, wished, loggedIn, label, size = "md" }: P
         type="button"
         aria-pressed={on}
         aria-label={`${label} ${what} 찜`}
-        title={failed ? "저장하지 못했어요. 다시 눌러 주세요." : undefined}
         disabled={pending}
         onClick={(e) => {
           e.preventDefault();
@@ -71,7 +73,6 @@ export function WishButton({ kind, id, wished, loggedIn, label, size = "md" }: P
           const nextOn = !on;
           gaEvent("wish", { kind, on: nextOn, login_required: false });
           setOn(nextOn);
-          setFailed(false);
           startTransition(async () => {
             try {
               await setWish(kind, id, nextOn);
@@ -79,7 +80,7 @@ export function WishButton({ kind, id, wished, loggedIn, label, size = "md" }: P
               if (nextOn) window.dispatchEvent(new CustomEvent<WishedDetail>(WISHED_EVENT, { detail: { kind } }));
             } catch {
               setOn(!nextOn);
-              setFailed(true);
+              setFailures((n) => n + 1);
             }
           });
         }}
@@ -87,10 +88,10 @@ export function WishButton({ kind, id, wished, loggedIn, label, size = "md" }: P
       >
         <Heart filled={on} />
       </button>
-      {/* 저장에 실패하면 화면 읽기 프로그램도 알려 준다(눈에는 마우스를 올렸을 때 title로 보임) */}
-      <span role="status" className="sr-only">
-        {failed ? "저장하지 못했어요. 다시 눌러 주세요." : ""}
-      </span>
+      {/* 저장에 실패하면 하트를 되돌리고 화면 아래에 4초 동안 알린다(화면 읽기 프로그램에도 읽힘).
+          카드 움직임 효과 안에서도 화면 아래에 붙도록 body 바로 아래에 그린다 */}
+      {failures > 0 &&
+        createPortal(<Toast key={failures} tone="error" message={`${what} 찜을 저장하지 못했어요. 다시 눌러 주세요.`} />, document.body)}
     </>
   );
 }
