@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { AdminLogin } from "@/components/AdminLogin";
 import { AdminNav } from "@/components/AdminNav";
-import { ConfirmSubmit } from "@/components/ConfirmSubmit";
+import { SubmitButton } from "@/components/SubmitButton";
 import { MeetingStatusBadge, StatusBadge } from "@/components/Tag";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
 import { editMeeting, resolveInquiry, resolveReport } from "@/lib/admin-actions";
@@ -267,12 +267,13 @@ function ReportCard({ item, now }: { item: InboxItem; now: Date }) {
         <form action={resolveReport} className="mt-1 flex justify-end">
           <input type="hidden" name="meetingId" value={m.id} />
           <input type="hidden" name="action" value="hide" />
-          <ConfirmSubmit
-            message="이 모임을 숨길까요? 목록·상세에서 사라지고, 찜하거나 담아 둔 사람에게만 글자로 남아요."
+          <SubmitButton
+            confirm={`‘${m.title}’ 모임을 숨길까요? 목록·상세에서 사라지고, 찜하거나 담아 둔 사람에게만 글자로 남아요.`}
+            pendingText="숨기는 중…"
             className="inline-flex min-h-11 items-center px-2 text-l2 text-error underline underline-offset-2"
           >
             모임 숨기기
-          </ConfirmSubmit>
+          </SubmitButton>
         </form>
       )}
     </li>
