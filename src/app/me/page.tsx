@@ -395,7 +395,7 @@ export default async function MyPage({ searchParams }: PageProps<"/me">) {
             {appliedUpcoming.length === 0 && went.length === 0 ? (
               <Empty
                 title="아직 담긴 모임이 없어요"
-                body="모임 상세에서 책방 신청을 마친 뒤 ‘책방에서 신청했어요’를 누르면 여기에 날짜순으로 모여요. 다녀온 뒤에는 나만 보는 기록도 남길 수 있어요."
+                body="모임 신청 후 ‘책방에서 신청했어요’를 누르면 이곳에 저장됩니다. 다녀온 뒤에는 나만 보는 기록도 남길 수 있어요."
               />
             ) : (
               <>
