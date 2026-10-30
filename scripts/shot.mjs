@@ -1,5 +1,6 @@
 // 화면 캡처(폰 크기 375px): node scripts/shot.mjs <주소> <저장파일> [높이] [기다릴ms, 기본 4000]
 // 로그인 화면을 찍을 땐 SHOT_COOKIE="이름=값" 을 함께 준다(시험용 DB 회원만).
+// 이 기기 보관값(localStorage)이 필요한 화면은 SHOT_STORAGE='{"키":"값"}' 도 함께 준다.
 // 헤드리스 크롬은 창을 좁게 못 만들어서, 크롬에 폰 화면 흉내 명령을 직접 보내 찍는다. 기존 크롬 프로필은 건드리지 않는다
 import { spawn } from "node:child_process";
 const [url, out, h = "812", waitMs = "4000"] = process.argv.slice(2);
@@ -21,6 +22,11 @@ const cookie = process.env.SHOT_COOKIE;
 if (cookie) {
   const i = cookie.indexOf("=");
   await send("Network.setCookie", { name: cookie.slice(0, i), value: cookie.slice(i + 1), url });
+}
+const storage = process.env.SHOT_STORAGE;
+if (storage) {
+  await send("Page.enable");
+  await send("Page.addScriptToEvaluateOnNewDocument", { source: `try{const s=${storage};for(const k in s)localStorage.setItem(k,s[k])}catch{}` });
 }
 await send("Page.navigate", { url });
 await wait(Number(waitMs));
