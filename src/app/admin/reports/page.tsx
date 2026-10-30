@@ -159,9 +159,9 @@ function InquiryCard({ item: q, now }: { item: InquiryItem; now: Date }) {
       )}
       <form action={resolveInquiry} className="mt-3">
         <input type="hidden" name="inquiryId" value={q.id} />
-        <button type="submit" className="min-h-11 w-full rounded-sm border border-border-strong bg-card px-2 py-2.5 text-l1 font-semibold text-navy hover:bg-sub">
+        <SubmitButton pendingText="처리하는 중…" className="min-h-11 w-full rounded-sm border border-border-strong bg-card px-2 py-2.5 text-l1 font-semibold text-navy hover:bg-sub">
           처리 완료
-        </button>
+        </SubmitButton>
       </form>
     </li>
   );
@@ -221,21 +221,26 @@ function ReportCard({ item, now }: { item: InboxItem; now: Date }) {
         <form action={resolveReport}>
           <input type="hidden" name="meetingId" value={m.id} />
           <input type="hidden" name="action" value="close" />
-          <button
-            type="submit"
-            disabled={closed}
-            className="min-h-11 w-full rounded-sm bg-navy px-2 py-2.5 text-l1 font-semibold text-white hover:bg-navy-hover disabled:bg-fill disabled:text-ink-3"
-          >
-            {closed ? "이미 마감됨" : "마감으로 표시"}
-          </button>
+          {closed ? (
+            <button type="submit" disabled className="min-h-11 w-full rounded-sm bg-fill px-2 py-2.5 text-l1 font-semibold text-ink-3">
+              이미 마감됨
+            </button>
+          ) : (
+            <SubmitButton pendingText="처리하는 중…" className="min-h-11 w-full rounded-sm bg-navy px-2 py-2.5 text-l1 font-semibold text-white hover:bg-navy-hover">
+              마감으로 표시
+            </SubmitButton>
+          )}
         </form>
         <form action={resolveReport}>
           <input type="hidden" name="meetingId" value={m.id} />
           <input type="hidden" name="action" value="ok" />
-          <button type="submit" className="flex min-h-11 w-full flex-col items-center justify-center rounded-sm border border-border-strong bg-card px-2 py-1.5 hover:bg-sub">
+          <SubmitButton
+            pendingText={<span className="text-l1 font-semibold text-navy">처리하는 중…</span>}
+            className="flex min-h-11 w-full flex-col items-center justify-center rounded-sm border border-border-strong bg-card px-2 py-1.5 hover:bg-sub"
+          >
             <span className="text-l1 font-semibold text-navy">문제없음</span>
             <span className="text-l2 font-normal text-ink-3">확인일만 오늘로</span>
-          </button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -257,9 +262,9 @@ function ReportCard({ item, now }: { item: InboxItem; now: Date }) {
           <Field label="참가비" htmlFor={`fee-${m.id}`}>
             <input id={`fee-${m.id}`} name="feeText" type="text" maxLength={100} defaultValue={m.feeText ?? ""} placeholder="예: 2만원(음료 포함)" className={inputClass} />
           </Field>
-          <button type="submit" className="min-h-11 w-full rounded-sm bg-navy py-2.5 text-l1 font-semibold text-white hover:bg-navy-hover">
+          <SubmitButton pendingText="저장하는 중…" className="min-h-11 w-full rounded-sm bg-navy py-2.5 text-l1 font-semibold text-white hover:bg-navy-hover">
             고친 내용 저장
-          </button>
+          </SubmitButton>
         </form>
       </details>
 
