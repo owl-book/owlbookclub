@@ -38,5 +38,5 @@ export default async function MeetingPage({ params, searchParams }: PageProps<"/
     !past && user ? getPlan(user.id, m.id) : null,
   ]);
 
-  return <MeetingDetail m={m} now={now} wishes={wishes} record={record} plan={plan} plannedNotice={sp.planned === "1"} />;
+  return <MeetingDetail m={m} now={now} wishes={wishes} record={record} plan={plan} plannedNotice={sp.planned === "1"} closedNotice={sp.closed === "1"} />;
 }
