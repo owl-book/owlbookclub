@@ -77,8 +77,17 @@ export async function readSessionUser(value: string | undefined | null): Promise
 }
 
 // 로그인 후 돌아갈 주소: 우리 사이트 안의 경로만 허용(외부로 튕겨 보내는 악용 방지)
+// 브라우저는 주소 속 탭·줄바꿈을 지우고 역슬래시를 '/'로 읽는다. "/(탭)/다른사이트.com"이 "//다른사이트.com"이 되므로 이런 글자는 어디에 있든 거절한다
+const SAFE_BASE = "http://owl.local";
 export function safeNext(next: string | null | undefined): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return "/";
+  if (!next || /[\u0000-\u001F\u007F\\]/.test(next)) return "/";
+  if (!next.startsWith("/") || next.startsWith("//")) return "/";
   if (next.startsWith("/login") || next.startsWith("/auth")) return "/";
+  // 마지막으로 브라우저와 같은 방식으로 풀어 봐도 우리 사이트 안인지 확인
+  try {
+    if (new URL(next, SAFE_BASE).origin !== SAFE_BASE) return "/";
+  } catch {
+    return "/";
+  }
   return next.slice(0, 500);
 }
