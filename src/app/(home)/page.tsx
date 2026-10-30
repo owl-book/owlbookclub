@@ -159,6 +159,15 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             <div className="rounded-md border border-dashed border-border-card bg-sub px-4 py-6 text-center">
               <p className="text-t2 text-ink">{condition ? "해당 조건에 맞는" : "아직 올라온"} 모임이 없어요</p>
               <p className="mt-1 text-b2 text-ink-2">지금은 경기 동부 책방부터 모으고 있어요. 곧 더 넓힐게요.</p>
+              {/* 검색어·지역·장르·날짜를 모두 지우고 전체 모임 목록 자리로 */}
+              {condition && (
+                <Link
+                  href="/#meetings"
+                  className="mt-4 inline-flex min-h-11 items-center rounded-sm border border-border-card bg-card px-4 text-l1 font-semibold text-ink hover:bg-page"
+                >
+                  조건 지우고 전체 보기
+                </Link>
+              )}
             </div>
             {nearby.length > 0 && (
               <>
