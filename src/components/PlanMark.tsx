@@ -97,7 +97,7 @@ export function PlanMark({ meetingId, storeName, loggedIn, applied: appliedProp,
           <div className="min-w-0">
             <p className="text-l1 font-semibold text-ink">책방에서 이미 신청하셨나요?</p>
             <p className="mt-0.5 text-l2 font-normal leading-normal text-ink-3">
-              {seriesLeft > 1 ? `표시해 두면 남은 ${seriesLeft}회가 모두 ‘내 모임’에 날짜순으로 담겨요.` : "표시해 두면 마이페이지 ‘내 모임’에 날짜순으로 모여요."}
+              {seriesLeft > 1 ? `표시해 두면 남은 ${seriesLeft}회가 모두 ‘내 모임’에 날짜순으로 담겨요.` : "표시해 두면 마이페이지 ‘내 모임’에서 날짜 순으로 모아 볼 수 있습니다."}
             </p>
           </div>
           <button

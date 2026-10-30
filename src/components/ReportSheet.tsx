@@ -65,7 +65,8 @@ export function ReportSheet({ meetingId, storeId, closed }: Props) {
 
   return (
     <>
-      <div className="mt-0.5 flex items-center">
+      {/* 알리기 전에는 다음 줄에 '다른 점이 있나요? 알려주기', 알린 뒤에는 앞 문장에 이어서 '알려주셔서 감사합니다. 더 알려주기' */}
+      <div className={sent ? "ml-1 inline" : "mt-0.5 flex items-center"}>
         <span className="text-ink-2">{sent ? "알려주셔서 감사합니다." : "다른 점이 있나요?"}</span>
         <button
           ref={triggerRef}

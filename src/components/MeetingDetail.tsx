@@ -187,7 +187,8 @@ export function MeetingDetail({
       {/* 신뢰 신호 */}
       {/* 신뢰 신호 + 정보 오류·마감 알려주기: '언제 확인한 정보인지' 바로 옆에서 '다른 점이 있는지' 묻는다(지난 모임은 받지 않음) */}
       <div className="mt-3 rounded-md bg-sub px-3 py-2.5 text-l2 font-normal leading-normal text-ink-2">
-        <p>
+        {/* 알려준 뒤에는 '알려주셔서 감사합니다. 더 알려주기'가 이 문장 끝에 이어 붙도록 한 줄 흐름(inline)으로 둔다 */}
+        <p className="inline">
           {formatDateString(m.lastCheckedAt)}에 마지막으로 업데이트 했어요.
           정확한 내용·마감 여부는 책방 공지를 확인해 주세요.
         </p>
