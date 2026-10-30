@@ -176,8 +176,8 @@ export async function signOutOtherDevices() {
 // 회원 탈퇴: 회원 정보를 지우면 찜·기록도 함께 지워진다(설정문의 on delete cascade).
 // 이용 기록(events)의 회원 번호는 이제 누구인지 알 수 없는 값이 되어 1년 보관 후 파기한다.
 // 카카오 회원은 카카오와의 연결도 끊는다(실패해도 탈퇴는 끝내고 매일 정리에서 다시 시도).
-// 네이버·구글은 끊으려면 그 회원의 로그인 증표가 필요한데 저장하지 않으므로, 탈퇴 전 화면에서 직접 끊을 수 있다고만 알린다
-// (탈퇴 뒤에는 '끝났다'는 안내만 한다. 덧붙이면 탈퇴가 덜 된 것처럼 불안해 보여서)
+// 네이버·구글은 끊으려면 그 회원의 로그인 증표가 필요한데 저장하지 않으므로, 직접 끊는 방법은 개인정보 처리방침에만 적는다
+// (탈퇴 화면은 꼭 알아야 할 것만, 탈퇴 뒤에는 '끝났다'는 안내만 한다. 덧붙이면 탈퇴가 덜 된 것처럼 불안해 보여서)
 export async function withdraw(formData: FormData) {
   const user = await requireUser();
   if (formData.get("confirm") !== "yes") redirect("/me/account/withdraw?error=confirm");
