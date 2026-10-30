@@ -266,10 +266,10 @@ export function ContactForm({ stores, initialCategory, initialStoreId }: Props) 
   );
 }
 
-// 빈 칸으로 표시된 칸은 테두리를 디자인 시스템 오류 색(error)으로, 커서가 들어가도 빨간색 그대로
+// 빈 칸으로 표시된 칸은 테두리를 디자인 시스템 오류 색(error)으로. 커서가 들어가도 빨간 테두리 한 줄만 둔다
 const inputClass = (invalid: boolean) =>
-  `mt-1.5 block min-h-11 w-full rounded-xs border bg-card px-3 text-b2 text-ink placeholder:text-ink-3 focus:outline-2 ${
-    invalid ? "border-error focus:border-error focus:outline-error" : "border-border-control focus:border-navy focus:outline-navy"
+  `mt-1.5 block min-h-11 w-full rounded-xs border bg-card px-3 text-b2 text-ink placeholder:text-ink-3 ${
+    invalid ? "border-error focus:border-error focus:outline-none" : "border-border-control focus:border-navy focus:outline-2 focus:outline-navy"
   }`;
 
 // 화면 읽기 프로그램에도 '비어 있음'과 안내 문구를 연결한다

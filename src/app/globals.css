@@ -176,9 +176,10 @@ body {
 input:focus-visible {
   outline-offset: 0;
 }
-/* 비어 있다고 알린 칸은 커서가 들어가도 빨간 테두리 그대로(남색 초점 테두리가 덮지 않게) */
+/* 비어 있다고 알린 칸은 커서가 들어가도 빨간 테두리 한 줄만(바깥 초점 테두리를 겹쳐 그리지 않고, 깜빡이는 커서로 위치를 알린다) */
+[aria-invalid="true"]:focus,
 [aria-invalid="true"]:focus-visible {
-  outline-color: var(--color-error);
+  outline: none;
 }
 
 /* 필터·달력을 누른 뒤 불러오는 동안 흐르는 막대 */
