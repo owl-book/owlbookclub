@@ -90,9 +90,9 @@ export function ReportSheet({ meetingId, storeId, closed }: Props) {
             {sent ? (
               <>
                 <p id="report-sheet-title" role="status" className="text-t1 text-ink">
-                  알려주셔서 고마워요
+                  알려주셔서 감사합니다
                 </p>
-                <p className="mt-2 text-b2 text-ink-2">확인하고 고칠게요. 그 전에 신청하신다면 책방 신청 페이지에서 한 번 더 확인해 주세요.</p>
+                <p className="mt-2 text-b2 text-ink-2">확인 후 수정 반영하겠습니다. 그 전에 신청하신다면 책방의 신청페이지에서 한 번 더 확인해 주세요.</p>
                 <button
                   type="button"
                   onClick={close}
