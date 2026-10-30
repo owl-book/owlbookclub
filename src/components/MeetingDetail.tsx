@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ApplyButton } from "@/components/ApplyButton";
 import { ArrowLeftIcon } from "@/components/ArrowLeftIcon";
+import { ClosedApplyButton } from "@/components/ClosedApplyButton";
 import { BackLink } from "@/components/BackLink";
 import { ReportSheet } from "@/components/ReportSheet";
 import { ShareButton } from "@/components/ShareButton";
@@ -36,7 +37,7 @@ export function MeetingDetail({
   record?: MeetingRecord | null;
   plan?: PlanState | null;
   plannedNotice?: boolean;
-  closedNotice?: boolean; // 신청 버튼을 눌렀는데 그사이 마감됐던 경우(/go 가 돌려보냄)
+  closedNotice?: boolean; // 신청 버튼을 눌렀는데 그사이 마감됐던 경우(/go 가 돌려보냄): 들어오자마자 마감 확인 창을 연다
   preview?: { backHref: string };
 }) {
   const past = isPast(m, now);
@@ -61,16 +62,6 @@ export function MeetingDetail({
         <p role="status" className="mb-3 rounded-xs border border-success-border bg-success-surface px-3 py-2.5 text-b2 text-success">
           내 모임에 담았어요. 마이페이지 ‘내 모임’에서 날짜순으로 볼 수 있어요.
         </p>
-      )}
-      {closedNotice && closed && !past && !preview && (
-        // 예전 화면에서 신청 버튼을 누른 사이 마감된 모임. 추가 모집·대기 신청이 있을 수 있어 막지 않고 고르게 한다
-        <div role="status" className="mb-3 rounded-xs border border-warning-border bg-warning-surface px-3 py-3">
-          <p className="text-b2 font-semibold text-ink">마감된 모임이에요. 그래도 책방 페이지로 갈까요?</p>
-          <p className="mt-0.5 text-b2 text-ink-2">추가 모집이나 대기 신청을 받는지 책방 페이지에서 확인할 수 있어요.</p>
-          <a href={`/go/${m.id}?ok=1`} className="mt-2 inline-flex min-h-11 items-center text-l1 font-semibold text-navy underline underline-offset-2">
-            책방 페이지로 가기 ↗
-          </a>
-        </div>
       )}
       {/* 맨 위 줄: 왼쪽 '모임 목록', 오른쪽 '공유' */}
       <div className="flex items-center justify-between gap-2">
@@ -237,7 +228,12 @@ export function MeetingDetail({
             <p className="flex min-h-12 flex-1 items-center justify-center rounded-sm bg-fill text-l1 font-semibold text-ink-2">이미 지난 모임이에요</p>
           )
         ) : closed ? (
-          <p className="flex min-h-12 flex-1 items-center justify-center rounded-sm bg-fill text-l1 font-semibold text-ink-2">신청이 마감된 모임이에요</p>
+          preview ? (
+            <p className="flex min-h-12 flex-1 items-center justify-center rounded-sm bg-fill text-l1 font-semibold text-ink-2">신청이 마감된 모임이에요</p>
+          ) : (
+            // 마감돼도 추가 모집·대기 신청이 있을 수 있어, 누르면 '그래도 책방 페이지로 갈까요?'를 묻는다
+            <ClosedApplyButton meetingId={m.id} storeName={m.store.name} autoOpen={closedNotice} />
+          )
         ) : m.applyMethod === "none" ? (
           // 신청 없이 자유 방문하는 행사(플리마켓 등): 신청 버튼 대신 안내만
           <div className="flex min-h-12 flex-1 flex-col items-center justify-center rounded-sm bg-fill px-3 py-1.5 text-center">

@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, ctx: RouteContext<"/go/[id]">) {
   const target = request.nextUrl.searchParams.get("to") === "post" && meeting.postUrl ? "post" : "apply";
 
   // 열어 둔 화면이 예전 모습이라 신청 버튼이 남아 있었어도, 누른 순간의 상태로 한 번 더 확인한다.
-  // 지난 모임은 상세 화면으로 돌려보내고, 마감된 모임은 상세 화면에서 '그래도 책방 페이지로 갈까요?'를 묻는다(추가 모집·대기 신청이 있을 수 있어 막지는 않음).
+  // 지난 모임은 상세 화면으로 돌려보내고, 마감된 모임은 상세 화면에서 '그래도 책방 페이지로 갈까요?' 창을 바로 띄운다(추가 모집·대기 신청이 있을 수 있어 막지는 않음).
   // 돌려보낸 것은 신청 클릭으로 세지 않는다. 원 게시물 보기는 안내 글이라 그대로 보낸다
   if (target === "apply") {
     const past = isPast(meeting);
