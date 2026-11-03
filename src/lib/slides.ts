@@ -41,7 +41,7 @@ export const SLIDES: Slide[] = [
     tone: "navy",
     image: "/slides/sea-queen.webp",
     title: "동네책방 X 바다의 여왕\n신간 출시 기념 이벤트",
-    body: "이벤트 참여 책방에서 구매 후 인스타그램에 구매 인증을 올리면,\n추첨으로 다섯 분께 특별한 선물을 드려요.",
+    body: "참여 책방에서 구매 후 인스타그램에 인증하면,\n추첨으로 다섯 분께 특별한 선물을 드려요.",
     href: "https://www.instagram.com/p/DeiOuvckxQI/?img_index=1",
     cta: "자세히 보러 가기",
     startsOn: "2026-11-03",
