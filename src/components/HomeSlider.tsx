@@ -211,11 +211,12 @@ function SlideCard({ slide: s, position, active }: { slide: Slide; position: num
           BETA
         </span>
       )}
-      <p className={`relative mt-1.5 hidden whitespace-pre-line text-b2 sm:block ${tone.body}`}>{s.body}</p>
+      <p className={`relative mt-1 hidden whitespace-pre-line text-b2 sm:block ${tone.body}`}>{s.body}</p>
       {s.note && <p className={`relative mt-1 hidden max-w-[17rem] text-l2 sm:block ${tone.body}`}>{s.note}</p>}
       {/* 맨 아래 줄: 왼쪽에 누르는 곳 글자, 오른쪽은 멈춤·넘김 버튼 자리로 비워 둔다(장 전체가 링크라 버튼 모양 대신 글자로).
-          줄 높이·바닥 여백을 버튼 받침(44px, 바닥에서 6px)에 맞춰 글자가 '1 / 3'과 같은 높이에 온다 */}
-      <span className="relative mt-auto flex min-h-11 items-center pr-28 pt-2">
+          줄 높이·바닥 여백을 버튼 받침(44px, 바닥에서 6px)에 맞춰 글자가 '1 / 3'과 같은 높이에 온다.
+          글 사이를 좁히고 그만큼 위 여백(pt-5)을 늘려, 장 높이(그림이 잘리는 정도)는 그대로 두고 제목만 모서리에서 조금 내린다 */}
+      <span className="relative mt-auto flex min-h-11 items-center pr-28">
         {s.href && s.cta && (
           <span className={`inline-flex items-center gap-0.5 text-l1 font-semibold underline decoration-1 underline-offset-4 ${tone.cta}`}>
             {s.cta}
@@ -227,7 +228,7 @@ function SlideCard({ slide: s, position, active }: { slide: Slide; position: num
       </span>
     </>
   );
-  const box = `@container relative flex w-full flex-col overflow-hidden px-5 pb-2.5 pt-3 ${tone.box}`;
+  const box = `@container relative flex w-full flex-col overflow-hidden px-5 pb-2.5 pt-5 ${tone.box}`;
   if (!s.href) return <div className={box}>{inner}</div>;
   const linkProps = {
     tabIndex: active ? undefined : -1,
