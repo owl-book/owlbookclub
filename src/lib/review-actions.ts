@@ -19,6 +19,11 @@ import { isFormat, isGenre } from "@/lib/tags";
 
 const REVIEW_PATH = "/admin/review";
 
+// 승인 전에 화면이 고친 내용을 먼저 저장했으면(ApproveForm) 완료 안내에 함께 알린다
+function savedParam(formData: FormData): string {
+  return formData.get("saved") === "1" ? "&saved=1" : "";
+}
+
 function toId(v: FormDataEntryValue | null): number | null {
   const n = Number(v);
   return Number.isSafeInteger(n) && n > 0 ? n : null;
@@ -83,7 +88,7 @@ export async function approveMeeting(formData: FormData) {
   if (await missingApplyLink(ids)) fail(`m-${id}`, "nolink");
   const storeToo = await approveIds(ids, r.store_id);
   revalidatePath("/", "layout");
-  redirect(`${REVIEW_PATH}?done=approve&n=${ids.length}${storeToo ? "&store=1" : ""}`);
+  redirect(`${REVIEW_PATH}?done=approve&n=${ids.length}${storeToo ? "&store=1" : ""}${savedParam(formData)}`);
 }
 
 export async function rejectMeeting(formData: FormData) {
@@ -110,7 +115,7 @@ export async function approveStoreAll(formData: FormData) {
   if (ids.length > 0 && (await missingApplyLink(ids))) fail(`store-${storeId}`, "nolink-all");
   const storeToo = ids.length > 0 ? await approveIds(ids, storeId) : await approveStoreRow(storeId);
   revalidatePath("/", "layout");
-  redirect(`${REVIEW_PATH}?done=approve&n=${ids.length}${storeToo ? "&store=1" : ""}`);
+  redirect(`${REVIEW_PATH}?done=approve&n=${ids.length}${storeToo ? "&store=1" : ""}${savedParam(formData)}`);
 }
 
 // 이 책방의 대기 모임 모두 넣지 않음(숨김은 그대로, 책방 대기도 그대로)
@@ -133,7 +138,7 @@ export async function approveStore(formData: FormData) {
   if (!storeId) throw new Error("잘못된 요청입니다.");
   await approveStoreRow(storeId);
   revalidatePath("/", "layout");
-  redirect(`${REVIEW_PATH}?done=store`);
+  redirect(`${REVIEW_PATH}?done=store${savedParam(formData)}`);
 }
 
 // ── 대기 중인 모임·책방 고치기 (승인 전에만. 공개된 것은 고치지 않는다) ──

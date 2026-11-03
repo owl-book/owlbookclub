@@ -8,6 +8,7 @@ import { ExhibitionCard } from "@/components/ExhibitionCard";
 import { MeetingCard } from "@/components/MeetingCard";
 import { MeetingPhotoTile } from "@/components/MeetingPhotoTile";
 import { PosterUploadForm } from "@/components/PosterUploadForm";
+import { ApproveForm } from "@/components/ApproveForm";
 import { EditForm } from "@/components/EditForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { StatusBadge } from "@/components/Tag";
@@ -15,8 +16,8 @@ import { isAdmin, isAdminEnabled } from "@/lib/admin";
 import { smsNumber } from "@/lib/apply";
 import { getCoverBooks } from "@/lib/book-covers";
 import { getInquiryInbox, getReportInbox } from "@/lib/reports";
-import { approveExhibition, rejectExhibition } from "@/lib/exhibition-actions";
-import { KIND_LABEL } from "@/lib/exhibitions";
+import { approveExhibition, editPendingExhibition, rejectExhibition } from "@/lib/exhibition-actions";
+import { EXHIBITION_KINDS, KIND_LABEL } from "@/lib/exhibitions";
 import { autoMeetingArt, MEETING_ARTS, meetingArtSrc } from "@/lib/meeting-art";
 import { getPendingExhibitions, getReviewQueue, type PendingExhibition, type PendingMeeting, type PendingStore, type ReviewGroup } from "@/lib/review";
 import { approveMeeting, approveStore, approveStoreAll, editPendingMeeting, editPendingStore, rejectMeeting, rejectStoreAll } from "@/lib/review-actions";
@@ -73,7 +74,7 @@ export default async function AdminReviewPage({ searchParams }: PageProps<"/admi
             )}
           </p>
           <p className="mt-2 text-b2 text-ink-2">
-            손님에게 보일 카드 모양 그대로예요. 카드를 누르면 상세 화면도 미리 볼 수 있어요. [승인]을 누르면 바로 사이트에 올라가요.
+            손님에게 보일 카드 모양 그대로예요. 카드를 누르면 상세 화면도 미리 볼 수 있어요. [승인]을 누르면 바로 사이트에 올라가요. 고쳐 둔 칸은 저장을 안 눌렀어도 승인할 때 함께 저장돼요.
           </p>
         </>
       )}
@@ -132,10 +133,12 @@ export default async function AdminReviewPage({ searchParams }: PageProps<"/admi
 function doneMessage(sp: Record<string, string | string[] | undefined>): string | undefined {
   const n = Number(sp.n) || 0;
   const storeToo = sp.store === "1" ? " 책방도 함께 공개했어요." : "";
-  if (sp.done === "approve") return `${n > 0 ? `모임 ${n}개를 공개했어요.` : ""}${storeToo}`.trim() || "공개했어요.";
+  const saved = sp.saved === "1" ? "고친 내용을 저장하고 " : "";
+  if (sp.done === "approve") return `${n > 0 ? `${saved}모임 ${n}개를 공개했어요.` : saved ? "고친 내용을 저장했어요." : ""}${storeToo}`.trim() || "공개했어요.";
   if (sp.done === "reject") return `모임 ${n}개를 대기함에서 뺐어요. 숨긴 채로 남아 있어요.`;
-  if (sp.done === "store") return "책방을 공개했어요. 모임은 따로 승인해 주세요.";
+  if (sp.done === "store") return `${saved}책방을 공개했어요. 모임은 따로 승인해 주세요.`;
   if (sp.done === "ex-approve") return "전시를 공개했어요. 전시 메뉴와 책방 화면에 보여요.";
+  if (sp.done === "ex-edit") return "전시 내용을 고쳤어요. 아직 공개 전이에요.";
   if (sp.done === "ex-reject") return "전시를 대기함에서 뺐어요. 숨긴 채로 남아 있어요.";
   if (sp.done === "ex-poster") return "포스터를 올렸어요. 아직 공개 전이에요.";
   if (sp.done === "ex-poster-replace") return "포스터를 바꿨어요. 아직 공개 전이에요.";
@@ -169,7 +172,7 @@ function StoreGroup({ group: g, now }: { group: ReviewGroup; now: Date }) {
   const cards = oneCardPerSeries(g.meetings);
   const headingId = `store-${g.storeId}`;
   return (
-    <li aria-labelledby={headingId}>
+    <li id={`group-${g.storeId}`} aria-labelledby={headingId}>
       {/* 책방 이름 줄은 사이트 머리글 바로 아래(top-14)에 붙어 있어서, 모임이 많아 내려도 어느 책방인지 보인다.
           카드 안 책방 이름 링크·하트(z-10)보다 위에 오도록 z-20 */}
       <div className="sticky top-14 z-20 -mx-4 flex items-baseline justify-between gap-2 border-b border-border bg-page/95 px-4 pt-2 pb-2 backdrop-blur">
@@ -192,7 +195,7 @@ function StoreGroup({ group: g, now }: { group: ReviewGroup; now: Date }) {
               모두 넣지 않음
             </SubmitButton>
           </form>
-          <form action={approveStoreAll}>
+          <ApproveForm action={approveStoreAll} scopeIds={[`group-${g.storeId}`]}>
             <input type="hidden" name="storeId" value={g.storeId} />
             <SubmitButton
               pendingText="공개하는 중…"
@@ -201,7 +204,7 @@ function StoreGroup({ group: g, now }: { group: ReviewGroup; now: Date }) {
             >
               모두 승인 ({g.meetings.length}개)
             </SubmitButton>
-          </form>
+          </ApproveForm>
         </div>
       )}
 
@@ -244,12 +247,12 @@ function StoreBox({ store: s, hasMeetings }: { store: PendingStore; hasMeetings:
       <p className="mt-3 text-l2 font-normal text-ink-3">
         {hasMeetings ? "모임을 승인하면 책방도 함께 공개돼요." : "모임 없이 책방만 올릴 때 눌러 주세요."}
       </p>
-      <form action={approveStore} className="mt-1">
+      <ApproveForm action={approveStore} scopeIds={[`s-${s.id}`]} className="mt-1">
         <input type="hidden" name="storeId" value={s.id} />
         <SubmitButton pendingText="공개하는 중…" className="min-h-11 w-full rounded-sm border border-border-strong bg-card py-2.5 text-l1 font-semibold text-navy hover:bg-sub">
           책방만 승인
         </SubmitButton>
-      </form>
+      </ApproveForm>
     </div>
   );
 }
@@ -297,12 +300,13 @@ function MeetingItem({ m, sessions, now }: { m: PendingMeeting; sessions: Pendin
         ))}
         {noLink && <p className="mt-2 text-l2 font-normal text-error">신청 링크를 채워야 승인할 수 있어요.</p>}
         <div className="mt-2 grid grid-cols-[2fr_1fr] gap-2">
-          <form action={approveMeeting}>
+          {/* 책방도 대기 중이면 함께 공개되므로 책방 고치기 칸(s-)도 함께 저장한다 */}
+          <ApproveForm action={approveMeeting} scopeIds={[`m-${m.id}`, `s-${m.store.id}`]}>
             <input type="hidden" name="meetingId" value={m.id} />
             <SubmitButton pendingText="공개하는 중…" className="min-h-11 w-full rounded-sm bg-navy px-2 py-2.5 text-l1 font-semibold text-white hover:bg-navy-hover">
               {count > 1 ? `승인 (${count}회 모두)` : "승인"}
             </SubmitButton>
-          </form>
+          </ApproveForm>
           <form action={rejectMeeting}>
             <input type="hidden" name="meetingId" value={m.id} />
             <SubmitButton
@@ -422,7 +426,7 @@ function ArtPicker({ m }: { m: PendingMeeting }) {
           </label>
         ))}
       </div>
-      <p className="mt-1 text-l2 font-normal text-ink-3">그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나와요. 사진은 [고친 내용 저장]을 눌러야 올라가요</p>
+      <p className="mt-1 text-l2 font-normal text-ink-3">그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나와요. 사진은 [고친 내용 저장]이나 [승인]을 눌러야 올라가요</p>
     </fieldset>
   );
 }
@@ -533,7 +537,7 @@ function ExhibitionItem({ e, now }: { e: PendingExhibition; now: Date }) {
   ];
   return (
     <li id={`e-${e.id}`} className="scroll-mt-4">
-      <ExhibitionCard exhibition={e} now={now} href={`#e-${e.id}`} />
+      <ExhibitionCard exhibition={e} now={now} href={`/admin/review/e/${e.id}`} />
       <div className="mt-2 rounded-md bg-sub px-3 py-2.5">
         {e.note && <Note text={e.note} />}
         {e.storeBlocked && (
@@ -549,10 +553,15 @@ function ExhibitionItem({ e, now }: { e: PendingExhibition; now: Date }) {
           <dt className="text-ink-3">게시물</dt>
           <dd className="break-all text-ink-2">{e.postUrl ? <ExternalLink href={e.postUrl} /> : "없음"}</dd>
         </dl>
+        <Link href={`/admin/review/e/${e.id}`} className="mt-1 inline-flex min-h-11 items-center text-l1 font-semibold text-navy underline underline-offset-2">
+          상세 화면 미리보기
+        </Link>
+        <ExhibitionEdit e={e} />
         <PosterUploadForm exhibitionId={e.id} hasPoster={Boolean(e.poster)} />
         {/* 승인 폼은 칸 배치만 grid 에 맡긴다(contents): 허가 확인 줄은 위에 꽉 차게, 승인 버튼은 넣지 않음 옆에 */}
         <div className="mt-3 grid grid-cols-[2fr_1fr] gap-2">
-          <form action={approveExhibition} className="contents">
+          {/* 고치던 내용이 있으면 승인 전에 먼저 저장한다 */}
+          <ApproveForm action={approveExhibition} scopeIds={[`e-${e.id}`]} className="contents">
             <input type="hidden" name="exhibitionId" value={e.id} />
             {e.poster ? (
               <label className="col-span-2 flex min-h-11 cursor-pointer items-center gap-2.5 text-b2 text-ink">
@@ -565,7 +574,7 @@ function ExhibitionItem({ e, now }: { e: PendingExhibition; now: Date }) {
             <SubmitButton pendingText="공개하는 중…" className="min-h-11 w-full rounded-sm bg-navy px-2 py-2.5 text-l1 font-semibold text-white hover:bg-navy-hover">
               승인
             </SubmitButton>
-          </form>
+          </ApproveForm>
           <form action={rejectExhibition}>
             <input type="hidden" name="exhibitionId" value={e.id} />
             <SubmitButton
@@ -579,6 +588,55 @@ function ExhibitionItem({ e, now }: { e: PendingExhibition; now: Date }) {
         </div>
       </div>
     </li>
+  );
+}
+
+// 승인 전 전시 고치기. 저장해도 공개되지 않고, 고친 모습은 위 카드와 미리보기에 바로 보인다
+function ExhibitionEdit({ e }: { e: PendingExhibition }) {
+  const f = (k: string) => `${k}-e${e.id}`;
+  return (
+    <EditBox label="내용 고치기">
+      <EditForm action={editPendingExhibition} doneHref={`/admin/review?done=ex-edit#e-${e.id}`}>
+        <input type="hidden" name="exhibitionId" value={e.id} />
+        <Field label="전시 이름" htmlFor={f("title")}>
+          <input id={f("title")} name="title" required maxLength={120} defaultValue={e.title} className={inputClass} />
+        </Field>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="종류" htmlFor={f("kind")}>
+            <Select id={f("kind")} name="kind" value={e.kind} options={EXHIBITION_KINDS.map((k) => [k, KIND_LABEL[k]] as const)} />
+          </Field>
+          <Field label="작가" htmlFor={f("artist")} hint="여럿이면 쉼표로">
+            <input id={f("artist")} name="artist" maxLength={120} defaultValue={e.artist ?? ""} className={inputClass} />
+          </Field>
+          <Field label="시작일" htmlFor={f("starts")}>
+            <input id={f("starts")} name="startsOn" type="date" required defaultValue={e.startsOn} className={inputClass} />
+          </Field>
+          <Field label="마지막 날" htmlFor={f("ends")}>
+            <input id={f("ends")} name="endsOn" type="date" required defaultValue={e.endsOn} className={inputClass} />
+          </Field>
+        </div>
+        <Field label="전시 시간 (책방 운영시간과 다를 때만)" htmlFor={f("hours")} hint="비우면 책방 운영시간이 보여요">
+          <input id={f("hours")} name="hoursNote" maxLength={200} defaultValue={e.hoursNote ?? ""} placeholder="예: 주말만 오후 1시 ~ 6시" className={inputClass} />
+        </Field>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="입장료" htmlFor={f("paid")}>
+            <Select id={f("paid")} name="isPaid" value={e.isPaid ? "yes" : "no"} options={[["no", "무료 (표시 안 함)"], ["yes", "유료"]]} />
+          </Field>
+          <Field label="금액 (유료일 때)" htmlFor={f("fee")}>
+            <input id={f("fee")} name="feeNote" maxLength={60} defaultValue={e.feeNote ?? ""} placeholder="예: 5,000원" className={inputClass} />
+          </Field>
+        </div>
+        <Field label="게시물 링크" htmlFor={f("post")}>
+          <input id={f("post")} name="postUrl" type="url" maxLength={500} defaultValue={e.postUrl ?? ""} className={inputClass} />
+        </Field>
+        <Field label="전시 소개" htmlFor={f("intro")}>
+          <textarea id={f("intro")} name="intro" rows={6} maxLength={2000} defaultValue={e.intro ?? ""} className={textareaClass} />
+        </Field>
+        <Field label="확인할 점 (손님에게 안 보여요)" htmlFor={f("note")} hint="확인이 끝난 줄은 지워 주세요">
+          <textarea id={f("note")} name="note" rows={3} maxLength={1000} defaultValue={e.note ?? ""} className={textareaClass} />
+        </Field>
+      </EditForm>
+    </EditBox>
   );
 }
 

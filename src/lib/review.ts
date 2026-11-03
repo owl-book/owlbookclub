@@ -145,3 +145,9 @@ export async function getPendingMeeting(id: number): Promise<PendingMeeting | nu
   }
   return null;
 }
+
+// 미리보기용으로 대기 전시 하나를 읽는다(대기 중이 아니면 null)
+export async function getPendingExhibition(id: number): Promise<PendingExhibition | null> {
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
+  return (await getPendingExhibitions())?.find((e) => e.id === id) ?? null;
+}
