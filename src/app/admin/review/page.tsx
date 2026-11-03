@@ -170,36 +170,40 @@ function StoreGroup({ group: g, now }: { group: ReviewGroup; now: Date }) {
   const headingId = `store-${g.storeId}`;
   return (
     <li aria-labelledby={headingId}>
-      <div className="flex flex-wrap items-end justify-between gap-2 border-b border-border pb-2">
-        <h2 id={headingId} className="text-t1 text-ink">
+      {/* 책방 이름 줄은 사이트 머리글 바로 아래(top-14)에 붙어 있어서, 모임이 많아 내려도 어느 책방인지 보인다.
+          카드 안 책방 이름 링크·하트(z-10)보다 위에 오도록 z-20 */}
+      <div className="sticky top-14 z-20 -mx-4 flex items-baseline justify-between gap-2 border-b border-border bg-page/95 px-4 pt-2 pb-2 backdrop-blur">
+        <h2 id={headingId} className="min-w-0 text-t1 text-ink">
           {g.storeName} <span className="text-l1 font-normal text-ink-3">· {g.region}</span>
           {g.store && <StatusBadge tone="info" className="ml-1.5 align-middle">새 책방</StatusBadge>}
         </h2>
-        {g.meetings.length > 1 && (
-          <div className="flex items-center gap-3">
-            <form action={rejectStoreAll}>
-              <input type="hidden" name="storeId" value={g.storeId} />
-              <SubmitButton
-                pendingText="빼는 중…"
-                confirm={`${g.storeName} 모임 ${g.meetings.length}개를 모두 넣지 않을까요? 대기함에서 빠지고, 사이트에는 올라가지 않아요(지우지는 않아요).`}
-                className="inline-flex min-h-11 items-center px-1 text-l1 font-semibold text-ink-2 underline underline-offset-2"
-              >
-                모두 넣지 않음
-              </SubmitButton>
-            </form>
-            <form action={approveStoreAll}>
-              <input type="hidden" name="storeId" value={g.storeId} />
-              <SubmitButton
-                pendingText="공개하는 중…"
-                confirm={`${g.storeName} 모임 ${g.meetings.length}개를 모두 승인할까요? 바로 사이트에 올라가요.${g.store ? " 책방도 함께 공개돼요." : ""}`}
-                className="inline-flex min-h-11 items-center px-1 text-l1 font-semibold text-navy underline underline-offset-2"
-              >
-                모두 승인 ({g.meetings.length}개)
-              </SubmitButton>
-            </form>
-          </div>
-        )}
+        <span className="shrink-0 text-l1 font-normal text-ink-3">모임 {g.meetings.length}개</span>
       </div>
+      {/* 한꺼번에 처리하는 버튼은 고정하지 않는다(위에 붙는 줄이 두꺼워지지 않게) */}
+      {g.meetings.length > 1 && (
+        <div className="flex items-center justify-end gap-3">
+          <form action={rejectStoreAll}>
+            <input type="hidden" name="storeId" value={g.storeId} />
+            <SubmitButton
+              pendingText="빼는 중…"
+              confirm={`${g.storeName} 모임 ${g.meetings.length}개를 모두 넣지 않을까요? 대기함에서 빠지고, 사이트에는 올라가지 않아요(지우지는 않아요).`}
+              className="inline-flex min-h-11 items-center px-1 text-l1 font-semibold text-ink-2 underline underline-offset-2"
+            >
+              모두 넣지 않음
+            </SubmitButton>
+          </form>
+          <form action={approveStoreAll}>
+            <input type="hidden" name="storeId" value={g.storeId} />
+            <SubmitButton
+              pendingText="공개하는 중…"
+              confirm={`${g.storeName} 모임 ${g.meetings.length}개를 모두 승인할까요? 바로 사이트에 올라가요.${g.store ? " 책방도 함께 공개돼요." : ""}`}
+              className="inline-flex min-h-11 items-center px-1 text-l1 font-semibold text-navy underline underline-offset-2"
+            >
+              모두 승인 ({g.meetings.length}개)
+            </SubmitButton>
+          </form>
+        </div>
+      )}
 
       {g.store && <StoreBox store={g.store} hasMeetings={g.meetings.length > 0} />}
 
@@ -225,7 +229,7 @@ function StoreBox({ store: s, hasMeetings }: { store: PendingStore; hasMeetings:
     ["소개", s.intro],
   ];
   return (
-    <div id={`s-${s.id}`} className="mt-3 scroll-mt-4 rounded-md border border-border-card bg-card p-4">
+    <div id={`s-${s.id}`} className="mt-3 scroll-mt-32 rounded-md border border-border-card bg-card p-4">
       <p className="text-l1 font-semibold text-ink">책방 정보</p>
       {s.note && <Note text={s.note} />}
       <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-b2">
@@ -257,7 +261,7 @@ function MeetingItem({ m, sessions, now }: { m: PendingMeeting; sessions: Pendin
   const applyText =
     m.applyMethod === "none" ? "신청 없이 자유 방문" : m.applyMethod === "dm" ? "인스타 DM" : sms ? `문자 (${sms})` : "신청서·예약 페이지";
   return (
-    <li id={`m-${m.id}`} className="scroll-mt-4">
+    <li id={`m-${m.id}`} className="scroll-mt-32">
       <MeetingCard meeting={m} now={now} href={`/admin/review/${m.id}`} showDate />
       <div className="mt-2 rounded-md bg-sub px-3 py-2.5">
         {m.note && <Note text={m.note} />}
