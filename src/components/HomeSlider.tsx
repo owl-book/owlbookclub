@@ -229,13 +229,20 @@ function SlideCard({ slide: s, position, active }: { slide: Slide; position: num
   );
   const box = `@container relative flex w-full flex-col overflow-hidden px-5 pb-2.5 pt-3 ${tone.box}`;
   if (!s.href) return <div className={box}>{inner}</div>;
+  const linkProps = {
+    tabIndex: active ? undefined : -1,
+    onClick: () => window.gtag?.("event", "banner_click", { slide: s.id, position: String(position) }),
+    className: `${box} focus-visible:outline-offset-[-4px] ${s.tone === "navy" ? "focus-visible:outline-page" : ""}`,
+  };
+  // 바깥 주소(인스타그램 등)는 새 탭으로 열어 홈이 그대로 남게 한다
+  if (/^https?:\/\//.test(s.href))
+    return (
+      <a href={s.href} target="_blank" rel="noopener noreferrer" {...linkProps}>
+        {inner}
+      </a>
+    );
   return (
-    <Link
-      href={s.href}
-      tabIndex={active ? undefined : -1}
-      onClick={() => window.gtag?.("event", "banner_click", { slide: s.id, position: String(position) })}
-      className={`${box} focus-visible:outline-offset-[-4px] ${s.tone === "navy" ? "focus-visible:outline-page" : ""}`}
-    >
+    <Link href={s.href} {...linkProps}>
       {inner}
     </Link>
   );

@@ -18,7 +18,7 @@ export type Slide = {
   beta?: boolean; // 장 오른쪽 위 모서리에 BETA 표시
   note?: string; // 넓은 화면에서만 설명 아래 한 줄 더(휴대폰은 장이 길어져 그림이 잘려서 뺀다)
   pageTitle?: boolean; // 이 장의 제목을 홈 화면의 제목(h1)으로 쓴다(한 장만)
-  href?: string; // 없으면 누르는 곳 없는 안내 장. '#meetings' 는 홈 아래 모임 목록으로 내려간다
+  href?: string; // 없으면 누르는 곳 없는 안내 장. '#meetings' 는 홈 아래 모임 목록으로 내려간다. http 로 시작하면 새 탭으로 연다
   cta?: string; // 누르는 곳의 글자(href 가 있을 때)
   hideWhenInstalled?: boolean; // 홈 화면 앱으로 연 사람에게는 감춘다
   startsOn?: string; // 'YYYY-MM-DD'(한국 날짜), 이날부터 보임
@@ -35,6 +35,17 @@ export const SLIDES: Slide[] = [
     pageTitle: true,
     href: "#meetings",
     cta: "독서모임 찾아보기",
+  },
+  {
+    id: "sea-queen-2611",
+    tone: "navy",
+    image: "/slides/sea-queen.webp",
+    title: "동네책방 X 바다의 여왕\n신간 출시 기념 이벤트",
+    body: "이벤트 참여 책방에서 구매 후 인스타그램에 구매 인증을 올리면,\n추첨으로 다섯 분께 특별한 선물을 드려요.",
+    href: "https://www.instagram.com/p/DeiOuvckxQI/?img_index=1",
+    cta: "자세히 보러 가기",
+    startsOn: "2026-11-03",
+    endsOn: "2026-11-15",
   },
   {
     id: "app",
