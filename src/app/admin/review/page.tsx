@@ -258,7 +258,7 @@ function MeetingItem({ m, sessions, now }: { m: PendingMeeting; sessions: Pendin
     m.applyMethod === "none" ? "신청 없이 자유 방문" : m.applyMethod === "dm" ? "인스타 DM" : sms ? `문자 (${sms})` : "신청서·예약 페이지";
   return (
     <li id={`m-${m.id}`} className="scroll-mt-4">
-      <MeetingCard meeting={m} now={now} href={`/admin/review/${m.id}`} />
+      <MeetingCard meeting={m} now={now} href={`/admin/review/${m.id}`} showDate />
       <div className="mt-2 rounded-md bg-sub px-3 py-2.5">
         {m.note && <Note text={m.note} />}
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-l2 font-normal">

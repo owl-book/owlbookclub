@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getBookCover } from "@/lib/books";
 import { autoMeetingArt, meetingArtSrc } from "@/lib/meeting-art";
 import { isPast, seriesIndex, type Meeting } from "@/lib/meetings";
-import { formatKstMonthDay, meetingTime } from "@/lib/time";
+import { formatKstDateOnly, formatKstMonthDay, meetingTime } from "@/lib/time";
 import { count, dateRange, hashTags, joinDot } from "@/lib/format";
 import { MeetingStatusBadge, SeriesBadge } from "@/components/Tag";
 import { WishButton } from "@/components/WishButton";
@@ -13,7 +13,22 @@ export type CardWish = { wished: boolean; loggedIn: boolean };
 
 // hideStore: 책방 상세 화면처럼 이미 어느 책방인지 아는 곳에서는 책방 이름 줄을 뺀다
 // href: 카드를 눌렀을 때 갈 곳(기본은 모임 상세). 운영자 승인 미리보기는 미리보기 화면으로 보낸다
-export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { meeting: Meeting; now: Date; wish?: CardWish; hideStore?: boolean; href?: string }) {
+// showDate: 시간 앞에 날짜·요일도 쓴다. 날짜 제목 없이 책방별로 모아 보는 승인 화면용
+export async function MeetingCard({
+  meeting: m,
+  now,
+  wish,
+  hideStore,
+  href,
+  showDate,
+}: {
+  meeting: Meeting;
+  now: Date;
+  wish?: CardWish;
+  hideStore?: boolean;
+  href?: string;
+  showDate?: boolean;
+}) {
   const past = isPast(m, now);
   // 승인 화면에서 표지 그림을 직접 골랐으면 책 표지 대신 그 그림을 쓴다(책 표지는 찾지 않는다)
   // 대표 사진(예: 영화 포스터)을 올렸으면 그 사진이 가장 먼저다
@@ -46,7 +61,10 @@ export async function MeetingCard({ meeting: m, now, wish, hideStore, href }: { 
       <div className="min-w-0 flex-1">
         {/* 시간은 날짜 제목(16px)보다 작고 조용하게: 날짜 → 모임 이름 → 시간 순으로 눈이 가도록 */}
         <div className={`flex flex-wrap items-center gap-1.5 ${wish ? "pr-9" : ""}`}>
-          <span className={`fig text-l1 ${dim ? "text-ink-3" : "text-ink-2"}`}>{meetingTime(m)}</span>
+          <span className={`fig text-l1 ${dim ? "text-ink-3" : "text-ink-2"}`}>
+            {showDate && <strong className={`font-semibold ${dim ? "" : "text-ink"}`}>{formatKstDateOnly(m.startsAt)} </strong>}
+            {meetingTime(m)}
+          </span>
         </div>
         <h3 className="mt-1.5 text-t2 text-ink">
           <Link
