@@ -15,6 +15,12 @@ const SAVE_FAILED = "저장하지 못했어요. 잠시 뒤 다시 눌러 주세�
 // 화면에 떠 있는 고치기 폼마다 '저장하기'를 적어 둔다. [승인]을 누르면 저장 안 한 폼을 먼저 저장하는 데 쓴다(saveUnsavedEdits)
 const savers = new Map<HTMLFormElement, () => Promise<boolean>>();
 
+// 다른 고치기 폼(같은 모임 한꺼번에 고치기)도 같은 목록에 적어 둔다. 돌려준 함수를 부르면 뺀다
+export function registerSaver(form: HTMLFormElement, save: () => Promise<boolean>): () => void {
+  savers.set(form, save);
+  return () => void savers.delete(form);
+}
+
 // 승인 화면의 '고치기' 폼. 저장에 실패하면 고치던 내용을 그대로 두고 버튼 위에 이유를 보여 준다.
 // <form action>으로 보내면 React가 끝난 뒤 칸을 처음 값으로 되돌리므로, 직접 보내서(onSubmit) 적은 내용을 지킨다.
 // 성공하면 완료 안내가 있는 주소로 옮긴다(고친 모습이 위 카드에 보임)
@@ -48,8 +54,7 @@ export function EditForm({ action, doneHref, children }: Props) {
   useEffect(() => {
     const form = formRef.current;
     if (!form) return;
-    savers.set(form, save);
-    return () => void savers.delete(form);
+    return registerSaver(form, save);
   });
 
   return (
@@ -84,16 +89,19 @@ export function EditForm({ action, doneHref, children }: Props) {
 
 // 처음 화면에 나온 값과 하나라도 다르면 '저장 안 한 내용이 있다'고 본다(고른 사진 파일도 포함)
 function isChanged(form: HTMLFormElement): boolean {
-  return Array.from(form.elements).some((el) => {
-    if (el instanceof HTMLInputElement) {
-      if (el.type === "file") return (el.files?.length ?? 0) > 0;
-      if (el.type === "checkbox" || el.type === "radio") return el.checked !== el.defaultChecked;
-      return el.value !== el.defaultValue;
-    }
-    if (el instanceof HTMLTextAreaElement) return el.value !== el.defaultValue;
-    if (el instanceof HTMLSelectElement) return Array.from(el.options).some((o) => o.selected !== o.defaultSelected);
-    return false;
-  });
+  return Array.from(form.elements).some(isFieldChanged);
+}
+
+// 칸 하나가 처음 화면에 나온 값과 다른지
+export function isFieldChanged(el: Element): boolean {
+  if (el instanceof HTMLInputElement) {
+    if (el.type === "file") return (el.files?.length ?? 0) > 0;
+    if (el.type === "checkbox" || el.type === "radio") return el.checked !== el.defaultChecked;
+    return el.value !== el.defaultValue;
+  }
+  if (el instanceof HTMLTextAreaElement) return el.value !== el.defaultValue;
+  if (el instanceof HTMLSelectElement) return Array.from(el.options).some((o) => o.selected !== o.defaultSelected);
+  return false;
 }
 
 // [승인] 전에 부른다: 주어진 칸(id) 안의 고치기 폼 중 고친 것을 차례로 저장한다.

@@ -9,9 +9,10 @@ import { MeetingCard } from "@/components/MeetingCard";
 import { MeetingPhotoTile } from "@/components/MeetingPhotoTile";
 import { PosterUploadForm } from "@/components/PosterUploadForm";
 import { ApproveForm } from "@/components/ApproveForm";
+import { BulkEditForm } from "@/components/BulkEditForm";
 import { EditForm } from "@/components/EditForm";
 import { SubmitButton } from "@/components/SubmitButton";
-import { StatusBadge } from "@/components/Tag";
+import { PlainTag, StatusBadge } from "@/components/Tag";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
 import { smsNumber } from "@/lib/apply";
 import { getCoverBooks } from "@/lib/book-covers";
@@ -20,9 +21,10 @@ import { approveExhibition, editPendingExhibition, rejectExhibition } from "@/li
 import { EXHIBITION_KINDS, KIND_LABEL } from "@/lib/exhibitions";
 import { autoMeetingArt, MEETING_ARTS, meetingArtSrc } from "@/lib/meeting-art";
 import { getPendingExhibitions, getReviewQueue, type PendingExhibition, type PendingMeeting, type PendingStore, type ReviewGroup } from "@/lib/review";
-import { approveMeeting, approveStore, approveStoreAll, editPendingMeeting, editPendingStore, rejectMeeting, rejectStoreAll } from "@/lib/review-actions";
+import { approveMeeting, approveMeetings, approveStore, approveStoreAll, bulkEditPendingMeetings, editPendingMeeting, editPendingStore, rejectMeeting, rejectStoreAll } from "@/lib/review-actions";
 import { REGIONS, SIDOS } from "@/lib/regions";
 import { FORMATS, GENRES } from "@/lib/tags";
+import { formatKstDateOnly } from "@/lib/time";
 
 // 운영자 전용 승인 대기 화면. Claude가 숨긴 채로 넣어 둔 모임·책방을 실제 카드 모양으로 보고 [승인]하면 바로 공개된다.
 // 신고함과 마찬가지로 사이트 어디에도 링크하지 않고, 화면·동작 모두 출입증을 확인한다.
@@ -143,6 +145,7 @@ function doneMessage(sp: Record<string, string | string[] | undefined>): string 
   if (sp.done === "ex-poster") return "포스터를 올렸어요. 아직 공개 전이에요.";
   if (sp.done === "ex-poster-replace") return "포스터를 바꿨어요. 아직 공개 전이에요.";
   if (sp.done === "edit") return "모임 내용을 고쳤어요. 아직 공개 전이에요.";
+  if (sp.done === "bulk-edit") return `모임 ${n}개를 한꺼번에 고쳤어요. 아직 공개 전이에요.`;
   if (sp.done === "store-edit") return "책방 정보를 고쳤어요. 아직 공개 전이에요.";
   return undefined;
 }
@@ -166,6 +169,25 @@ function oneCardPerSeries(meetings: PendingMeeting[]): PendingMeeting[] {
     seen.add(m.seriesKey);
     return true;
   });
+}
+
+// 이름이 같고 날짜만 다른 모임(예: 매주 보드게임)을 한데 모은다. 묶음(일괄 신청) 카드는 이미 한 장이라 모으지 않는다.
+// 처음 나온 자리에 모아 두고, 나머지 순서는 그대로
+function groupRepeats(cards: PendingMeeting[]): PendingMeeting[][] {
+  const byTitle = new Map<string, PendingMeeting[]>();
+  const items: PendingMeeting[][] = [];
+  for (const m of cards) {
+    const key = m.title.trim();
+    const list = m.series && m.seriesKey ? undefined : byTitle.get(key);
+    if (list) {
+      list.push(m);
+      continue;
+    }
+    const item = [m];
+    if (!(m.series && m.seriesKey)) byTitle.set(key, item);
+    items.push(item);
+  }
+  return items;
 }
 
 function StoreGroup({ group: g, now }: { group: ReviewGroup; now: Date }) {
@@ -212,9 +234,18 @@ function StoreGroup({ group: g, now }: { group: ReviewGroup; now: Date }) {
 
       {cards.length > 0 ? (
         <ul className="mt-4 space-y-5">
-          {cards.map((m) => (
-            <MeetingItem key={m.id} m={m} sessions={m.seriesKey && m.series ? g.meetings.filter((x) => x.seriesKey === m.seriesKey) : [m]} now={now} />
-          ))}
+          {groupRepeats(cards).map((item) =>
+            item.length > 1 ? (
+              <RepeatGroup key={item[0].id} meetings={item} now={now} />
+            ) : (
+              <MeetingItem
+                key={item[0].id}
+                m={item[0]}
+                sessions={item[0].seriesKey && item[0].series ? g.meetings.filter((x) => x.seriesKey === item[0].seriesKey) : [item[0]]}
+                now={now}
+              />
+            ),
+          )}
         </ul>
       ) : (
         <p className="mt-3 text-b2 text-ink-3">이 책방은 대기 중인 모임이 없어요. 책방 정보만 확인해 주세요.</p>
@@ -400,15 +431,124 @@ function MeetingEdit({ m, label }: { m: PendingMeeting; label: string }) {
   );
 }
 
+// 같은 모임 묶음: 한꺼번에 고치기 칸 → 모임 카드들(하나씩 고치기·승인은 그대로)
+function RepeatGroup({ meetings, now }: { meetings: PendingMeeting[]; now: Date }) {
+  const first = meetings[0];
+  return (
+    <li id={`rep-${first.id}`} className="scroll-mt-32">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <PlainTag>같은 모임 {meetings.length}개</PlainTag>
+        <p className="text-l1 font-semibold text-ink">{first.title}</p>
+      </div>
+      <p className="mt-1 text-l2 font-normal text-ink-3">이름이 같고 날짜만 다른 모임을 한데 모았어요.</p>
+      <EditBox label={`${meetings.length}개 한꺼번에 고치기`}>
+        <BulkMeetingEdit meetings={meetings} />
+      </EditBox>
+      <ul className="mt-4 space-y-5">
+        {meetings.map((m) => (
+          <MeetingItem key={m.id} m={m} sessions={[m]} now={now} />
+        ))}
+      </ul>
+    </li>
+  );
+}
+
+// 칸마다 처음 값은 첫 모임의 값. 바꾼 칸만 고른 모임 모두에 들어간다(BulkEditForm)
+function BulkMeetingEdit({ meetings }: { meetings: PendingMeeting[] }) {
+  const m = meetings[0];
+  const f = (k: string) => `${k}-b${m.id}`;
+  return (
+    <BulkEditForm
+      save={bulkEditPendingMeetings}
+      approve={approveMeetings}
+      anchor={`rep-${m.id}`}
+      sessions={meetings.map((x) => ({ id: x.id, label: formatKstDateOnly(x.startsAt) }))}
+    >
+      <p className="rounded-xs border border-info-border bg-info-surface px-3 py-2 text-l2 font-normal text-ink">
+        여기서 <strong className="font-semibold">바꾼 칸만</strong> 아래에서 고른 모임 모두에 똑같이 들어가요. 손대지 않은 칸은 모임마다 원래 값 그대로예요. 날짜는 바뀌지 않아요.
+      </p>
+      <Field label="모임 이름" htmlFor={f("title")} hint="가운뎃점(·)은 ~로 바꿔서 저장해요" mark>
+        <input id={f("title")} name="title" required maxLength={100} defaultValue={m.title} className={bulkInputClass} />
+      </Field>
+      <div>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="시작 시각" htmlFor={f("start")} mark>
+            <input id={f("start")} name="startTime" type="time" required defaultValue={toKstInput(m.startsAt).slice(11)} className={bulkInputClass} />
+          </Field>
+          <Field label="끝나는 시각" htmlFor={f("end")} mark>
+            <input id={f("end")} name="endTime" type="time" defaultValue={m.endsAt ? toKstInput(m.endsAt).slice(11) : ""} className={bulkInputClass} />
+          </Field>
+        </div>
+        <p className="mt-1 text-l2 font-normal text-ink-3">날짜는 모임마다 그대로, 시각만 바뀌어요</p>
+      </div>
+      <Field label="시간 안내 (반마다 시간이 다를 때만)" htmlFor={f("timeNote")} hint="예: (8세) 오후 3:50 / (7세) 오후 5:00" mark>
+        <input id={f("timeNote")} name="timeNote" maxLength={60} defaultValue={m.timeNote ?? ""} className={bulkInputClass} />
+      </Field>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="책 제목" htmlFor={f("book")} mark>
+          <input id={f("book")} name="bookTitle" maxLength={200} defaultValue={m.bookTitle ?? ""} className={bulkInputClass} />
+        </Field>
+        <Field label="저자" htmlFor={f("author")} mark>
+          <input id={f("author")} name="bookAuthor" maxLength={100} defaultValue={m.bookAuthor ?? ""} className={bulkInputClass} />
+        </Field>
+      </div>
+      <ArtPicker m={m} bulk />
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="장르" htmlFor={f("genre")} mark>
+          <Select id={f("genre")} name="genre" value={m.tagGenre} options={GENRES} className={bulkInputClass} />
+        </Field>
+        <Field label="모임방식" htmlFor={f("format")} mark>
+          <Select id={f("format")} name="format" value={m.tagFormat} options={FORMATS} className={bulkInputClass} />
+        </Field>
+        <Field label="정기/일일" htmlFor={f("cadence")} mark>
+          <Select id={f("cadence")} name="cadence" value={m.tagCadence} options={["정기", "일일"]} className={bulkInputClass} />
+        </Field>
+        <Field label="모집 상태" htmlFor={f("status")} mark>
+          <Select id={f("status")} name="status" value={m.status} options={[["open", "모집중"], ["closed", "마감"]]} className={bulkInputClass} />
+        </Field>
+      </div>
+      <Field label="신청 방식" htmlFor={f("method")} mark>
+        <Select
+          id={f("method")}
+          name="applyMethod"
+          value={m.applyMethod}
+          options={[["form", "신청서·예약 페이지·문자"], ["dm", "인스타 DM (링크에 책방 인스타)"], ["none", "신청 없이 자유 방문 (링크에 게시물)"]]}
+          className={bulkInputClass}
+        />
+      </Field>
+      <Field label="신청 링크" htmlFor={f("apply")} hint="https:// 주소, 문자 신청이면 sms:01012345678" mark>
+        <input id={f("apply")} name="applyUrl" maxLength={500} defaultValue={m.applyUrl} className={bulkInputClass} />
+      </Field>
+      <Field label="게시물 링크" htmlFor={f("post")} mark>
+        <input id={f("post")} name="postUrl" type="url" maxLength={500} defaultValue={m.postUrlRaw ?? ""} className={bulkInputClass} />
+      </Field>
+      <div className="grid grid-cols-2 gap-2">
+        <Field label="참가비" htmlFor={f("fee")} mark>
+          <input id={f("fee")} name="feeText" maxLength={100} defaultValue={m.feeText ?? ""} placeholder="예: 2만원(음료 포함)" className={bulkInputClass} />
+        </Field>
+        <Field label="장소 설명" htmlFor={f("place")} mark>
+          <input id={f("place")} name="place" maxLength={200} defaultValue={m.place ?? ""} placeholder="비우면 책방" className={bulkInputClass} />
+        </Field>
+      </div>
+      <Field label="모임 소개" htmlFor={f("desc")} mark>
+        <textarea id={f("desc")} name="description" rows={6} maxLength={1000} defaultValue={m.description ?? ""} className={bulkTextareaClass} />
+      </Field>
+    </BulkEditForm>
+  );
+}
+
 // 표지 그림 고르기: 그림을 눌러 고른다(라디오 버튼). '자동'은 책 표지, 없으면 모임 종류에 맞춘 그림.
 // 그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나온다. 맨 왼쪽은 대표 사진 칸(+ 를 눌러 사진 추가, 예: 영화 포스터)
-function ArtPicker({ m }: { m: PendingMeeting }) {
+function ArtPicker({ m, bulk }: { m: PendingMeeting; bulk?: boolean }) {
   const options = [["auto", m.bookTitle ? "자동(책 표지)" : "자동", m.bookTitle ? null : autoMeetingArt(m)] as const, ...MEETING_ARTS.map(([k, t]) => [k, t, k] as const)];
   // 사진이 있으면 사진이 가장 먼저 보이므로 사진 칸이 선택된 채로 연다
   const current = m.photoUrl ? "photo" : (m.coverArt ?? "auto");
   return (
-    <fieldset>
-      <legend className="text-l2 font-semibold text-ink">표지 그림</legend>
+    <fieldset data-field={bulk ? "" : undefined} className={bulk ? "group/f" : undefined}>
+      <legend className="text-l2 font-semibold text-ink">
+        표지 그림
+        {bulk && <ChangedBadge />}
+      </legend>
       {/* 휴대폰에서는 3칸씩 두 줄, 넓은 화면에서는 한 줄 */}
       <div className="mt-1 grid grid-cols-3 gap-1.5 sm:grid-cols-6">
         <MeetingPhotoTile photoUrl={m.photoUrl} checked={current === "photo"} />
@@ -426,7 +566,10 @@ function ArtPicker({ m }: { m: PendingMeeting }) {
           </label>
         ))}
       </div>
-      <p className="mt-1 text-l2 font-normal text-ink-3">그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나와요. 사진은 [고친 내용 저장]이나 [승인]을 눌러야 올라가요</p>
+      <p className="mt-1 text-l2 font-normal text-ink-3">
+        그림을 고르면 책 제목이 있어도 책 표지 대신 그 그림이 나와요.{" "}
+        {bulk ? "사진을 올리면 고른 모임 모두에 같은 사진이 들어가요" : "사진은 [고친 내용 저장]이나 [승인]을 눌러야 올라가요"}
+      </p>
     </fieldset>
   );
 }
@@ -484,14 +627,29 @@ function EditBox({ label, children }: { label: string; children: React.ReactNode
 
 const inputClass =
   "mt-1 block min-h-11 w-full rounded-xs border border-border-control bg-card px-3 text-b2 text-ink focus:border-navy focus:outline-2 focus:outline-navy";
+// 한꺼번에 고치기에서 바꾼 칸은 테두리를 진하게
+const CHANGED = " data-[changed]:border-navy data-[changed]:outline-2 data-[changed]:outline-navy";
 const textareaClass =
   "mt-1 block w-full rounded-xs border border-border-control bg-card px-3 py-2 text-b2 text-ink focus:border-navy focus:outline-2 focus:outline-navy";
+const bulkInputClass = inputClass + CHANGED;
+const bulkTextareaClass = textareaClass + CHANGED;
 
-function Field({ label, htmlFor, hint, children }: { label: string; htmlFor: string; hint?: string; children: React.ReactNode }) {
+// mark: 한꺼번에 고치기 칸. 칸을 바꾸면(BulkEditForm 이 data-changed 를 붙임) 이름 옆에 '바꿈'이 보인다
+// 상태 뱃지(Tag.tsx StatusBadge info)와 같은 모양. 평소엔 숨어 있다가 칸을 바꾸면 보인다
+function ChangedBadge() {
   return (
-    <div>
+    <span className="ml-1.5 hidden whitespace-nowrap rounded-full bg-info-surface px-2 py-px align-middle text-l2 leading-4 font-semibold text-info group-data-[changed]/f:inline-block">
+      바꿈
+    </span>
+  );
+}
+
+function Field({ label, htmlFor, hint, mark, children }: { label: string; htmlFor: string; hint?: string; mark?: boolean; children: React.ReactNode }) {
+  return (
+    <div data-field={mark ? "" : undefined} className={mark ? "group/f" : undefined}>
       <label htmlFor={htmlFor} className="text-l2 font-semibold text-ink">
         {label}
+        {mark && <ChangedBadge />}
       </label>
       {children}
       {hint && <p className="mt-1 text-l2 font-normal text-ink-3">{hint}</p>}
@@ -500,11 +658,23 @@ function Field({ label, htmlFor, hint, children }: { label: string; htmlFor: str
 }
 
 // 목록에 없는 값(예전 값)이 들어 있어도 지워지지 않게 맨 위에 그대로 둔다
-function Select({ id, name, value, options }: { id: string; name: string; value: string; options: readonly (string | readonly [string, string])[] }) {
+function Select({
+  id,
+  name,
+  value,
+  options,
+  className = inputClass,
+}: {
+  id: string;
+  name: string;
+  value: string;
+  options: readonly (string | readonly [string, string])[];
+  className?: string;
+}) {
   const list = options.map((o) => (typeof o === "string" ? ([o, o] as const) : o));
   const known = list.some(([v]) => v === value);
   return (
-    <select id={id} name={name} defaultValue={value} className={inputClass}>
+    <select id={id} name={name} defaultValue={value} className={className}>
       {!known && <option value={value}>{value} (목록에 없음)</option>}
       {list.map(([v, t]) => (
         <option key={v} value={v}>
