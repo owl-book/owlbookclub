@@ -40,7 +40,7 @@ async function readPending(id: number): Promise<PendingRow> {
 }
 
 // 같은 묶음의 대기 회차까지 함께 고른다(일괄 신청 모임은 회차 일부만 공개하면 '한 번에 신청'이 어긋나서)
-async function withSeries(r: PendingRow): Promise<number[]> {
+async function withSeries(r: Pick<PendingRow, "id" | "store_id" | "series_key">): Promise<number[]> {
   if (!r.series_key?.trim()) return [r.id];
   const { data, error } = await db().from("meetings").select("id").eq("series_key", r.series_key).eq("store_id", r.store_id).eq("pending_review", true);
   if (error) throw new Error(error.message);
@@ -264,14 +264,14 @@ async function saveMeeting(id: number, formData: FormData): Promise<EditResult> 
 // 화면(BulkEditForm)은 바꾼 칸만 보낸다. 보내지 않은 칸은 모임마다 원래 값 그대로 둔다.
 // 날짜는 모임마다 그대로 두고, 시각을 바꾸면 각 모임의 날짜에 그 시각을 붙인다
 
-type BulkRow = { id: number; store_id: number; starts_at: string; ends_at: string | null };
+type BulkRow = { id: number; store_id: number; series_key: string | null; starts_at: string; ends_at: string | null };
 
 // 고른 모임이 모두 아직 대기 중이고 한 책방의 모임인지 확인하고 읽는다
 async function readBulk(formData: FormData): Promise<BulkRow[] | { error: string }> {
   const ids = [...new Set(formData.getAll("ids").map(toId))];
   if (ids.length === 0) return { error: "바꿀 모임을 하나 이상 골라 주세요." };
   if (ids.length > 60 || ids.some((id) => id === null)) return { error: "잘못된 요청입니다." };
-  const { data, error } = await db().from("meetings").select("id, store_id, starts_at, ends_at, pending_review").in("id", ids as number[]);
+  const { data, error } = await db().from("meetings").select("id, store_id, series_key, starts_at, ends_at, pending_review").in("id", ids as number[]);
   if (error) throw new Error(error.message);
   const rows = data as (BulkRow & { pending_review: boolean })[];
   if (rows.length !== ids.length || rows.some((r) => !r.pending_review)) return { error: "이미 처리한 모임이 있어요. 화면을 새로 고쳐 주세요." };
@@ -415,12 +415,12 @@ async function logBulk(done: { id: number; changes: Record<string, unknown>; old
   );
 }
 
-// 고른 모임만 승인(같은 모임 묶음의 [고친 내용으로 N개 승인]). 책방도 대기 중이면 함께 공개
+// 고른 모임만 승인(같은 모임 묶음의 [고친 내용으로 N개 승인]). 정기모임은 같은 묶음의 대기 회차도 함께. 책방도 대기 중이면 함께 공개
 export async function approveMeetings(formData: FormData) {
   await requireAdmin();
   const rows = await readBulk(formData);
   if ("error" in rows) throw new Error(rows.error);
-  const ids = rows.map((r) => r.id);
+  const ids = [...new Set((await Promise.all(rows.map(withSeries))).flat())];
   if (await missingApplyLink(ids)) fail(`m-${ids[0]}`, "nolink-all");
   const storeToo = await approveIds(ids, rows[0].store_id);
   revalidatePath("/", "layout");

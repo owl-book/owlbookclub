@@ -326,6 +326,11 @@ function MeetingItem({ m, sessions, now }: { m: PendingMeeting; sessions: Pendin
         <Link href={`/admin/review/${m.id}`} className="mt-1 inline-flex min-h-11 items-center text-l1 font-semibold text-navy underline underline-offset-2">
           상세 화면 미리보기
         </Link>
+        {sessions.length > 1 && (
+          <EditBox label={`${sessions.length}회 한꺼번에 고치기`}>
+            <BulkMeetingEdit meetings={sessions} anchor={`m-${m.id}`} series />
+          </EditBox>
+        )}
         {sessions.map((x, i) => (
           <MeetingEdit key={x.id} m={x} label={sessions.length > 1 ? `${i + 1}회차 고치기 (${kstDate(x.startsAt)})` : "내용 고치기"} />
         ))}
@@ -442,7 +447,7 @@ function RepeatGroup({ meetings, now }: { meetings: PendingMeeting[]; now: Date 
       </div>
       <p className="mt-1 text-l2 font-normal text-ink-3">이름이 같고 날짜만 다른 모임을 한데 모았어요.</p>
       <EditBox label={`${meetings.length}개 한꺼번에 고치기`}>
-        <BulkMeetingEdit meetings={meetings} />
+        <BulkMeetingEdit meetings={meetings} anchor={`rep-${first.id}`} />
       </EditBox>
       <ul className="mt-4 space-y-5">
         {meetings.map((m) => (
@@ -454,18 +459,19 @@ function RepeatGroup({ meetings, now }: { meetings: PendingMeeting[]; now: Date 
 }
 
 // 칸마다 처음 값은 첫 모임의 값. 바꾼 칸만 고른 모임 모두에 들어간다(BulkEditForm)
-function BulkMeetingEdit({ meetings }: { meetings: PendingMeeting[] }) {
+function BulkMeetingEdit({ meetings, anchor, series }: { meetings: PendingMeeting[]; anchor: string; series?: boolean }) {
   const m = meetings[0];
   const f = (k: string) => `${k}-b${m.id}`;
   return (
     <BulkEditForm
       save={bulkEditPendingMeetings}
       approve={approveMeetings}
-      anchor={`rep-${m.id}`}
+      anchor={anchor}
+      series={series}
       sessions={meetings.map((x) => ({ id: x.id, label: formatKstDateOnly(x.startsAt) }))}
     >
       <p className="rounded-xs border border-info-border bg-info-surface px-3 py-2 text-l2 font-normal text-ink">
-        여기서 <strong className="font-semibold">바꾼 칸만</strong> 아래에서 고른 모임 모두에 똑같이 들어가요. 손대지 않은 칸은 모임마다 원래 값 그대로예요. 날짜는 바뀌지 않아요.
+        여기서 <strong className="font-semibold">바꾼 칸만</strong> 아래에서 고른 {series ? "회차" : "모임"} 모두에 똑같이 들어가요. 손대지 않은 칸은 {series ? "회차" : "모임"}마다 원래 값 그대로예요. 날짜는 바뀌지 않아요.
       </p>
       <Field label="모임 이름" htmlFor={f("title")} hint="가운뎃점(·)은 ~로 바꿔서 저장해요" mark>
         <input id={f("title")} name="title" required maxLength={100} defaultValue={m.title} className={bulkInputClass} />

@@ -9,6 +9,7 @@ type Props = {
   save: (formData: FormData) => Promise<EditResult>;
   approve: (formData: FormData) => Promise<void>;
   anchor: string; // 저장한 뒤 돌아올 칸의 id
+  series?: boolean; // 정기모임(한 번에 신청하는 회차들): 고치기는 고른 회차만, 승인은 회차 모두 함께
   sessions: { id: number; label: string }[]; // 바꿀 모임 고르기(처음엔 모두 골라 둔다)
   children: ReactNode; // 고칠 칸들. 칸을 감싼 상자에 data-field 를 붙이면 바꾼 칸에 '바꿈'이 보인다
 };
@@ -18,7 +19,7 @@ const SAVE_FAILED = "저장하지 못했어요. 잠시 뒤 다시 눌러 주세�
 // 승인 화면의 '같은 모임 한꺼번에 고치기'. 처음 값과 달라진 칸만 서버에 보내서,
 // 손대지 않은 칸은 모임마다 원래 값이 그대로 남는다. 바꾼 칸과 그 칸을 감싼 상자에는 data-changed 가 붙는다.
 // [고친 내용으로 N개 승인]은 저장한 뒤 고른 모임만 바로 공개하고, [저장만 하기]는 공개하지 않는다
-export function BulkEditForm({ save, approve, anchor, sessions, children }: Props) {
+export function BulkEditForm({ save, approve, anchor, series, sessions, children }: Props) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [picked, setPicked] = useState(sessions.length);
@@ -126,7 +127,7 @@ export function BulkEditForm({ save, approve, anchor, sessions, children }: Prop
 
       <fieldset>
         <legend className="text-l2 font-semibold text-ink">
-          바꿀 모임 <span className="font-normal text-ink-3">({picked}개 골랐어요)</span>
+          바꿀 {series ? "회차" : "모임"} <span className="font-normal text-ink-3">({picked}개 골랐어요)</span>
         </legend>
         <div className="mt-1 grid grid-cols-2 gap-x-2">
           {sessions.map((s) => (
@@ -151,7 +152,7 @@ export function BulkEditForm({ save, approve, anchor, sessions, children }: Prop
           aria-busy={pending || undefined}
           className="min-h-11 w-full rounded-sm bg-navy px-2 py-2.5 text-l1 font-semibold text-white hover:bg-navy-hover disabled:cursor-wait disabled:opacity-60"
         >
-          {pending ? "처리하는 중…" : `고친 내용으로 ${picked}개 승인`}
+          {pending ? "처리하는 중…" : series ? `고친 내용으로 ${sessions.length}회 모두 승인` : `고친 내용으로 ${picked}개 승인`}
         </button>
         <button
           type="submit"
@@ -163,7 +164,9 @@ export function BulkEditForm({ save, approve, anchor, sessions, children }: Prop
         </button>
       </div>
       <p className="text-l2 font-normal text-ink-3">
-        [고친 내용으로 {picked}개 승인]을 누르면 고친 내용을 저장하고 바로 사이트에 올라가요. 체크를 뺀 모임은 그대로 대기함에 남아요
+        {series
+          ? "승인을 누르면 고친 내용을 저장하고 바로 사이트에 올라가요. 한 번에 신청하는 모임이라, 체크를 뺀 회차도 내용만 그대로이고 승인은 함께 돼요"
+          : `[고친 내용으로 ${picked}개 승인]을 누르면 고친 내용을 저장하고 바로 사이트에 올라가요. 체크를 뺀 모임은 그대로 대기함에 남아요`}
       </p>
     </form>
   );
