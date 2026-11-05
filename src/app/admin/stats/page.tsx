@@ -5,14 +5,14 @@ import { connection } from "next/server";
 import { AdminLogin } from "@/components/AdminLogin";
 import { AdminNav } from "@/components/AdminNav";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
-import { getAdminStats, type EmptySearch, type StatRow, type Stats, type StoreStatRow } from "@/lib/admin-stats";
+import { getAdminStats, type EmptySearch, type SourceRow, type StatRow, type Stats, type StoreStatRow } from "@/lib/admin-stats";
 import { getCoverBooks } from "@/lib/book-covers";
 import { count } from "@/lib/format";
 import { getReviewCount } from "@/lib/review";
 import { getInquiryInbox, getReportInbox } from "@/lib/reports";
 import { formatKst } from "@/lib/time";
 
-// 운영자 전용 통계: 모임별·책방별 카드 클릭 · 신청하기 클릭 · 찜 · 내 모임에 담은 수. 홈 화면 개선 전후를 날짜로 나눠 비교하는 용도.
+// 운영자 전용 통계: 유입 경로별 방문, 모임별·책방별 카드 클릭 · 신청하기 클릭 · 찜 · 내 모임에 담은 수. 홈 화면 개선 전후를 날짜로 나눠 비교하는 용도.
 export const metadata: Metadata = { title: "통계", robots: { index: false, follow: false } };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -85,12 +85,15 @@ export default async function AdminStatsPage({ searchParams }: PageProps<"/admin
         <p className="mt-6 rounded-md border border-border-card bg-sub p-4 text-b2 text-ink-2">통계를 읽지 못했어요. 잠시 뒤 다시 열어 보고, 계속 안 되면 알려 주세요.</p>
       ) : (
         <>
+          <Table title="어디서 왔나요" countLabel={count(stats.sources.reduce((n, s) => n + s.visitors, 0), "명")} firstHead="경로" rows={stats.sources} columns={SOURCE_COLUMNS} minWidth="min-w-0" />
           <Table title="책방별" firstHead="책방" rows={stats.stores} columns={STORE_COLUMNS} hrefOf={(id) => `/s/${id}`} minWidth="min-w-[52rem]" />
           <Table title="모임별" firstHead="모임" rows={stats.meetings} columns={MEETING_COLUMNS} hrefOf={(id) => `/m/${id}`} minWidth="min-w-[34rem]" />
           <EmptySearches items={stats.emptySearches} />
           <section className="mt-8 rounded-md border border-border-card bg-sub p-4 text-l2 font-normal leading-normal text-ink-2">
             <p className="font-semibold text-ink">숫자 읽는 법</p>
             <ul className="mt-1 list-disc space-y-1 pl-4">
+              <li><strong>어디서 왔나요</strong>: 한 사람이 처음 들어온 길 하나로만 세요. 뒤에 다른 길로 다시 와도 처음 길에 남아요. 인스타로 온 사람을 정확히 나누려면 꼬리표가 붙은 링크를 써야 해요.</li>
+              <li><strong>방문한 사람</strong>: 그 기간에 화면을 실제로 본 사람 수예요. 여러 번 와도 1명으로 세요.</li>
               <li><strong>카드 클릭</strong>: 목록에서 모임 카드를 눌러 상세 화면으로 간 횟수예요.</li>
               <li><strong>신청하기</strong>: 책방 신청 페이지·원 게시물로 나간 횟수예요(같은 사람이 여러 번 누르면 여러 번 세요).</li>
               <li><strong>찜</strong>: 모임 표는 모임 하트, 책방 표는 책방 자체의 하트예요. 그 기간에 누른 것 중 지금도 남아 있는 것만 세요. 로그인한 사람의 하트만 저장돼요.</li>
@@ -108,6 +111,12 @@ export default async function AdminStatsPage({ searchParams }: PageProps<"/admin
 }
 
 type Column<R> = { key: keyof R & string; label: string; strong?: boolean };
+
+const SOURCE_COLUMNS: Column<SourceRow>[] = [
+  { key: "visitors", label: "방문한 사람" },
+  { key: "card", label: "카드 클릭" },
+  { key: "apply", label: "신청하기", strong: true },
+];
 
 const MEETING_COLUMNS: Column<StatRow>[] = [
   { key: "card", label: "카드 클릭" },
@@ -127,8 +136,9 @@ const STORE_COLUMNS: Column<StoreStatRow>[] = [
   { key: "instagram", label: "인스타" },
 ];
 
-function Table<R extends StatRow>({
+function Table<R extends { id: number; name: string; sub?: string }>({
   title,
+  countLabel,
   firstHead,
   rows,
   columns,
@@ -136,17 +146,18 @@ function Table<R extends StatRow>({
   minWidth,
 }: {
   title: string;
+  countLabel?: string;
   firstHead: string;
   rows: R[];
   columns: Column<R>[];
-  hrefOf: (id: number) => string;
+  hrefOf?: (id: number) => string;
   minWidth: string;
 }) {
   const sum = (k: keyof R) => rows.reduce((n, r) => n + Number(r[k]), 0);
   return (
     <section aria-label={title} className="mt-6">
       <h2 className="text-t2 text-ink">
-        {title} <span className="text-l1 text-ink-3">{rows.length}곳</span>
+        {title} <span className="text-l1 text-ink-3">{countLabel ?? `${rows.length}곳`}</span>
       </h2>
       {rows.length === 0 ? (
         <p className="mt-2 text-b2 text-ink-3">이 기간에 쌓인 숫자가 없어요.</p>
@@ -167,9 +178,13 @@ function Table<R extends StatRow>({
               {rows.map((r) => (
                 <tr key={r.id} className="border-t border-border-card align-top">
                   <th scope="row" className="px-3 py-2 font-normal text-ink">
-                    <Link href={hrefOf(r.id)} className="underline underline-offset-2 hover:text-navy">
-                      {r.name}
-                    </Link>
+                    {hrefOf ? (
+                      <Link href={hrefOf(r.id)} className="underline underline-offset-2 hover:text-navy">
+                        {r.name}
+                      </Link>
+                    ) : (
+                      r.name
+                    )}
                     {r.sub && <span className="mt-0.5 block text-l2 text-ink-3">{r.sub}</span>}
                   </th>
                   {columns.map((c) => (

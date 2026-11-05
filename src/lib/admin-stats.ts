@@ -3,21 +3,37 @@ import { db } from "@/lib/db";
 import { DATE_FILTERS } from "@/lib/time";
 
 // 어드민 '통계': 모임별·책방별로 카드 클릭 · 신청하기 클릭 · 찜(하트) · 내 모임에 담은 수, 책방별로 화면 조회 · 지도 · 전화 · 인스타 클릭,
-// 그리고 홈에서 결과가 0건이었던 검색·필터 조건을 센다.
+// 홈에서 결과가 0건이었던 검색·필터 조건, 그리고 사람들이 어디서 왔는지(유입 경로)를 센다.
 // 클릭·조회·0건은 events 표(봇·운영자 기기 제외), 찜은 meeting_wishes·store_wishes, 담은 수는 meeting_plans(신청했어요 표시)에서 읽는다.
 // 기간은 한국 시간 날짜 기준. 찜·담은 수는 '그 기간에 새로 누른 것 중 지금 남아 있는 것'이다(취소한 건 빠짐).
 export type StatRow = { id: number; name: string; sub?: string; card: number; apply: number; wish: number; plan: number };
 export type StoreStatRow = StatRow & { view: number; map: number; tel: number; instagram: number };
 export type EmptySearch = { label: string; count: number; last: Date };
-export type Stats = { meetings: StatRow[]; stores: StoreStatRow[]; emptySearches: EmptySearch[] };
+export type SourceRow = { id: number; name: string; visitors: number; card: number; apply: number };
+export type Stats = { sources: SourceRow[]; meetings: StatRow[]; stores: StoreStatRow[]; emptySearches: EmptySearch[] };
 
 type MeetingRow = { id: number; title: string; starts_at: string; store_id: number; store: { name: string } };
-type EventRow = { type: string; meeting_id: number | null; store_id: number | null; props: Record<string, unknown> | null; created_at: string };
+type Origin = { utm_source: string | null; utm_medium: string | null; referrer: string | null };
+type EventRow = Origin & { type: string; visitor_id: string; meeting_id: number | null; store_id: number | null; props: Record<string, unknown> | null; created_at: string };
 
 const PAGE = 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const EMPTY_TOP = 20;
 const CONTACT_KINDS = ["map", "tel", "instagram"] as const;
+// 유입 경로 표의 줄과 순서
+const SOURCES = [
+  "인스타 프로필",
+  "인스타 스토리",
+  "인스타 DM",
+  "인스타 (꼬리표 없이 들어옴)",
+  "공유 버튼으로 받은 링크",
+  "폰 홈 화면 앱",
+  "네이버·구글 검색",
+  "카카오톡",
+  "그 밖의 사이트",
+  "주소 직접 입력 / 알 수 없음",
+] as const;
+type Source = (typeof SOURCES)[number];
 
 // 'YYYY-MM-DD' 두 날짜(포함)를 한국 시간 기준 [시작, 끝) 시각으로
 export function rangeOf(from: string, to: string): { fromIso: string; toIso: string } {
@@ -42,15 +58,40 @@ async function readAll<T>(page: (from: number, to: number) => Page<T>): Promise<
 
 export async function getAdminStats(from: string, to: string): Promise<Stats> {
   const { fromIso, toIso } = rangeOf(from, to);
-  const [events, mWishes, sWishes, plans, meetings, stores] = await Promise.all([
+  const [events, seen, visits, mWishes, sWishes, plans, meetings, stores] = await Promise.all([
     readAll<EventRow>((a, b) =>
       db()
         .from("events")
-        .select("type, meeting_id, store_id, props, created_at")
+        .select("type, visitor_id, meeting_id, store_id, props, created_at, utm_source, utm_medium, referrer")
         .in("type", ["card_click", "apply_click", "store_view", "store_contact", "search_empty"])
         .eq("is_bot", false)
         .eq("is_internal", false)
         .gte("created_at", fromIso)
+        .lt("created_at", toIso)
+        .order("id")
+        .range(a, b),
+    ),
+    // 방문한 사람: 화면이 브라우저에서 실제로 그려진(page_seen) 사람만
+    readAll<Origin & { visitor_id: string }>((a, b) =>
+      db()
+        .from("events")
+        .select("visitor_id, utm_source, utm_medium, referrer")
+        .eq("type", "page_seen")
+        .eq("is_bot", false)
+        .eq("is_internal", false)
+        .gte("created_at", fromIso)
+        .lt("created_at", toIso)
+        .order("id")
+        .range(a, b),
+    ),
+    // 처음 들어온 길을 찾으려고 기간 앞의 방문까지 읽는다
+    readAll<Origin & { visitor_id: string }>((a, b) =>
+      db()
+        .from("events")
+        .select("visitor_id, utm_source, utm_medium, referrer")
+        .eq("type", "visit")
+        .eq("is_bot", false)
+        .eq("is_internal", false)
         .lt("created_at", toIso)
         .order("id")
         .range(a, b),
@@ -126,15 +167,57 @@ export async function getAdminStats(from: string, to: string): Promise<Stats> {
     if (row) row.wish += 1;
   }
 
+  // 한 사람은 처음 들어온 길 한 곳에만 센다. 첫 방문 기록이 없으면 그 행동에 남은 꼬리표로 판단한다
+  const firstSource = new Map<string, Source>();
+  for (const v of visits) if (!firstSource.has(v.visitor_id)) firstSource.set(v.visitor_id, sourceOf(v));
+  const bySource = new Map<Source, SourceRow>(SOURCES.map((name, id) => [name, { id, name, visitors: 0, card: 0, apply: 0 }]));
+  const rowOf = (e: Origin & { visitor_id: string }) => bySource.get(firstSource.get(e.visitor_id) ?? sourceOf(e))!;
+  const counted = new Set<string>();
+  for (const s of seen) {
+    if (counted.has(s.visitor_id)) continue;
+    counted.add(s.visitor_id);
+    rowOf(s).visitors += 1;
+  }
+  for (const e of events) {
+    if (e.type === "card_click") rowOf(e).card += 1;
+    else if (e.type === "apply_click") rowOf(e).apply += 1;
+  }
+
   const used = (r: StatRow) => r.card + r.apply + r.wish + r.plan > 0;
   const usedStore = (r: StoreStatRow) => used(r) || r.view + r.map + r.tel + r.instagram > 0;
   const sort = (a: StatRow, b: StatRow) => b.apply - a.apply || b.card - a.card || b.wish - a.wish || b.plan - a.plan;
   const sortStore = (a: StoreStatRow, b: StoreStatRow) => sort(a, b) || b.view - a.view;
   return {
+    sources: [...bySource.values()],
     meetings: [...byMeeting.values()].filter(used).sort(sort),
     stores: [...byStore.values()].filter(usedStore).sort(sortStore),
     emptySearches: [...empties.values()].sort((a, b) => b.count - a.count || b.last.getTime() - a.last.getTime()).slice(0, EMPTY_TOP),
   };
+}
+
+// 꼬리표(utm)를 먼저 보고, 없으면 넘어온 주소(referrer)로 판단한다. 규칙은 v_channel_mix 와 같다
+function sourceOf({ utm_source, utm_medium, referrer }: Origin): Source {
+  const utm = utm_source?.toLowerCase();
+  if (utm && utm !== "direct") {
+    if (utm === "instagram") {
+      const medium = utm_medium?.toLowerCase();
+      if (medium === "bio") return "인스타 프로필";
+      if (medium === "story") return "인스타 스토리";
+      if (medium === "dm") return "인스타 DM";
+      return "인스타 (꼬리표 없이 들어옴)";
+    }
+    if (utm === "share") return "공유 버튼으로 받은 링크";
+    if (utm === "pwa") return "폰 홈 화면 앱";
+    if (/^(google|naver|daum|bing|yahoo|zum)$/.test(utm)) return "네이버·구글 검색";
+    if (utm === "kakao") return "카카오톡";
+    return "그 밖의 사이트";
+  }
+  if (!referrer) return "주소 직접 입력 / 알 수 없음";
+  if (/^https?:\/\/([^/]*\.)?owlbookclub\.(com|vercel\.app)/i.test(referrer)) return "주소 직접 입력 / 알 수 없음";
+  if (/^https?:\/\/([^/]*\.)?(google|naver|daum|bing|yahoo|zum)\./i.test(referrer)) return "네이버·구글 검색";
+  if (/^(https?:\/\/([^/]*\.)?instagram\.com|android-app:\/\/com\.instagram)/i.test(referrer)) return "인스타 (꼬리표 없이 들어옴)";
+  if (/^https?:\/\/([^/]*\.)?(kakao\.com|kakaocdn\.net)/i.test(referrer)) return "카카오톡";
+  return "그 밖의 사이트";
 }
 
 // 결과 0건 조건을 한 줄로: '검색어 · 지역 · 장르 · 모임방식 · 날짜'(고른 것만)
