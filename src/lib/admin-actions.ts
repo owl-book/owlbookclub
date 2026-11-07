@@ -16,7 +16,9 @@ const REPORTS_PATH = "/admin/reports";
 
 // ── 들어가기·나가기 ──
 
-const LOGIN_LIMITS = { perIp10min: 5, all1h: 30 }; // 같은 곳 10분 5번, 전체 1시간 30번 틀리면 잠시 막기
+// 같은 곳 10분 5번, 전체 1시간 300번 틀리면 잠시 막기.
+// 전체 한도를 넉넉히 둔 이유: 낮으면 누군가 일부러 틀려서 운영자까지 못 들어오게 막을 수 있다(비밀번호가 16자 이상이라 이 정도로도 무차별 대입은 불가능)
+const LOGIN_LIMITS = { perIp10min: 5, all1h: 300 };
 
 // 로그인 뒤 갈 수 있는 화면. 폼에서 온 값은 이 목록에 있을 때만 따른다(다른 사이트로 보내지 않게)
 const AFTER_LOGIN = new Set(["/admin/review", "/admin/reports", "/admin/covers", "/admin/push", "/admin/stats"]);

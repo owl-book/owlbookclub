@@ -6,6 +6,18 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // 모든 화면 공통 보안 머리글: 다른 사이트가 우리 화면을 액자처럼 끼워 넣지 못하게 하고(클릭재킹),
+        // 파일 종류를 브라우저가 멋대로 추측하지 못하게 하고, https 만 쓰게 한다
+        source: "/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Strict-Transport-Security", value: "max-age=31536000" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+        ],
+      },
+      {
         // 알림 프로그램: 늘 최신을 받도록 저장하지 않고, 이 사이트 파일만 불러올 수 있게 한다
         source: "/sw.js",
         headers: [
