@@ -6,10 +6,8 @@ import { AdminLogin } from "@/components/AdminLogin";
 import { AdminNav } from "@/components/AdminNav";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
 import { getAdminStats, type EmptySearch, type SourceRow, type StatRow, type Stats, type StoreStatRow } from "@/lib/admin-stats";
-import { getCoverBooks } from "@/lib/book-covers";
+import { getAdminTabCounts } from "@/lib/admin-counts";
 import { count } from "@/lib/format";
-import { getReviewCount } from "@/lib/review";
-import { getInquiryInbox, getReportInbox } from "@/lib/reports";
 import { formatKst } from "@/lib/time";
 
 // 운영자 전용 통계: 유입 경로별 방문, 모임별·책방별 카드 클릭 · 신청하기 클릭 · 찜 · 내 모임에 담은 수. 홈 화면 개선 전후를 날짜로 나눠 비교하는 용도.
@@ -35,17 +33,13 @@ export default async function AdminStatsPage({ searchParams }: PageProps<"/admin
   let from = pick("from") ?? kstDay(-6);
   if (from > to) [from, to] = [to, from];
 
-  const [stats, inbox, inquiries, books, reviewCount] = await Promise.all([
+  const [stats, tabCounts] = await Promise.all([
     getAdminStats(from, to).catch((e): Stats | null => {
       console.error("[owl] admin stats load failed", e);
       return null;
     }),
-    getReportInbox(),
-    getInquiryInbox(),
-    getCoverBooks(),
-    getReviewCount(),
+    getAdminTabCounts(),
   ]);
-  const reportCount = inbox.reduce((n, item) => n + item.reports.length, 0) + inquiries.length;
   const presets = [
     { label: "오늘", from: today, to: today },
     { label: "최근 7일", from: kstDay(-6), to: today },
@@ -54,7 +48,7 @@ export default async function AdminStatsPage({ searchParams }: PageProps<"/admin
 
   return (
     <div>
-      <AdminNav current="stats" counts={{ review: reviewCount, reports: reportCount, covers: books.filter((b) => !b.cover).length }} />
+      <AdminNav current="stats" counts={tabCounts} />
       <h1 className="mt-5 font-display text-h2 text-ink">통계</h1>
       <p className="mt-1 text-b2 text-ink-2">운영자 기기와 봇은 빼고 센 숫자예요. 한국 시간 날짜 기준이에요.</p>
 

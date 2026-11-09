@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { AdminLogin } from "@/components/AdminLogin";
@@ -8,10 +7,9 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { MeetingStatusBadge, StatusBadge } from "@/components/Tag";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
 import { editMeeting, resolveInquiry, resolveReport } from "@/lib/admin-actions";
-import { getCoverBooks } from "@/lib/book-covers";
+import { getAdminTabCounts } from "@/lib/admin-counts";
 import { inquiryLabel } from "@/lib/inquiry-kinds";
 import { reportKindLabel } from "@/lib/report-kinds";
-import { getReviewCount } from "@/lib/review";
 import { getInquiryInbox, getRecentHandled, getReportInbox, type InboxItem, type InquiryItem } from "@/lib/reports";
 import { formatDateString, formatKst } from "@/lib/time";
 
@@ -47,13 +45,13 @@ export default async function AdminReportsPage({ searchParams }: PageProps<"/adm
 
   const sp = await searchParams;
   const done = typeof sp.done === "string" ? DONE_MESSAGE[sp.done] : undefined;
-  const [inbox, handled, inquiries, books, reviewCount] = await Promise.all([getReportInbox(), getRecentHandled(), getInquiryInbox(), getCoverBooks(), getReviewCount()]);
+  const [inbox, handled, inquiries, tabCounts] = await Promise.all([getReportInbox(), getRecentHandled(), getInquiryInbox(), getAdminTabCounts()]);
   const reportCount = inbox.reduce((n, item) => n + item.reports.length, 0);
   const now = new Date();
 
   return (
     <div>
-      <AdminNav current="reports" counts={{ review: reviewCount, reports: reportCount + inquiries.length, covers: books.filter((b) => !b.cover).length }} />
+      <AdminNav current="reports" counts={{ ...tabCounts, reports: reportCount + inquiries.length }} />
       <h1 className="mt-5 font-display text-h2 text-ink">신고함</h1>
       <p className="mt-1 text-b2 text-ink-2">
         {reportCount + inquiries.length > 0 ? (

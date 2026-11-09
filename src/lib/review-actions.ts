@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidatePublic } from "@/lib/revalidate";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/admin";
 import { logAdminAction, logAdminActions } from "@/lib/admin-log";
@@ -18,6 +19,9 @@ import { isFormat, isGenre } from "@/lib/tags";
 // - 책방 승인: 책방만 공개(모임은 따로 승인)
 
 const REVIEW_PATH = "/admin/review";
+
+// 승인 결과. redirect 로 페이지 전체를 다시 그리지 않고 결과만 돌려주면, 화면(ApproveForm)이 그 카드만 뺀다
+export type ApproveResult = { done: "approve" | "store"; n: number; store: boolean };
 
 // 승인 전에 화면이 고친 내용을 먼저 저장했으면(ApproveForm) 완료 안내에 함께 알린다
 function savedParam(formData: FormData): string {
@@ -79,7 +83,7 @@ async function approveIds(ids: number[], storeId: number): Promise<boolean> {
   return approveStoreRow(storeId);
 }
 
-export async function approveMeeting(formData: FormData) {
+export async function approveMeeting(formData: FormData): Promise<ApproveResult> {
   await requireAdmin();
   const id = toId(formData.get("meetingId"));
   if (!id) throw new Error("잘못된 요청입니다.");
@@ -87,8 +91,8 @@ export async function approveMeeting(formData: FormData) {
   const ids = await withSeries(r);
   if (await missingApplyLink(ids)) fail(`m-${id}`, "nolink");
   const storeToo = await approveIds(ids, r.store_id);
-  revalidatePath("/", "layout");
-  redirect(`${REVIEW_PATH}?done=approve&n=${ids.length}${storeToo ? "&store=1" : ""}${savedParam(formData)}`);
+  revalidatePublic("meetings", "stores");
+  return { done: "approve", n: ids.length, store: storeToo };
 }
 
 export async function rejectMeeting(formData: FormData) {
@@ -105,7 +109,7 @@ export async function rejectMeeting(formData: FormData) {
 }
 
 // 이 책방의 대기 모임 모두 승인(책방도 대기 중이면 함께)
-export async function approveStoreAll(formData: FormData) {
+export async function approveStoreAll(formData: FormData): Promise<ApproveResult> {
   await requireAdmin();
   const storeId = toId(formData.get("storeId"));
   if (!storeId) throw new Error("잘못된 요청입니다.");
@@ -114,8 +118,8 @@ export async function approveStoreAll(formData: FormData) {
   const ids = (data as { id: number }[]).map((x) => x.id);
   if (ids.length > 0 && (await missingApplyLink(ids))) fail(`store-${storeId}`, "nolink-all");
   const storeToo = ids.length > 0 ? await approveIds(ids, storeId) : await approveStoreRow(storeId);
-  revalidatePath("/", "layout");
-  redirect(`${REVIEW_PATH}?done=approve&n=${ids.length}${storeToo ? "&store=1" : ""}${savedParam(formData)}`);
+  revalidatePublic("meetings", "stores");
+  return { done: "approve", n: ids.length, store: storeToo };
 }
 
 // 이 책방의 대기 모임 모두 넣지 않음(숨김은 그대로, 책방 대기도 그대로)
@@ -132,13 +136,13 @@ export async function rejectStoreAll(formData: FormData) {
 }
 
 // 책방만 공개(모임은 아직 대기)
-export async function approveStore(formData: FormData) {
+export async function approveStore(formData: FormData): Promise<ApproveResult> {
   await requireAdmin();
   const storeId = toId(formData.get("storeId"));
   if (!storeId) throw new Error("잘못된 요청입니다.");
   await approveStoreRow(storeId);
-  revalidatePath("/", "layout");
-  redirect(`${REVIEW_PATH}?done=store${savedParam(formData)}`);
+  revalidatePublic("stores");
+  return { done: "store", n: 0, store: true };
 }
 
 // ── 대기 중인 모임·책방 고치기 (승인 전에만. 공개된 것은 고치지 않는다) ──
@@ -423,7 +427,7 @@ export async function approveMeetings(formData: FormData) {
   const ids = [...new Set((await Promise.all(rows.map(withSeries))).flat())];
   if (await missingApplyLink(ids)) fail(`m-${ids[0]}`, "nolink-all");
   const storeToo = await approveIds(ids, rows[0].store_id);
-  revalidatePath("/", "layout");
+  revalidatePublic("meetings", "stores");
   redirect(`${REVIEW_PATH}?done=approve&n=${ids.length}${storeToo ? "&store=1" : ""}${savedParam(formData)}`);
 }
 

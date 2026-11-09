@@ -4,12 +4,10 @@ import { connection } from "next/server";
 import { AdminLogin } from "@/components/AdminLogin";
 import { AdminNav } from "@/components/AdminNav";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
-import { getCoverBooks } from "@/lib/book-covers";
+import { getAdminTabCounts } from "@/lib/admin-counts";
 import { isPushEnabled } from "@/lib/push";
 import { PUSH_PREF_ITEMS } from "@/lib/push-shared";
 import { getPushStats, PUSH_GOAL, type PushStats } from "@/lib/push-stats";
-import { getReviewCount } from "@/lib/review";
-import { getInquiryInbox, getReportInbox } from "@/lib/reports";
 import { formatDayNum } from "@/lib/time";
 
 // 운영자 전용 알림 숫자. 알림을 켠 사람이 기획서 기준(20명)에 얼마나 왔는지, 보낸 알림을 몇 명이 열어 봤는지 본다.
@@ -23,22 +21,18 @@ export default async function AdminPushPage() {
   if (!isAdminEnabled()) notFound();
   if (!(await isAdmin())) return <AdminLogin next="/admin/push" />;
 
-  const [stats, inbox, inquiries, books, reviewCount] = await Promise.all([
+  const [stats, tabCounts] = await Promise.all([
     // 0025 설정문 실행 전이면 null → 안내만 보여 준다
     getPushStats().catch((e): PushStats | null => {
       console.error("[owl] push stats load failed", e);
       return null;
     }),
-    getReportInbox(),
-    getInquiryInbox(),
-    getCoverBooks(),
-    getReviewCount(),
+    getAdminTabCounts(),
   ]);
-  const reportCount = inbox.reduce((n, item) => n + item.reports.length, 0) + inquiries.length;
 
   return (
     <div>
-      <AdminNav current="push" counts={{ review: reviewCount, reports: reportCount, covers: books.filter((b) => !b.cover).length }} />
+      <AdminNav current="push" counts={tabCounts} />
       <h1 className="mt-5 font-display text-h2 text-ink">알림</h1>
       <p className="mt-1 text-b2 text-ink-2">운영자 기기와 시험 알림은 빼고 세요. 사람 수만 보여 주고 누구인지는 보여 주지 않아요.</p>
 

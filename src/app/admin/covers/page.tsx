@@ -9,8 +9,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
 import { getCoverBooks, titleKey, type CoverBook } from "@/lib/book-covers";
 import { removeBookCover } from "@/lib/cover-actions";
-import { getReviewCount } from "@/lib/review";
-import { getInquiryInbox, getReportInbox } from "@/lib/reports";
+import { getAdminTabCounts } from "@/lib/admin-counts";
 import { formatKst } from "@/lib/time";
 
 // 운영자 전용 책 표지 화면. 모임에 적힌 책 제목을 책마다 하나로 묶어 보여 주고, 책마다 사진을 한 번 올린다.
@@ -30,8 +29,7 @@ export default async function AdminCoversPage({ searchParams }: PageProps<"/admi
 
   const sp = await searchParams;
   const done = typeof sp.done === "string" ? DONE_MESSAGE[sp.done] : undefined;
-  const [books, inbox, inquiries, reviewCount] = await Promise.all([getCoverBooks(), getReportInbox(), getInquiryInbox(), getReviewCount()]);
-  const reportCount = inbox.reduce((n, item) => n + item.reports.length, 0) + inquiries.length;
+  const [books, tabCounts] = await Promise.all([getCoverBooks(), getAdminTabCounts()]);
   const missing = books.filter((b) => !b.cover).length;
   // 책 제목·작가명으로 찾기. 띄어쓰기·따옴표·대소문자는 무시한다(같은 책 묶는 기준과 같음)
   const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 100) : "";
@@ -40,7 +38,7 @@ export default async function AdminCoversPage({ searchParams }: PageProps<"/admi
 
   return (
     <div>
-      <AdminNav current="covers" counts={{ review: reviewCount, reports: reportCount, covers: missing }} />
+      <AdminNav current="covers" counts={{ ...tabCounts, covers: missing }} />
       <h1 className="mt-5 font-display text-h2 text-ink">책 표지</h1>
       <p className="mt-1 text-b2 text-ink-2">
         {books.length === 0 ? (

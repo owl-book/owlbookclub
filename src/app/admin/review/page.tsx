@@ -11,12 +11,12 @@ import { PosterUploadForm } from "@/components/PosterUploadForm";
 import { ApproveForm } from "@/components/ApproveForm";
 import { BulkEditForm } from "@/components/BulkEditForm";
 import { EditForm } from "@/components/EditForm";
+import { LazyEditBox } from "@/components/LazyEditBox";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PlainTag, StatusBadge } from "@/components/Tag";
 import { isAdmin, isAdminEnabled } from "@/lib/admin";
 import { smsNumber } from "@/lib/apply";
-import { getCoverBooks } from "@/lib/book-covers";
-import { getInquiryInbox, getReportInbox } from "@/lib/reports";
+import { getAdminTabCounts } from "@/lib/admin-counts";
 import { approveExhibition, editPendingExhibition, rejectExhibition } from "@/lib/exhibition-actions";
 import { EXHIBITION_KINDS, KIND_LABEL } from "@/lib/exhibitions";
 import { autoMeetingArt, MEETING_ARTS, meetingArtSrc } from "@/lib/meeting-art";
@@ -36,8 +36,7 @@ export default async function AdminReviewPage({ searchParams }: PageProps<"/admi
   if (!(await isAdmin())) return <AdminLogin next="/admin/review" />;
 
   const sp = await searchParams;
-  const [queue, inbox, inquiries, books, exhibitions] = await Promise.all([getReviewQueue(), getReportInbox(), getInquiryInbox(), getCoverBooks(), getPendingExhibitions()]);
-  const reportCount = inbox.reduce((n, item) => n + item.reports.length, 0) + inquiries.length;
+  const [queue, exhibitions, tabCounts] = await Promise.all([getReviewQueue(), getPendingExhibitions(), getAdminTabCounts({ review: 0 })]);
   const total = (queue.ready ? queue.total : 0) + (exhibitions?.length ?? 0);
   const done = doneMessage(sp);
   const error = errorMessage(sp);
@@ -45,7 +44,7 @@ export default async function AdminReviewPage({ searchParams }: PageProps<"/admi
 
   return (
     <div>
-      <AdminNav current="review" counts={{ review: total, reports: reportCount, covers: books.filter((b) => !b.cover).length }} />
+      <AdminNav current="review" counts={{ ...tabCounts, review: total }} />
       <h1 className="mt-5 font-display text-h2 text-ink">승인 대기</h1>
 
       {!queue.ready ? (
@@ -80,6 +79,8 @@ export default async function AdminReviewPage({ searchParams }: PageProps<"/admi
           </p>
         </>
       )}
+
+      <p id="review-flash" role="status" hidden className="mt-4 rounded-xs border border-success-border bg-success-surface px-3 py-2.5 text-b2 text-success" />
 
       {done && (
         <p role="status" className="mt-4 rounded-xs border border-success-border bg-success-surface px-3 py-2.5 text-b2 text-success">
@@ -217,7 +218,7 @@ function StoreGroup({ group: g, now }: { group: ReviewGroup; now: Date }) {
               모두 넣지 않음
             </SubmitButton>
           </form>
-          <ApproveForm action={approveStoreAll} scopeIds={[`group-${g.storeId}`]}>
+          <ApproveForm action={approveStoreAll} scopeIds={[`group-${g.storeId}`]} removeId={`group-${g.storeId}`}>
             <input type="hidden" name="storeId" value={g.storeId} />
             <SubmitButton
               pendingText="공개하는 중…"
@@ -278,7 +279,7 @@ function StoreBox({ store: s, hasMeetings }: { store: PendingStore; hasMeetings:
       <p className="mt-3 text-l2 font-normal text-ink-3">
         {hasMeetings ? "모임을 승인하면 책방도 함께 공개돼요." : "모임 없이 책방만 올릴 때 눌러 주세요."}
       </p>
-      <ApproveForm action={approveStore} scopeIds={[`s-${s.id}`]} className="mt-1">
+      <ApproveForm action={approveStore} scopeIds={[`s-${s.id}`]} removeId={`s-${s.id}`} className="mt-1">
         <input type="hidden" name="storeId" value={s.id} />
         <SubmitButton pendingText="공개하는 중…" className="min-h-11 w-full rounded-sm border border-border-strong bg-card py-2.5 text-l1 font-semibold text-navy hover:bg-sub">
           책방만 승인
@@ -337,7 +338,7 @@ function MeetingItem({ m, sessions, now }: { m: PendingMeeting; sessions: Pendin
         {noLink && <p className="mt-2 text-l2 font-normal text-error">신청 링크를 채워야 승인할 수 있어요.</p>}
         <div className="mt-2 grid grid-cols-[2fr_1fr] gap-2">
           {/* 책방도 대기 중이면 함께 공개되므로 책방 고치기 칸(s-)도 함께 저장한다 */}
-          <ApproveForm action={approveMeeting} scopeIds={[`m-${m.id}`, `s-${m.store.id}`]}>
+          <ApproveForm action={approveMeeting} scopeIds={[`m-${m.id}`, `s-${m.store.id}`]} removeId={`m-${m.id}`} storeId={`s-${m.store.id}`}>
             <input type="hidden" name="meetingId" value={m.id} />
             <SubmitButton pendingText="공개하는 중…" className="min-h-11 w-full rounded-sm bg-navy px-2 py-2.5 text-l1 font-semibold text-white hover:bg-navy-hover">
               {count > 1 ? `승인 (${count}회 모두)` : "승인"}
@@ -618,17 +619,7 @@ function StoreEdit({ store: s }: { store: PendingStore }) {
 }
 
 function EditBox({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <details className="group mt-2 rounded-sm border border-border bg-card">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between px-3 text-l1 font-semibold text-navy [&::-webkit-details-marker]:hidden">
-        {label}
-        <span aria-hidden className="text-ink-3 transition-transform group-open:rotate-180">
-          ▾
-        </span>
-      </summary>
-      <div className="border-t border-border px-3 pt-3 pb-3">{children}</div>
-    </details>
-  );
+  return <LazyEditBox label={label}>{children}</LazyEditBox>;
 }
 
 const inputClass =
