@@ -9,13 +9,8 @@ import { getTrackContext } from "@/lib/tracking";
 
 // 정보 오류·마감 신고 받기. 로그인 없이 누구나 보낼 수 있으므로
 // - 내용은 글자로만 저장하고 길이를 자른다(신고함에서도 글자로만 보여 준다)
-// - 같은 곳에서 짧은 시간에 여러 번 보내면 막는다(횟수는 DB에 센다: 서버가 수시로 새로 켜져도 유지)
-const LIMITS = {
-  per10min: 5, // 같은 곳에서 10분에 5건
-  perDay: 20, // 같은 곳에서 하루 20건
-  perMeetingPerDay: 3, // 같은 곳에서 같은 모임에 하루 3건
-  allPerHour: 200, // 사이트 전체 1시간 200건(신고함이 장난 신고로 넘치지 않게)
-};
+// - 같은 곳에서 짧은 시간에 여러 번 보내면 막고, 같은 신고를 연달아 보내면 한 번만 저장한다
+//   (세기와 저장은 DB 함수 submit_report 가 잠금을 걸고 한 번에 한다: 0036. 한도 숫자도 그 안에 있다)
 
 export async function submitReport(input: { meetingId: number; kind: string; message: string; website?: string }): Promise<ReportResult> {
   if (!hasDb()) return { ok: false, reason: "failed" };
@@ -33,13 +28,18 @@ export async function submitReport(input: { meetingId: number; kind: string; mes
   try {
     const ipHash = await clientIpHash();
     const { visitorId } = await getTrackContext();
-    if (await tooMany(ipHash, meetingId)) return { ok: false, reason: "too_many" };
-
-    const { error } = await db()
-      .from("reports")
-      .insert({ meeting_id: meetingId, kind: input.kind, message, ip_hash: ipHash, visitor_id: visitorId.slice(0, 64) });
+    const { data, error } = await db().rpc("submit_report", {
+      p_meeting_id: meetingId,
+      p_kind: input.kind,
+      p_message: message,
+      p_ip_hash: ipHash,
+      p_visitor_id: visitorId.slice(0, 64),
+    });
     if (error) throw new Error(error.message);
-    await cleanupReportData();
+    if (data === "too_many") return { ok: false, reason: "too_many" };
+    // 같은 신고를 연달아 보낸 경우('duplicate')는 이미 받았으므로 보낸 것으로 보여 준다
+    if (data !== "ok" && data !== "duplicate") throw new Error(`unexpected submit_report result: ${String(data)}`);
+    if (data === "ok") await cleanupReportData();
     return { ok: true };
   } catch (e) {
     console.error("[owl] report failed", e);
@@ -52,21 +52,4 @@ function cleanMessage(v: unknown): string | null {
   // 줄바꿈·탭 말고 눈에 안 보이는 제어 문자는 뺀다
   const s = v.replace(/\r\n/g, "\n").replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, "").trim().slice(0, REPORT_MESSAGE_MAX);
   return s || null;
-}
-
-async function tooMany(ipHash: string, meetingId: number): Promise<boolean> {
-  const ago = (ms: number) => new Date(Date.now() - ms).toISOString();
-  const count = async (q: PromiseLike<{ count: number | null; error: unknown }>) => {
-    const { count: n, error } = await q;
-    if (error) throw error;
-    return n ?? 0;
-  };
-  const base = () => db().from("reports").select("id", { count: "exact", head: true });
-  const [tenMin, day, sameMeeting, all] = await Promise.all([
-    count(base().eq("ip_hash", ipHash).gte("created_at", ago(10 * 60_000))),
-    count(base().eq("ip_hash", ipHash).gte("created_at", ago(24 * 3600_000))),
-    count(base().eq("ip_hash", ipHash).eq("meeting_id", meetingId).gte("created_at", ago(24 * 3600_000))),
-    count(base().gte("created_at", ago(3600_000))),
-  ]);
-  return tenMin >= LIMITS.per10min || day >= LIMITS.perDay || sameMeeting >= LIMITS.perMeetingPerDay || all >= LIMITS.allPerHour;
 }

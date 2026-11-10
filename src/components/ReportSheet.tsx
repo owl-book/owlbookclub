@@ -18,6 +18,8 @@ export function ReportSheet({ meetingId, storeId, closed }: Props) {
   const [pending, startTransition] = useTransition();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const honeypotRef = useRef<HTMLInputElement>(null);
+  // 누르는 즉시 잠금. 버튼이 꺼지는 화면 갱신보다 먼저 두 번 눌러도(빠른 두 번 누르기·Enter 연타) 한 번만 보낸다
+  const sendingRef = useRef(false);
 
   // 이미 마감으로 표시된 모임에는 '마감됐어요'를 고를 필요가 없다
   const kinds = REPORT_KINDS.filter((k) => !(closed && k.key === "closed"));
@@ -53,12 +55,15 @@ export function ReportSheet({ meetingId, storeId, closed }: Props) {
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!kind || needsMessage) return;
+    if (!kind || needsMessage || sendingRef.current) return;
+    sendingRef.current = true;
     startTransition(async () => {
       try {
         setResult(await submitReport({ meetingId, kind, message, website: honeypotRef.current?.value }));
       } catch {
         setResult({ ok: false, reason: "failed" });
+      } finally {
+        sendingRef.current = false;
       }
     });
   };
