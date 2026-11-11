@@ -84,7 +84,11 @@ export function BulkEditForm({ save, approve, anchor, series, sessions, children
     } catch {
       result = { error: SAVE_FAILED };
     }
-    if (!result) return true;
+    if (!result) {
+      // 저장됐다고 접이식 칸(LazyEditBox)에 알린다: 이 폼은 저장한 값으로 새로 받아 와야 한다
+      form.dispatchEvent(new CustomEvent("review-saved", { bubbles: true }));
+      return true;
+    }
     setError(result.error);
     const box = form.closest("details");
     if (box) box.open = true;

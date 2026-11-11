@@ -151,3 +151,22 @@ export async function getPendingExhibition(id: number): Promise<PendingExhibitio
   if (!Number.isSafeInteger(id) || id <= 0) return null;
   return (await getPendingExhibitions())?.find((e) => e.id === id) ?? null;
 }
+
+// 고치기 폼을 펼칠 때 필요한 대기 모임들을 읽는다(대기 중인 것만, 요청한 순서대로). 전체 대기 목록을 읽지 않는다
+export async function getPendingMeetingsByIds(ids: number[]): Promise<PendingMeeting[]> {
+  const list = [...new Set(ids)].filter((n) => Number.isSafeInteger(n) && n > 0).slice(0, 100);
+  if (list.length === 0 || !hasDb()) return [];
+  const { data, error } = await db().from("meetings").select(MEETING_SELECT).in("id", list).eq("pending_review", true);
+  if (error) throw new Error(error.message);
+  type Row = MeetingRow & { review_note?: string | null };
+  const byId = new Map((data as unknown as Row[]).map((r) => [r.id, { ...meetingFromRow(r), note: r.review_note?.trim() || null, postUrlRaw: r.post_url } as PendingMeeting]));
+  return list.flatMap((id) => byId.get(id) ?? []);
+}
+
+// 고치기 폼을 펼칠 때 필요한 대기 책방 하나
+export async function getPendingStoreById(id: number): Promise<PendingStore | null> {
+  if (!Number.isSafeInteger(id) || id <= 0 || !hasDb()) return null;
+  const { data, error } = await db().from("stores").select("*").eq("id", id).eq("pending_review", true).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? storeFromRow(data as StoreRow) : null;
+}
